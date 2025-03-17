@@ -1,0 +1,13 @@
+{
+    "@metadata": {
+		"authors": [
+			"Sanjay Thiyagarajan"
+		]
+	},
+    "wikai": "Wikai",
+	"wikai-desc": "LLM for MediaWiki",
+	"wikai-chat-welcometext": "Welcome to Wikai chat",
+	"wikai-chat-welcomedesc": "Ask me about anything in your wiki, and I'll try to help!",
+	"wikai-chat-instruction1": "Get answers to your questions",
+	"wikai-chat-instruction2": "AI-powered responses"
+}

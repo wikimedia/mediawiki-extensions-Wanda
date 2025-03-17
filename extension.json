@@ -1,0 +1,73 @@
+{
+	"name": "Wikai",
+	"namemsg": "wikai-name",
+	"version": "1.0.0",
+	"author": [
+		"Sanjay Thiyagarajan"
+	],
+	"url": "",
+	"descriptionmsg": "wikai-desc",
+	"load_composer_autoloader": true,
+	"license-name": "GPL-2.0-or-later",
+	"type": "specialpage",
+	"requires": {
+		"MediaWiki": ">= 1.36.0"
+	},
+	"MessagesDirs": {
+		"Wikai": [
+			"i18n"
+		]
+	},
+	"ExtensionMessagesFiles": {
+		"WikaiAlias": "Wikai_Aliases.php"
+	},
+	"AutoloadNamespaces": {
+        "MediaWiki\\Extension\\Wikai": "includes"
+    },
+	"AutoloadClasses": {
+        "MediaWiki\\Extension\\Wikai\\SpecialAIChat": "includes/specials/SpecialAIChat.php",
+		"MediaWiki\\Extension\\Wikai\\APIChat": "includes/APIChat.php"
+	},
+	"SpecialPages": {
+		"Wikai": "MediaWiki\\Extension\\Wikai\\SpecialAIChat"
+	},
+	"APIModules": {
+        "chatbot": "MediaWiki\\Extension\\Wikai\\APIChat"
+    },
+	"ResourceModules": {
+		"ext.wikai.main": {
+			"scripts": [
+				"libs/index.js"
+			],
+			"styles": [
+				"libs/index.css"
+			],
+			"dependencies": [
+				"mediawiki.util",
+				"mediawiki.api",
+				"oojs-ui-core",
+				"oojs-ui-widgets"
+			],
+			"messages": [
+				"wikai-chat-welcometext",
+				"wikai-chat-welcomedesc",
+				"wikai-chat-instruction1",
+				"wikai-chat-instruction2"
+			],
+			"targets": [
+				"desktop",
+				"mobile"
+			]
+		}
+	},
+	"ResourceFileModulePaths": {
+		"localBasePath": "",
+		"remoteExtPath": "Wikai"
+	},
+	"Hooks": {
+	},
+	"config": {
+		"LLMApiEndpoint": "https://grapevinewiki.com/api/chat/"
+    },
+	"manifest_version": 1
+}
