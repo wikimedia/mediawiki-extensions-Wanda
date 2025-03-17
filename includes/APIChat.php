@@ -2,6 +2,8 @@
 
 namespace MediaWiki\Extension\Wikai;
 
+use ApiBase;
+
 class APIChat extends ApiBase {
 	/** @var string */
 	private static $esHost;
@@ -15,13 +17,20 @@ class APIChat extends ApiBase {
 
 		// Fetch settings from MediaWiki config
 		self::$esHost = $this->getConfig()->get( 'LLMElasticsearchUrl' ) ?? "http://localhost:9200";
-		self::$indexName = $this->getConfig()->get( 'LLMElasticsearchIndex' ) ?? $this->detectElasticsearchIndex();
+		self::$indexName = $this->detectElasticsearchIndex();
 		self::$llmModel = $this->getConfig()->get( 'LLMOllamaModel' ) ?? "gemma";
 	}
 
 	public function execute() {
 		$params = $this->extractRequestParams();
 		$userQuery = $params['message'];
+
+		// Skip processing if no index is found
+		if ( !self::$indexName ) {
+			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Skipping query." );
+			$this->getResult()->addValue( null, "response", "I couldn't find relevant wiki information." );
+			return;
+		}
 
 		// Retrieve relevant embeddings from Elasticsearch
 		$retrievedData = $this->queryElasticsearch( $userQuery );
@@ -39,7 +48,7 @@ class APIChat extends ApiBase {
 	}
 
 	/**
-	 * Detects the most recent Elasticsearch index dynamically if not set.
+	 * Detects the most recent Elasticsearch index dynamically.
 	 */
 	private function detectElasticsearchIndex() {
 		$ch = curl_init( self::$esHost . "/_cat/indices?v&format=json" );
@@ -49,8 +58,8 @@ class APIChat extends ApiBase {
 
 		$indices = json_decode( $response, true );
 		if ( !$indices || !is_array( $indices ) ) {
-			wfDebugLog( 'Chatbot', "Failed to retrieve Elasticsearch indices" );
-			return "wiki_embeddings"; // Default fallback index
+			wfDebugLog( 'Chatbot', "Failed to retrieve Elasticsearch indices." );
+			return null;
 		}
 
 		// Filter indices related to MediaWiki embeddings
@@ -63,7 +72,13 @@ class APIChat extends ApiBase {
 			return strcmp( $b['index'], $a['index'] );
 		} );
 
-		return $validIndices[0]['index'] ?? "wiki_embeddings"; // Fallback
+		$selectedIndex = $validIndices[0]['index'] ?? null;
+
+		if ( !$selectedIndex ) {
+			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found." );
+		}
+
+		return $selectedIndex;
 	}
 
 	/**

@@ -1,170 +1,147 @@
 <?php
 
-namespace MediaWiki\Extension\Chatbot\Hooks;
+namespace MediaWiki\Extension\Wikai;
 
 use File;
-use MediaWiki\Hook\FileUploadCompleteHook;
-use MediaWiki\Hook\PageContentSaveCompleteHook;
-use MediaWiki\Page\WikiPage;
-use MediaWiki\Revision\RevisionRecord;
-use Status;
+use MediaWiki\MediaWikiServices;
+use Title;
+use WikiPage;
 
-class PageIndexUpdater implements PageContentSaveCompleteHook, FileUploadCompleteHook {
+class PageIndexUpdater {
+	/** @var string */
+	private static $esHost;
+	/** @var string */
+	private static $indexName;
 
-	private $apiEndpoint;
-	private $embeddingModel;
-	private $elasticSearchUrl;
-	private $defaultIndex;
-	private $chunkSize;
+	/**
+	 * Initializes Elasticsearch settings from MediaWiki config.
+	 */
+	public static function initialize() {
+		$config = MediaWikiServices::getInstance()->getMainConfig();
+		self::$esHost = $config->get( 'LLMElasticsearchUrl' ) ?? "http://localhost:9200";
+		self::$indexName = self::detectElasticsearchIndex();
 
-	public function __construct() {
-		$this->apiEndpoint = ( $this->getConfig()->get( 'LLMApiEndpoint' ) ?? "http://ollama:11434/api/" ) . "embeddings/";
-		$this->embeddingModel = $this->getConfig()->get( 'LLMOllamaEmbeddingModel' ) ?? "nomic-embed-text";
-		$this->elasticSearchUrl = $this->getConfig()->get( 'LLMElasticsearchUrl' ) ?? "http://localhost:9200";
-		$this->defaultIndex = $this->getConfig()->get( 'LLMElasticsearchIndex' ) ?? "wiki_embeddings";
-		$this->chunkSize = $this->getConfig()->get( 'LLMEmbeddingChunkSize' ) ?? 8000;
+		if ( !self::$indexName ) {
+			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Skipping indexing." );
+		}
 	}
 
 	/**
-	 * Hook: Runs when a wiki page is edited or created
+	 * Detects the most recent Elasticsearch index dynamically.
 	 */
-	public function onPageContentSaveComplete(
-		WikiPage $wikiPage, RevisionRecord $revision, string $editSummary,
-		int $flags, \UserIdentity $user, $content, Status $status
-	) {
-		$title = $wikiPage->getTitle()->getText();
+	private static function detectElasticsearchIndex() {
+		$ch = curl_init( self::$esHost . "/_cat/indices?v&format=json" );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		$response = curl_exec( $ch );
+		curl_close( $ch );
+
+		$indices = json_decode( $response, true );
+		if ( !$indices || !is_array( $indices ) ) {
+			wfDebugLog( 'Chatbot', "Failed to retrieve Elasticsearch indices." );
+			return null; // No default fallback
+		}
+
+		// Filter indices related to MediaWiki embeddings
+		$validIndices = array_filter( $indices, static function ( $index ) {
+			return strpos( $index['index'], 'mediawiki_content_' ) === 0;
+		} );
+
+		// Sort by index creation order and return the most recent one
+		usort( $validIndices, static function ( $a, $b ) {
+			return strcmp( $b['index'], $a['index'] );
+		} );
+
+		$selectedIndex = $validIndices[0]['index'] ?? null;
+
+		if ( !$selectedIndex ) {
+			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found." );
+		}
+
+		return $selectedIndex;
+	}
+
+	/**
+	 * Updates or adds a wiki page's content to Elasticsearch.
+	 */
+	public static function updateIndex( Title $title, WikiPage $wikiPage ) {
+		if ( !self::$indexName ) {
+			wfDebugLog( 'Chatbot', "Skipping indexing due to missing index." );
+			return;
+		}
+
+		$content = $wikiPage->getContent();
+		if ( !$content ) {
+			wfDebugLog( 'Chatbot', "Skipping indexing for empty content: " . $title->getPrefixedText() );
+			return;
+		}
+
 		$text = ContentHandler::getContentText( $content );
-		$indexName = $this->getDynamicIndexName();
 
-		$this->processContent( $title, $text, $indexName );
-	}
+		// Check if the page has an attached PDF file
+		$pdfText = self::extractTextFromPDF( $title );
 
-	/**
-	 * Hook: Runs when a new file is uploaded
-	 */
-	public function onFileUploadComplete( File $file ) {
-		$title = $file->getTitle()->getText();
-		$text = $this->extractFileText( $file );
-		$indexName = $this->getDynamicIndexName();
+		// Combine text from the page content and PDF
+		$fullText = trim( $text . "\n" . $pdfText );
 
-		if ( $text ) {
-			$this->processContent( $title, $text, $indexName );
-		} else {
-			wfDebugLog( 'Chatbot', "Failed to extract text from file: $title" );
-		}
-	}
-
-	/**
-	 * Process content, generate embeddings, and index in Elasticsearch
-	 */
-	private function processContent( $title, $text, $indexName ) {
-		$chunks = $this->splitIntoChunks( $text );
-		foreach ( $chunks as $index => $chunk ) {
-			$embedding = $this->generateEmbedding( $chunk );
-			if ( !$embedding ) {
-				wfDebugLog( 'Chatbot', "Failed to generate embedding for: $title (Chunk $index)" );
-				continue;
-			}
-			$this->indexChunk( $title, $chunk, $embedding, $index, $indexName );
-		}
-	}
-
-	/**
-	 * Extracts text content from uploaded files (PDF, text files)
-	 */
-	private function extractFileText( File $file ) {
-		$path = $file->getLocalRefPath();
-		if ( !$path ) {
-			return null;
-		}
-
-		$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-
-		if ( in_array( $ext, [ 'txt', 'csv', 'md' ] ) ) {
-			return file_get_contents( $path );
-		} elseif ( $ext === 'pdf' ) {
-			$pdfExtract = shell_exec( command: "pdftotext '$path' -" );
-			if ( $pdfExtract ) {
-				return $pdfExtract;
-			} else {
-				throw new MWException( $this->msg( 'wikai-chat-pdftotext-error' )->parse() );
-			}
-		}
-
-		return null;
-	}
-
-	private function splitIntoChunks( $text ) {
-		$words = explode( " ", $text );
-		$chunks = [];
-		$currentChunk = "";
-
-		foreach ( $words as $word ) {
-			if ( strlen( $currentChunk ) + strlen( $word ) < $this->chunkSize ) {
-				$currentChunk .= " " . $word;
-			} else {
-				$chunks[] = trim( $currentChunk );
-				$currentChunk = $word;
-			}
-		}
-
-		if ( !empty( $currentChunk ) ) {
-			$chunks[] = trim( $currentChunk );
-		}
-
-		return $chunks;
-	}
-
-	private function generateEmbedding( $text ) {
-		$payload = [ "model" => $this->embeddingModel, "input" => $text ];
-		$response = $this->sendPostRequest( $this->apiEndpoint, $payload );
-		return $response['embedding'] ?? null;
-	}
-
-	private function indexChunk( $title, $chunk, $embedding, $chunkIndex, $indexName ) {
-		$payload = [ "title" => $title, "chunk_index" => $chunkIndex, "text" => $chunk, "embedding" => $embedding ];
-		$docId = urlencode( $title ) . "_chunk_" . $chunkIndex;
-		$url = "{$this->elasticSearchUrl}/{$indexName}/_doc/$docId";
-		$this->sendPutRequest( $url, $payload );
-	}
-
-	/**
-	 * Retrieves the most relevant Elasticsearch index dynamically
-	 */
-	private function getDynamicIndexName() {
-		$url = "{$this->elasticSearchUrl}/_cat/indices?v&format=json";
-		$indices = $this->sendGetRequest( $url );
-
-		if ( !is_array( $indices ) ) {
-			return $this->defaultIndex;
-		}
-
-		foreach ( $indices as $index ) {
-			if ( strpos( $index['index'], "mediawiki_content" ) !== false ) {
-				return $index['index'];
-			}
-		}
-
-		return $this->defaultIndex;
-	}
-
-	private function sendPostRequest( $url, $data ) {
-		$opts = [
-			'http' => [ 'method' => 'POST', 'header' => "Content-Type: application/json",
-			'content' => json_encode( $data ), 'timeout' => 10 ]
+		$document = [
+			"title" => $title->getPrefixedText(),
+			"content" => $fullText
 		];
-		return json_decode( file_get_contents( $url, false, stream_context_create( $opts ) ), true );
+
+		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_doc/" . urlencode( $title->getPrefixedText() ) );
+		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
+		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $document ) );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
+
+		$response = curl_exec( $ch );
+		curl_close( $ch );
+
+		wfDebugLog( 'Chatbot', "Indexed page: " . $title->getPrefixedText() . " Response: " . $response );
 	}
 
-	private function sendPutRequest( $url, $data ) {
-		$opts = [
-			'http' => [ 'method' => 'PUT', 'header' => "Content-Type: application/json",
-			'content' => json_encode( $data ), 'timeout' => 10 ]
-		];
-		return json_decode( file_get_contents( $url, false, stream_context_create( $opts ) ), true );
+	/**
+	 * Extracts text from an attached PDF using pdftotext.
+	 */
+	private static function extractTextFromPDF( Title $title ) {
+		$fileRepo = MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo();
+		$file = $fileRepo->findFile( $title );
+
+		if ( !$file || $file->getMimeType() !== 'application/pdf' ) {
+			return ''; // No PDF found
+		}
+
+		$pdfPath = $file->getLocalRefPath();
+		$output = [];
+
+		if ( $pdfPath && file_exists( $pdfPath ) ) {
+			$cmd = "pdftotext -layout " . escapeshellarg( $pdfPath ) . " -";
+			exec( $cmd, $output );
+		}
+
+		return implode( "\n", $output );
 	}
 
-	private function sendGetRequest( $url ) {
-		return json_decode( file_get_contents( $url ), true );
+	/**
+	 * Hook: Handles page save to trigger indexing.
+	 */
+	public static function onPageContentSaveComplete( $wikiPage, $user, $summary, $flags, $revision, $status, $baseRevId ) {
+		self::initialize();
+		self::updateIndex( $wikiPage->getTitle(), $wikiPage );
+	}
+
+	/**
+	 * Hook: Handles file upload to extract PDF text and index it.
+	 */
+	public static function onFileUploadComplete( File $file ) {
+		self::initialize();
+
+		$title = Title::makeTitleSafe( NS_FILE, $file->getTitle() );
+		if ( !$title ) {
+			return;
+		}
+
+		$wikiPage = new WikiPage( $title );
+		self::updateIndex( $title, $wikiPage );
 	}
 }
