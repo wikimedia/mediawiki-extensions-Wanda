@@ -73,7 +73,8 @@
 		"LLMApiEndpoint": "http://ollama:11434/api/",
 		"LLMOllamaEmbeddingModel": "nomic-embed-text",
 		"LLMElasticsearchUrl": "http://elasticsearch:9200",
-		"LLMEmbeddingChunkSize": 8000
+		"LLMEmbeddingChunkSize": 8000,
+		"LLMOllamaModel": "gemma"
     },
 	"manifest_version": 1
 }
