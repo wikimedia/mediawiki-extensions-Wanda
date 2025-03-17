@@ -1,5 +1,7 @@
 <?php
 
+namespace MediaWiki\Extension\Wikai;
+
 class APIChat extends ApiBase {
 	/** @var string */
 	private static $esHost;
