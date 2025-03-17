@@ -9,5 +9,6 @@
 	"wikai-chat-welcometext": "Welcome to Wikai chat",
 	"wikai-chat-welcomedesc": "Ask me about anything in your wiki, and I'll try to help!",
 	"wikai-chat-instruction1": "Get answers to your questions",
-	"wikai-chat-instruction2": "AI-powered responses"
+	"wikai-chat-instruction2": "AI-powered responses",
+	"wikai-chat-pdftotext-error": "Please ensure that pdftotext utility is installed and ready to use."
 }
