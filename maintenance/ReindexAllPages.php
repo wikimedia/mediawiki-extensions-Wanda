@@ -1,6 +1,6 @@
 <?php
 
-namespace MediaWiki\Extension\Chatbot\Maintenance;
+namespace MediaWiki\Extension\Wikai\Maintenance;
 
 use Maintenance;
 use MediaWiki\MediaWikiServices;

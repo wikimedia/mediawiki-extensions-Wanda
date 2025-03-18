@@ -1,6 +1,6 @@
 <?php
 
-namespace MediaWiki\Extension\Wikai;
+namespace MediaWiki\Extension\Wikai\Hooks;
 
 use File;
 use MediaWiki\MediaWikiServices;
@@ -77,15 +77,20 @@ class PageIndexUpdater {
 
 		$text = ContentHandler::getContentText( $content );
 
-		// Check if the page has an attached PDF file
 		$pdfText = self::extractTextFromPDF( $title );
 
-		// Combine text from the page content and PDF
 		$fullText = trim( $text . "\n" . $pdfText );
+
+		$embedding = self::generateEmbedding( $fullText );
+		if ( !$embedding ) {
+			wfDebugLog( 'Chatbot', "Failed to generate embedding for: " . $title->getPrefixedText() );
+			return;
+		}
 
 		$document = [
 			"title" => $title->getPrefixedText(),
-			"content" => $fullText
+			"content" => $fullText,
+			"embedding" => $embedding
 		];
 
 		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_doc/" . urlencode( $title->getPrefixedText() ) );
@@ -98,6 +103,28 @@ class PageIndexUpdater {
 		curl_close( $ch );
 
 		wfDebugLog( 'Chatbot', "Indexed page: " . $title->getPrefixedText() . " Response: " . $response );
+	}
+
+	/**
+	 * Generate an embedding for the text using Ollama API.
+	 */
+	private static function generateEmbedding( $text ) {
+		$config = MediaWikiServices::getInstance()->getMainConfig();
+		$embeddingModel = $config->get( 'LLMEmbeddingModel' ) ?? "nomic-embed-text"; // Use embedding model
+		$embeddingEndpoint = $config->get( 'LLMApiEndpoint' ) . "embeddings/";
+
+		$payload = [ "model" => $embeddingModel, "input" => $text ];
+
+		$ch = curl_init( $embeddingEndpoint );
+		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
+		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $payload ) );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
+
+		$response = curl_exec( $ch );
+		curl_close( $ch );
+
+		return json_decode( $response, true )['embedding'] ?? null;
 	}
 
 	/**

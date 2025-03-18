@@ -81,17 +81,25 @@ class APIChat extends ApiBase {
 		return $selectedIndex;
 	}
 
-	/**
-	 * Queries Elasticsearch for the best matching content
-	 */
 	private function queryElasticsearch( $queryText ) {
+		$queryEmbedding = $this->generateEmbedding( $queryText );
+		if ( !$queryEmbedding ) {
+			wfDebugLog( 'Chatbot', "Failed to generate embedding for query: $queryText" );
+			return null;
+		}
+
 		$queryData = [
+			"size" => 3,
 			"query" => [
-				"match" => [
-					"content" => $queryText
+				"knn" => [
+					"embedding" => [
+						"vector" => $queryEmbedding,
+						"k" => 3,
+						"num_candidates" => 10
+					]
 				]
 			],
-			"_source" => [ "title", "content" ]
+			"_source" => [ "title", "text" ]
 		];
 
 		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_search" );
@@ -104,15 +112,34 @@ class APIChat extends ApiBase {
 		curl_close( $ch );
 		$data = json_decode( $response, true );
 
-		if ( !isset( $data['hits']['hits'][0] ) ) {
+		if ( empty( $data['hits']['hits'] ) ) {
 			return null;
 		}
 
 		$bestMatch = $data['hits']['hits'][0]['_source'];
 		return [
-			"content" => $bestMatch['content'],
+			"content" => $bestMatch['text'],
 			"source" => $bestMatch['title']
 		];
+	}
+
+	/**
+	 * Generate an embedding for the query using Ollama API.
+	 */
+	private function generateEmbedding( $text ) {
+		$payload = [ "model" => self::$llmModel, "input" => $text ];
+		$embeddingEndpoint = $this->getConfig()->get( 'LLMApiEndpoint' ) . "embeddings/";
+
+		$ch = curl_init( $embeddingEndpoint );
+		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
+		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $payload ) );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
+
+		$response = curl_exec( $ch );
+		curl_close( $ch );
+
+		return json_decode( $response, true )['embedding'] ?? null;
 	}
 
 	/**
