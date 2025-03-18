@@ -18,6 +18,7 @@ class ReindexAllPages extends Maintenance {
 		$res = $dbr->select( 'page', [ 'page_title' ], [], __METHOD__ );
 		foreach ( $res as $row ) {
 			$title = $row->page_title;
+			wfDebugLog( 'Chatbot', "Reindexing page => " . $title->getText() );
 			$wikiPage = MediaWikiServices::getInstance()->getWikiPageFactory()->newFromTitle( $title );
 			PageIndexUpdater::updateIndex( $title, $wikiPage );
 		}
