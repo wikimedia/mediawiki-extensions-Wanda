@@ -134,6 +134,9 @@ class APIChat extends ApiBase {
 		$payload = [ "model" => $embeddingModel, "input" => $text ];
 		$embeddingEndpoint = $this->getConfig()->get( 'LLMApiEndpoint' ) . "embed";
 
+		wfDebugLog( 'Chatbot', "Sending request to: " . $embeddingEndpoint );
+		wfDebugLog( 'Chatbot', "Payload: " . json_encode( $payload ) );
+
 		$ch = curl_init( $embeddingEndpoint );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
 		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $payload ) );
@@ -141,8 +144,8 @@ class APIChat extends ApiBase {
 		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
 
 		$response = curl_exec( $ch );
+		wfDebugLog( 'Chatbot', "Ollama Response: " . $response );
 		curl_close( $ch );
-		wfDebugLog( 'Chatbot', "Response from embedding: " . $response );
 
 		return json_decode( $response, true )['embedding'] ?? null;
 	}
