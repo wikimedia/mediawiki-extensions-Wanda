@@ -124,7 +124,13 @@ class PageIndexUpdater {
 		$response = curl_exec( $ch );
 		curl_close( $ch );
 
-		return json_decode( $response, true )['embedding'] ?? null;
+		$jsonResponse = json_decode( $response, true );
+
+		if ( json_last_error() !== JSON_ERROR_NONE ) {
+			wfDebugLog( 'Chatbot', "JSON Decode Error: " . json_last_error_msg() );
+		}
+
+		return $jsonResponse ?? null;
 	}
 
 	/**

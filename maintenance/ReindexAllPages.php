@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\Wikai\Maintenance;
 
 use Maintenance;
+use MediaWiki\Extension\Wikai\Hooks\PageIndexUpdater;
 use MediaWiki\MediaWikiServices;
 
 $IP = getenv( 'MW_INSTALL_PATH' );
@@ -18,8 +19,7 @@ class ReindexAllPages extends Maintenance {
 		foreach ( $res as $row ) {
 			$title = $row->page_title;
 			$wikiPage = MediaWikiServices::getInstance()->getWikiPageFactory()->newFromTitle( $title );
-			$content = ContentHandler::getContentText( $wikiPage->getContent() );
-			( new PageIndexUpdater() )->processContent( $title, $content );
+			PageIndexUpdater::updateIndex( $title, $wikiPage );
 		}
 	}
 }
