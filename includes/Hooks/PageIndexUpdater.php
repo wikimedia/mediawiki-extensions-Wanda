@@ -110,8 +110,8 @@ class PageIndexUpdater {
 	 */
 	private static function generateEmbedding( $text ) {
 		$config = MediaWikiServices::getInstance()->getMainConfig();
-		$embeddingModel = $config->get( 'LLMEmbeddingModel' ) ?? "nomic-embed-text"; // Use embedding model
-		$embeddingEndpoint = $config->get( 'LLMApiEndpoint' ) . "embeddings/";
+		$embeddingModel = $config->get( 'LLMOllamaEmbeddingModel' ) ?? "nomic-embed-text"; // Use embedding model
+		$embeddingEndpoint = $config->get( 'LLMApiEndpoint' ) . "embed";
 
 		$payload = [ "model" => $embeddingModel, "input" => $text ];
 

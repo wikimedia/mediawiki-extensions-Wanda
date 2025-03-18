@@ -132,7 +132,7 @@ class APIChat extends ApiBase {
 	private function generateEmbedding( $text ) {
 		$embeddingModel = $this->getConfig()->get( 'LLMOllamaEmbeddingModel' );
 		$payload = [ "model" => $embeddingModel, "input" => $text ];
-		$embeddingEndpoint = $this->getConfig()->get( 'LLMApiEndpoint' ) . "embeddings/";
+		$embeddingEndpoint = $this->getConfig()->get( 'LLMApiEndpoint' ) . "embed";
 
 		$ch = curl_init( $embeddingEndpoint );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
