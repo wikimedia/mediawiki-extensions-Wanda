@@ -158,7 +158,7 @@ class PageIndexUpdater {
 	/**
 	 * Hook: Handles page save to trigger indexing.
 	 */
-	public static function onPageContentSaveComplete( $wikiPage, $user, $summary, $flags, $revision, $status, $baseRevId ) {
+	public static function onPageSaveComplete( $wikiPage, $user, $summary, $flags, $revision, $editResult ) {
 		self::initialize();
 		self::updateIndex( $wikiPage->getTitle(), $wikiPage );
 	}

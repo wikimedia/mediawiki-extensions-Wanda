@@ -67,7 +67,7 @@
 		"remoteExtPath": "Wikai"
 	},
 	"Hooks": {
-		"PageContentSaveComplete": "MediaWiki\\Extension\\Wikai\\Hooks\\PageIndexUpdater::onPageContentSaveComplete",
+		"PageSaveComplete": "MediaWiki\\Extension\\Wikai\\Hooks\\PageIndexUpdater::onPageSaveComplete",
 		"FileUploadComplete": "MediaWiki\\Extension\\Wikai\\Hooks\\PageIndexUpdater::onFileUploadComplete"
 	},
 	"config": {
