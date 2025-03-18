@@ -28,14 +28,16 @@ class APIChat extends ApiBase {
 		// Skip processing if no index is found
 		if ( !self::$indexName ) {
 			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Skipping query." );
-			$this->getResult()->addValue( null, "response", "I couldn't find relevant wiki information." );
+			$this->getResult()->addValue( null, "response", "I couldn't find relevant wiki information since no indices were found" );
 			return;
 		}
 
 		// Retrieve relevant embeddings from Elasticsearch
 		$retrievedData = $this->queryElasticsearch( $userQuery );
+		wfDebugLog( 'Chatbot', "Response from elasticsearch => " . print_r( $retrievedData, true ) );
 		if ( !$retrievedData ) {
-			$this->getResult()->addValue( null, "response", "I couldn't find relevant wiki information." );
+			$this->getResult()->addValue( null, "response", "I couldn't find relevant wiki information in the index"
+				. " => " . self::$indexName );
 			return;
 		}
 

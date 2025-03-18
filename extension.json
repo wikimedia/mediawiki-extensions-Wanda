@@ -26,7 +26,8 @@
     },
 	"AutoloadClasses": {
         "MediaWiki\\Extension\\Wikai\\SpecialAIChat": "includes/specials/SpecialAIChat.php",
-		"MediaWiki\\Extension\\Wikai\\APIChat": "includes/APIChat.php"
+		"MediaWiki\\Extension\\Wikai\\APIChat": "includes/APIChat.php",
+		"MediaWiki\\Extension\\Wikai\\Maintenance\\ReindexAllPages": "maintenance/ReindexAllPages.php"
 	},
 	"SpecialPages": {
 		"Wikai": "MediaWiki\\Extension\\Wikai\\SpecialAIChat"
