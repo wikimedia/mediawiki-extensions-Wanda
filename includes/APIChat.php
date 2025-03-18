@@ -112,6 +112,7 @@ class APIChat extends ApiBase {
 
 		$response = curl_exec( $ch );
 		curl_close( $ch );
+		wfDebugLog( 'Chatbot', "Response from embedding: " . $response );
 		$data = json_decode( $response, true );
 
 		if ( empty( $data['hits']['hits'] ) ) {
@@ -129,7 +130,8 @@ class APIChat extends ApiBase {
 	 * Generate an embedding for the query using Ollama API.
 	 */
 	private function generateEmbedding( $text ) {
-		$payload = [ "model" => self::$llmModel, "input" => $text ];
+		$embeddingModel = $this->getConfig()->get( 'LLMOllamaEmbeddingModel' );
+		$payload = [ "model" => $embeddingModel, "input" => $text ];
 		$embeddingEndpoint = $this->getConfig()->get( 'LLMApiEndpoint' ) . "embeddings/";
 
 		$ch = curl_init( $embeddingEndpoint );
