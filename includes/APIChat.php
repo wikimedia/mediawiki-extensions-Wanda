@@ -103,6 +103,7 @@ class APIChat extends ApiBase {
 			],
 			"_source" => [ "title", "text" ]
 		];
+		wfDebugLog( 'Chatbot', "Query passed to elasticsearch: " . $queryData );
 
 		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_search" );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
@@ -112,7 +113,6 @@ class APIChat extends ApiBase {
 
 		$response = curl_exec( $ch );
 		curl_close( $ch );
-		wfDebugLog( 'Chatbot', "Response from embedding: " . $response );
 		$data = json_decode( $response, true );
 
 		if ( empty( $data['hits']['hits'] ) ) {
@@ -142,6 +142,7 @@ class APIChat extends ApiBase {
 
 		$response = curl_exec( $ch );
 		curl_close( $ch );
+		wfDebugLog( 'Chatbot', "Response from embedding: " . $response );
 
 		return json_decode( $response, true )['embedding'] ?? null;
 	}
