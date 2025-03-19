@@ -127,6 +127,7 @@ class PageIndexUpdater {
 	 * Updates or adds a wiki page's content to Elasticsearch.
 	 */
 	public static function updateIndex( Title $title, WikiPage $wikiPage ) {
+		self::initialize();
 		if ( !self::$indexName ) {
 			wfDebugLog( 'Chatbot', "Skipping indexing due to missing index." );
 			return;
@@ -219,12 +220,10 @@ class PageIndexUpdater {
 	 * Hooks to trigger indexing.
 	 */
 	public static function onPageSaveComplete( $wikiPage, $user, $summary, $flags, $revision, $editResult ) {
-		self::initialize();
 		self::updateIndex( $wikiPage->getTitle(), $wikiPage );
 	}
 
 	public static function onFileUploadComplete( File $file ) {
-		self::initialize();
 		$title = Title::makeTitleSafe( NS_FILE, $file->getTitle() );
 		if ( !$title ) {
 			return;
