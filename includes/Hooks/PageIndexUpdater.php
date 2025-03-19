@@ -2,7 +2,6 @@
 
 namespace MediaWiki\Extension\Wikai\Hooks;
 
-use File;
 use MediaWiki\MediaWikiServices;
 use Title;
 use WikiPage;
@@ -22,7 +21,8 @@ class PageIndexUpdater {
 		self::$indexName = self::detectElasticsearchIndex();
 
 		if ( !self::$indexName ) {
-			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Skipping indexing." );
+			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Creating a new one..." );
+			self::$indexName = self::createElasticsearchIndex();
 		}
 	}
 
@@ -38,26 +38,71 @@ class PageIndexUpdater {
 		$indices = json_decode( $response, true );
 		if ( !$indices || !is_array( $indices ) ) {
 			wfDebugLog( 'Chatbot', "Failed to retrieve Elasticsearch indices." );
-			return null; // No default fallback
+			return null;
 		}
 
-		// Filter indices related to MediaWiki embeddings
 		$validIndices = array_filter( $indices, static function ( $index ) {
 			return strpos( $index['index'], 'mediawiki_content_' ) === 0;
 		} );
 
-		// Sort by index creation order and return the most recent one
 		usort( $validIndices, static function ( $a, $b ) {
 			return strcmp( $b['index'], $a['index'] );
 		} );
 
-		$selectedIndex = $validIndices[0]['index'] ?? null;
+		return $validIndices[0]['index'] ?? null;
+	}
 
-		if ( !$selectedIndex ) {
-			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found." );
+	/**
+	 * Ensures the Elasticsearch index exists, creating it if necessary.
+	 */
+	private static function createElasticsearchIndex() {
+		$indexName = "mediawiki_content";
+		$ch = curl_init( self::$esHost . "/" . $indexName );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt( $ch, CURLOPT_NOBODY, true ); // Check if index exists
+		curl_exec( $ch );
+		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		curl_close( $ch );
+
+		if ( $httpCode == 404 ) {
+			wfDebugLog( 'Chatbot', "Index '$indexName' does not exist. Creating..." );
+			self::createIndexMapping( $indexName );
+		} else {
+			wfDebugLog( 'Chatbot', "Index '$indexName' already exists." );
 		}
 
-		return $selectedIndex;
+		return $indexName;
+	}
+
+	/**
+	 * Creates an Elasticsearch index with `dense_vector` mapping.
+	 */
+	private static function createIndexMapping( $indexName ) {
+		$mapping = [
+			"mappings" => [
+				"properties" => [
+					"title" => [ "type" => "text" ],
+					"content" => [ "type" => "text" ],
+					"embedding" => [
+						"type" => "dense_vector",
+						"dims" => 768,
+						"index" => true,
+						"similarity" => "cosine"
+					]
+				]
+			]
+		];
+
+		$ch = curl_init( self::$esHost . "/" . $indexName );
+		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "PUT" );
+		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $mapping ) );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
+
+		$response = curl_exec( $ch );
+		curl_close( $ch );
+
+		wfDebugLog( 'Chatbot', "Index '$indexName' created with mapping: " . $response );
 	}
 
 	/**
@@ -77,12 +122,10 @@ class PageIndexUpdater {
 
 		$contentHandler = $content->getContentHandler();
 		$text = $contentHandler::getContentText( $content );
-
 		$pdfText = self::extractTextFromPDF( $title );
-
 		$fullText = trim( $text . "\n" . $pdfText );
 
-		$embedding = self::generateEmbedding( $fullText )[ 'embeddings' ];
+		$embedding = self::generateEmbedding( $fullText )[ 'embeddings' ] ?? null;
 		if ( !$embedding ) {
 			wfDebugLog( 'Chatbot', "Failed to generate embedding for: " . $title->getPrefixedText() );
 			return;
@@ -91,7 +134,7 @@ class PageIndexUpdater {
 		$document = [
 			"title" => $title->getPrefixedText(),
 			"content" => $fullText,
-			"embedding" => $embedding
+			"embedding" => array_map( 'floatval', $embedding )
 		];
 
 		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_doc/" . urlencode( $title->getPrefixedText() ) );
@@ -107,11 +150,11 @@ class PageIndexUpdater {
 	}
 
 	/**
-	 * Generate an embedding for the text using Ollama API.
+	 * Generates an embedding for the text using Ollama API.
 	 */
 	private static function generateEmbedding( $text ) {
 		$config = MediaWikiServices::getInstance()->getMainConfig();
-		$embeddingModel = $config->get( 'LLMOllamaEmbeddingModel' ) ?? "nomic-embed-text"; // Use embedding model
+		$embeddingModel = $config->get( 'LLMOllamaEmbeddingModel' ) ?? "nomic-embed-text";
 		$embeddingEndpoint = $config->get( 'LLMApiEndpoint' ) . "embed";
 
 		$payload = [ "model" => $embeddingModel, "input" => $text ];
@@ -125,24 +168,18 @@ class PageIndexUpdater {
 		$response = curl_exec( $ch );
 		curl_close( $ch );
 
-		$jsonResponse = json_decode( $response, true );
-
-		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			wfDebugLog( 'Chatbot', "JSON Decode Error: " . json_last_error_msg() );
-		}
-
-		return $jsonResponse ?? null;
+		return json_decode( $response, true ) ?? null;
 	}
 
 	/**
-	 * Extracts text from an attached PDF using pdftotext.
+	 * Extracts text from a PDF file using pdftotext.
 	 */
 	private static function extractTextFromPDF( Title $title ) {
 		$fileRepo = MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo();
 		$file = $fileRepo->findFile( $title );
 
 		if ( !$file || $file->getMimeType() !== 'application/pdf' ) {
-			return ''; // No PDF found
+			return '';
 		}
 
 		$pdfPath = $file->getLocalRefPath();
@@ -154,28 +191,5 @@ class PageIndexUpdater {
 		}
 
 		return implode( "\n", $output );
-	}
-
-	/**
-	 * Hook: Handles page save to trigger indexing.
-	 */
-	public static function onPageSaveComplete( $wikiPage, $user, $summary, $flags, $revision, $editResult ) {
-		self::initialize();
-		self::updateIndex( $wikiPage->getTitle(), $wikiPage );
-	}
-
-	/**
-	 * Hook: Handles file upload to extract PDF text and index it.
-	 */
-	public static function onFileUploadComplete( File $file ) {
-		self::initialize();
-
-		$title = Title::makeTitleSafe( NS_FILE, $file->getTitle() );
-		if ( !$title ) {
-			return;
-		}
-
-		$wikiPage = new WikiPage( $title );
-		self::updateIndex( $title, $wikiPage );
 	}
 }

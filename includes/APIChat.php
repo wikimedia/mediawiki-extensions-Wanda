@@ -91,17 +91,12 @@ class APIChat extends ApiBase {
 		}
 
 		$queryData = [
-			"size" => 3,
-			"query" => [
-				"knn" => [
-					"embedding" => [
-						"vector" => $queryEmbedding,
-						"k" => 3,
-						"num_candidates" => 10
-					]
-				]
-			],
-			"_source" => [ "title", "text" ]
+			"knn" => [
+				"field" => "embedding",
+				"query_vector" => $queryEmbedding,
+				"k" => 5,
+				"num_candidates" => 100
+			]
 		];
 		wfDebugLog( 'Chatbot', "Query passed to elasticsearch: " . $queryData );
 
