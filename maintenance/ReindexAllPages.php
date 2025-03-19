@@ -12,6 +12,8 @@ if ( $IP === false ) {
 }
 require_once "$IP/maintenance/Maintenance.php";
 
+$maintClass = ReindexAllPages::class;
+
 class ReindexAllPages extends Maintenance {
 	public function execute() {
 		$dbr = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_REPLICA );
@@ -24,3 +26,5 @@ class ReindexAllPages extends Maintenance {
 		}
 	}
 }
+
+require_once RUN_MAINTENANCE_IF_MAIN;
