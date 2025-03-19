@@ -75,13 +75,14 @@ class PageIndexUpdater {
 			return;
 		}
 
-		$text = ContentHandler::getContentText( $content );
+		$contentHandler = $content->getContentHandler();
+		$text = $contentHandler::getContentText( $content );
 
 		$pdfText = self::extractTextFromPDF( $title );
 
 		$fullText = trim( $text . "\n" . $pdfText );
 
-		$embedding = self::generateEmbedding( $fullText );
+		$embedding = self::generateEmbedding( $fullText )[ 'embeddings' ];
 		if ( !$embedding ) {
 			wfDebugLog( 'Chatbot', "Failed to generate embedding for: " . $title->getPrefixedText() );
 			return;

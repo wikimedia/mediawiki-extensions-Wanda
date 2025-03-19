@@ -84,7 +84,7 @@ class APIChat extends ApiBase {
 	}
 
 	private function queryElasticsearch( $queryText ) {
-		$queryEmbedding = $this->generateEmbedding( $queryText );
+		$queryEmbedding = $this->generateEmbedding( $queryText )[ 'embeddings' ];
 		if ( !$queryEmbedding ) {
 			wfDebugLog( 'Chatbot', "Failed to generate embedding for query: $queryText" );
 			return null;
@@ -147,7 +147,7 @@ class APIChat extends ApiBase {
 		wfDebugLog( 'Chatbot', "Ollama Response: " . $response );
 		curl_close( $ch );
 
-		$jsonResponse = json_decode( $response, true );
+		$jsonResponse = json_decode( $response, associative: true );
 
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			wfDebugLog( 'Chatbot', "JSON Decode Error: " . json_last_error_msg() );
