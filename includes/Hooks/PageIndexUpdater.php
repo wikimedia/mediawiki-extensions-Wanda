@@ -139,7 +139,8 @@ class PageIndexUpdater {
 			return;
 		}
 
-		$text = ContentHandler::getContentText( $content );
+		$contentHandler = $content->getContentHandler();
+		$text = $contentHandler::getContentText( $content );
 		$pdfText = self::extractTextFromPDF( $title );
 		$fullText = trim( $text . "\n" . $pdfText );
 
