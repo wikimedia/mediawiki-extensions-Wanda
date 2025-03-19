@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\Wikai;
 
 use ApiBase;
+use stdClass;
 
 class APIChat extends ApiBase {
 	/** @var string */
@@ -91,13 +92,18 @@ class APIChat extends ApiBase {
 		}
 
 		$queryData = [
-			"knn" => [
-				"field" => "embedding",
-				"query_vector" => $queryEmbedding,
-				"k" => 5,
-				"num_candidates" => 100
-			]
+			"query" => [
+				"script_score" => [
+					"query" => [ "match_all" => new stdClass() ],
+					"script" => [
+						"source" => "cosineSimilarity(params.query_vector, doc['embedding']) + 1.0",
+						"params" => [ "query_vector" => $queryEmbedding ]
+					]
+				]
+			],
+			"size" => 5
 		];
+
 		wfDebugLog( 'Chatbot', "Query passed to elasticsearch: " . $queryData );
 
 		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_search" );
