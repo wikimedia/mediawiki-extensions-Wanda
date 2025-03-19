@@ -35,7 +35,7 @@ $(document).ready(function () {
   function addMessage(role, text) {
       instructionScreen.hide();
       var msgWrapper = $('<div>').addClass('chat-message-wrapper ' + role + '-wrapper');
-      var msgBubble = $('<div>').addClass('chat-message ' + role + '-message').text(text);
+      var msgBubble = $('<div>').addClass('chat-message ' + role + '-message').html(text);
 
       msgWrapper.append(msgBubble);
       chatBox.append(msgWrapper);
@@ -68,7 +68,8 @@ $(document).ready(function () {
           },
           dataType: 'json',
           success: function (data) {
-              var response = data.response.response || 'Error fetching response';
+              var response = data.response || 'Error fetching response';
+              response = response + "<br><b>Source</b>: " + data.source;
               addMessage('bot', response);
           },
           error: function () {

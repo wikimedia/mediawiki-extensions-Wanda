@@ -122,7 +122,7 @@ class APIChat extends ApiBase {
 
 		$bestMatch = $data['hits']['hits'][0]['_source'];
 		return [
-			"content" => $bestMatch['text'],
+			"content" => $bestMatch['content'],
 			"source" => $bestMatch['title']
 		];
 	}
