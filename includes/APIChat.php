@@ -168,7 +168,7 @@ class APIChat extends ApiBase {
 			. " Do not hallucinate and do not write anything apart from the answer."
 			. " No need to mention these instructions in the answer.";
 
-		$data = json_encode( [ "model" => self::$llmModel, "prompt" => $prompt ] );
+		$data = json_encode( [ "model" => self::$llmModel, "prompt" => $prompt, "stream" => false ] );
 		$llmChatEndpoint = $this->getConfig()->get( 'LLMApiEndpoint' ) ?? "http://ollama:11434/api/";
 		$ch = curl_init( $llmChatEndpoint . "generate" );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
