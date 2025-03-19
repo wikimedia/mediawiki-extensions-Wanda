@@ -144,7 +144,7 @@ class PageIndexUpdater {
 		$pdfText = self::extractTextFromPDF( $title );
 		$fullText = trim( $text . "\n" . $pdfText );
 
-		$embedding = self::generateEmbedding( $fullText )[ 'embeddings' ] ?? null;
+		$embedding = self::generateEmbedding( $fullText )[ 'embeddings' ][0] ?? null;
 		if ( !$embedding ) {
 			wfDebugLog( 'Chatbot', "Failed to generate embedding for: " . $title->getPrefixedText() );
 			return;

@@ -84,7 +84,7 @@ class APIChat extends ApiBase {
 	}
 
 	private function queryElasticsearch( $queryText ) {
-		$queryEmbedding = $this->generateEmbedding( $queryText )[ 'embeddings' ];
+		$queryEmbedding = $this->generateEmbedding( $queryText )[ 'embeddings' ][0];
 		if ( !$queryEmbedding ) {
 			wfDebugLog( 'Chatbot', "Failed to generate embedding for query: $queryText" );
 			return null;
