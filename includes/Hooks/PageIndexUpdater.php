@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\Wikai\Hooks;
 
+use File;
 use MediaWiki\MediaWikiServices;
 use Title;
 use WikiPage;
@@ -18,18 +19,17 @@ class PageIndexUpdater {
 	public static function initialize() {
 		$config = MediaWikiServices::getInstance()->getMainConfig();
 		self::$esHost = $config->get( 'LLMElasticsearchUrl' ) ?? "http://localhost:9200";
-		self::$indexName = self::detectElasticsearchIndex();
+		self::$indexName = self::detectOrCreateElasticsearchIndex();
 
 		if ( !self::$indexName ) {
-			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Creating a new one..." );
-			self::$indexName = self::createElasticsearchIndex();
+			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Skipping indexing." );
 		}
 	}
 
 	/**
-	 * Detects the most recent Elasticsearch index dynamically.
+	 * Detects or creates an Elasticsearch index dynamically.
 	 */
-	private static function detectElasticsearchIndex() {
+	private static function detectOrCreateElasticsearchIndex() {
 		$ch = curl_init( self::$esHost . "/_cat/indices?v&format=json" );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		$response = curl_exec( $ch );
@@ -38,62 +38,46 @@ class PageIndexUpdater {
 		$indices = json_decode( $response, true );
 		if ( !$indices || !is_array( $indices ) ) {
 			wfDebugLog( 'Chatbot', "Failed to retrieve Elasticsearch indices." );
-			return null;
+			return self::createElasticsearchIndex();
 		}
 
+		// Filter indices related to MediaWiki embeddings
 		$validIndices = array_filter( $indices, static function ( $index ) {
 			return strpos( $index['index'], 'mediawiki_content_' ) === 0;
 		} );
 
+		// Sort by index creation order and return the most recent one
 		usort( $validIndices, static function ( $a, $b ) {
 			return strcmp( $b['index'], $a['index'] );
 		} );
 
-		return $validIndices[0]['index'] ?? null;
-	}
+		$selectedIndex = $validIndices[0]['index'] ?? null;
 
-	/**
-	 * Ensures the Elasticsearch index exists, creating it if necessary.
-	 */
-	private static function createElasticsearchIndex() {
-		$indexName = "mediawiki_content";
-		$ch = curl_init( self::$esHost . "/" . $indexName );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_NOBODY, true ); // Check if index exists
-		curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		curl_close( $ch );
-
-		if ( $httpCode == 404 ) {
-			wfDebugLog( 'Chatbot', "Index '$indexName' does not exist. Creating..." );
-			self::createIndexMapping( $indexName );
-		} else {
-			wfDebugLog( 'Chatbot', "Index '$indexName' already exists." );
+		if ( !$selectedIndex ) {
+			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Creating a new one." );
+			return self::createElasticsearchIndex();
 		}
 
-		return $indexName;
+		self::verifyIndexMapping( $selectedIndex );
+		return $selectedIndex;
 	}
 
 	/**
-	 * Creates an Elasticsearch index with `dense_vector` mapping.
+	 * Creates a new Elasticsearch index if none exists.
 	 */
-	private static function createIndexMapping( $indexName ) {
+	private static function createElasticsearchIndex() {
+		$newIndex = "mediawiki_content_" . time();
 		$mapping = [
 			"mappings" => [
 				"properties" => [
 					"title" => [ "type" => "text" ],
 					"content" => [ "type" => "text" ],
-					"embedding" => [
-						"type" => "dense_vector",
-						"dims" => 768,
-						"index" => true,
-						"similarity" => "cosine"
-					]
+					"embedding" => [ "type" => "dense_vector", "dims" => 768 ]
 				]
 			]
 		];
 
-		$ch = curl_init( self::$esHost . "/" . $indexName );
+		$ch = curl_init( self::$esHost . "/$newIndex" );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "PUT" );
 		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $mapping ) );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
@@ -102,7 +86,41 @@ class PageIndexUpdater {
 		$response = curl_exec( $ch );
 		curl_close( $ch );
 
-		wfDebugLog( 'Chatbot', "Index '$indexName' created with mapping: " . $response );
+		wfDebugLog( 'Chatbot', "Created new Elasticsearch index: $newIndex. Response: $response" );
+		return $newIndex;
+	}
+
+	/**
+	 * Verifies and updates the index mapping if needed.
+	 */
+	private static function verifyIndexMapping( $indexName ) {
+		$ch = curl_init( self::$esHost . "/$indexName/_mapping" );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		$response = curl_exec( $ch );
+		curl_close( $ch );
+
+		$mapping = json_decode( $response, true );
+
+		if ( !isset( $mapping[$indexName]['mappings']['properties']['embedding'] ) ) {
+			wfDebugLog( 'Chatbot', "Index $indexName missing embedding field. Updating mapping." );
+
+			$updateMapping = [
+				"properties" => [
+					"embedding" => [ "type" => "dense_vector", "dims" => 768 ]
+				]
+			];
+
+			$ch = curl_init( self::$esHost . "/$indexName/_mapping" );
+			curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "PUT" );
+			curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $updateMapping ) );
+			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+			curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
+
+			$response = curl_exec( $ch );
+			curl_close( $ch );
+
+			wfDebugLog( 'Chatbot', "Updated mapping for index $indexName. Response: $response" );
+		}
 	}
 
 	/**
@@ -120,8 +138,7 @@ class PageIndexUpdater {
 			return;
 		}
 
-		$contentHandler = $content->getContentHandler();
-		$text = $contentHandler::getContentText( $content );
+		$text = ContentHandler::getContentText( $content );
 		$pdfText = self::extractTextFromPDF( $title );
 		$fullText = trim( $text . "\n" . $pdfText );
 
@@ -134,7 +151,7 @@ class PageIndexUpdater {
 		$document = [
 			"title" => $title->getPrefixedText(),
 			"content" => $fullText,
-			"embedding" => array_map( 'floatval', $embedding )
+			"embedding" => $embedding
 		];
 
 		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_doc/" . urlencode( $title->getPrefixedText() ) );
@@ -150,7 +167,29 @@ class PageIndexUpdater {
 	}
 
 	/**
-	 * Generates an embedding for the text using Ollama API.
+	 * Extracts text from an attached PDF using pdftotext.
+	 */
+	private static function extractTextFromPDF( Title $title ) {
+		$fileRepo = MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo();
+		$file = $fileRepo->findFile( $title );
+
+		if ( !$file || $file->getMimeType() !== 'application/pdf' ) {
+			return '';
+		}
+
+		$pdfPath = $file->getLocalRefPath();
+		if ( !$pdfPath || !file_exists( $pdfPath ) ) {
+			return '';
+		}
+
+		$output = [];
+		exec( "pdftotext -layout " . escapeshellarg( $pdfPath ) . " -", $output );
+
+		return implode( "\n", $output );
+	}
+
+	/**
+	 * Generate an embedding for the text using Ollama API.
 	 */
 	private static function generateEmbedding( $text ) {
 		$config = MediaWikiServices::getInstance()->getMainConfig();
@@ -168,28 +207,28 @@ class PageIndexUpdater {
 		$response = curl_exec( $ch );
 		curl_close( $ch );
 
-		return json_decode( $response, true ) ?? null;
+		$jsonResponse = json_decode( $response, true );
+
+		if ( json_last_error() !== JSON_ERROR_NONE ) {
+			wfDebugLog( 'Chatbot', "JSON Decode Error: " . json_last_error_msg() );
+		}
+		return $jsonResponse ?? null;
 	}
 
 	/**
-	 * Extracts text from a PDF file using pdftotext.
+	 * Hooks to trigger indexing.
 	 */
-	private static function extractTextFromPDF( Title $title ) {
-		$fileRepo = MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo();
-		$file = $fileRepo->findFile( $title );
+	public static function onPageSaveComplete( $wikiPage, $user, $summary, $flags, $revision, $editResult ) {
+		self::initialize();
+		self::updateIndex( $wikiPage->getTitle(), $wikiPage );
+	}
 
-		if ( !$file || $file->getMimeType() !== 'application/pdf' ) {
-			return '';
+	public static function onFileUploadComplete( File $file ) {
+		self::initialize();
+		$title = Title::makeTitleSafe( NS_FILE, $file->getTitle() );
+		if ( !$title ) {
+			return;
 		}
-
-		$pdfPath = $file->getLocalRefPath();
-		$output = [];
-
-		if ( $pdfPath && file_exists( $pdfPath ) ) {
-			$cmd = "pdftotext -layout " . escapeshellarg( $pdfPath ) . " -";
-			exec( $cmd, $output );
-		}
-
-		return implode( "\n", $output );
+		self::updateIndex( $title, new WikiPage( $title ) );
 	}
 }
