@@ -179,7 +179,7 @@ class APIChat extends ApiBase {
 		$response = curl_exec( $ch );
 		curl_close( $ch );
 
-		$jsonResponse = json_decode( $response, associative: true );
+		$jsonResponse = json_decode( $response, associative: true )[ 'response' ];
 
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			wfDebugLog( 'Chatbot', "JSON Decode Error: " . json_last_error_msg() );
