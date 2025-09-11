@@ -4,11 +4,11 @@
 			"Sanjay Thiyagarajan"
 		]
 	},
-    "wikai": "Wikai",
-	"wikai-desc": "LLM for MediaWiki",
-	"wikai-chat-welcometext": "Welcome to Wikai chat",
-	"wikai-chat-welcomedesc": "Ask me about anything in your wiki, and I'll try to help!",
-	"wikai-chat-instruction1": "Get answers to your questions",
-	"wikai-chat-instruction2": "AI-powered responses",
-	"wikai-chat-pdftotext-error": "Please ensure that pdftotext utility is installed and ready to use."
+    "wanda": "Wanda",
+	"wanda-desc": "Chatbot for MediaWiki",
+	"wanda-chat-welcometext": "Hi! I am Wanda, your AI assistant.",
+	"wanda-chat-welcomedesc": "Ask me about anything in your wiki, and I'll try to help!",
+	"wanda-chat-instruction1": "Get answers to your questions",
+	"wanda-chat-instruction2": "AI-powered responses",
+	"wanda-chat-pdftotext-error": "Please ensure that pdftotext utility is installed and ready to use."
 }

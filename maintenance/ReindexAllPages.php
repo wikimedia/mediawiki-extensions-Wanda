@@ -1,9 +1,9 @@
 <?php
 
-namespace MediaWiki\Extension\Wikai\Maintenance;
+namespace MediaWiki\Extension\Wanda\Maintenance;
 
 use Maintenance;
-use MediaWiki\Extension\Wikai\Hooks\PageIndexUpdater;
+use MediaWiki\Extension\Wanda\Hooks\PageIndexUpdater;
 use MediaWiki\MediaWikiServices;
 use Title;
 

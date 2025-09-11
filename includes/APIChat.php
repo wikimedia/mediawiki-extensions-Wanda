@@ -1,6 +1,6 @@
 <?php
 
-namespace MediaWiki\Extension\Wikai;
+namespace MediaWiki\Extension\Wanda;
 
 use ApiBase;
 use stdClass;

@@ -1,6 +1,6 @@
 {
-    "name": "wikiworks/wikai",
-    "description": "LLM for MediaWiki",
+    "name": "wikiworks/wanda",
+    "description": "Chatbot for MediaWiki",
     "type": "project",
     "authors": [
         {

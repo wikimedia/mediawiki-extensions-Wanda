@@ -4,11 +4,11 @@ $(document).ready(function () {
   chatBox.hide();
 
   var instructionScreen = $('<div>').addClass('chat-instructions').html(`
-      <h2>${ mw.message( "wikai-chat-welcometext" ).text() }</h2>
-      <p>${ mw.message( "wikai-chat-welcomedesc" ).text() }</p>
+      <h2>${ mw.message( "wanda-chat-welcometext" ).text() }</h2>
+      <p>${ mw.message( "wanda-chat-welcomedesc" ).text() }</p>
       <ul>
-          <li>💬 ${ mw.message( "wikai-chat-instruction1" ).text() }</li>
-          <li>🤖 ${ mw.message( "wikai-chat-instruction2" ).text() }</li>
+          <li>💬 ${ mw.message( "wanda-chat-instruction1" ).text() }</li>
+          <li>🤖 ${ mw.message( "wanda-chat-instruction2" ).text() }</li>
       </ul>
   `);
 

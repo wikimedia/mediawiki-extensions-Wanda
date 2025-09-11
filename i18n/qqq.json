@@ -4,11 +4,11 @@
 			"Sanjay Thiyagarajan"
 		]
 	},
-    "wikai": "Wikai",
-	"wikai-desc": "Extension description",
-	"wikai-chat-welcometext": "Welcome message displayed in the chatbot",
-	"wikai-chat-welcomedesc": "Description message to the user, displayed in the chatbot",
-	"wikai-chat-instruction1": "Instruction shown to the user in the chatbot",
-	"wikai-chat-instruction2": "Instruction shown to the user in the chatbot",
-	"wikai-chat-pdftotext-error": "Error message to notify the user that there is a problem with a utility setup"
+    "wanda": "Wanda",
+	"wanda-desc": "Extension description",
+	"wanda-chat-welcometext": "Welcome message displayed in the chatbot",
+	"wanda-chat-welcomedesc": "Description message to the user, displayed in the chatbot",
+	"wanda-chat-instruction1": "Instruction shown to the user in the chatbot",
+	"wanda-chat-instruction2": "Instruction shown to the user in the chatbot",
+	"wanda-chat-pdftotext-error": "Error message to notify the user that there is a problem with a utility setup"
 }

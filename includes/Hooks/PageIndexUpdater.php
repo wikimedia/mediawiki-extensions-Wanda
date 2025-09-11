@@ -1,6 +1,6 @@
 <?php
 
-namespace MediaWiki\Extension\Wikai\Hooks;
+namespace MediaWiki\Extension\Wanda\Hooks;
 
 use File;
 use MediaWiki\MediaWikiServices;

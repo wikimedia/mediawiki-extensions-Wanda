@@ -1,12 +1,12 @@
 {
-	"name": "Wikai",
-	"namemsg": "wikai-name",
+	"name": "Wanda",
+	"namemsg": "wanda-name",
 	"version": "1.0.0",
 	"author": [
 		"Sanjay Thiyagarajan"
 	],
 	"url": "",
-	"descriptionmsg": "wikai-desc",
+	"descriptionmsg": "wanda-desc",
 	"load_composer_autoloader": true,
 	"license-name": "GPL-2.0-or-later",
 	"type": "specialpage",
@@ -14,30 +14,30 @@
 		"MediaWiki": ">= 1.36.0"
 	},
 	"MessagesDirs": {
-		"Wikai": [
+		"Wanda": [
 			"i18n"
 		]
 	},
 	"ExtensionMessagesFiles": {
-		"WikaiAlias": "Wikai_Aliases.php"
+		"WandaAlias": "Wanda_Aliases.php"
 	},
 	"AutoloadNamespaces": {
-        "MediaWiki\\Extension\\Wikai": "includes"
+        "MediaWiki\\Extension\\Wanda": "includes"
     },
 	"AutoloadClasses": {
-        "MediaWiki\\Extension\\Wikai\\SpecialAIChat": "includes/specials/SpecialAIChat.php",
-		"MediaWiki\\Extension\\Wikai\\APIChat": "includes/APIChat.php",
-		"MediaWiki\\Extension\\Wikai\\Maintenance\\ReindexAllPages": "maintenance/ReindexAllPages.php",
-		"MediaWiki\\Extension\\Wikai\\Hooks\\PageIndexUpdater": "includes/Hooks/PageIndexUpdater.php"
+        "MediaWiki\\Extension\\Wanda\\SpecialAIChat": "includes/specials/SpecialAIChat.php",
+		"MediaWiki\\Extension\\Wanda\\APIChat": "includes/APIChat.php",
+		"MediaWiki\\Extension\\Wanda\\Maintenance\\ReindexAllPages": "maintenance/ReindexAllPages.php",
+		"MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater": "includes/Hooks/PageIndexUpdater.php"
 	},
 	"SpecialPages": {
-		"Wikai": "MediaWiki\\Extension\\Wikai\\SpecialAIChat"
+		"Wanda": "MediaWiki\\Extension\\Wanda\\SpecialAIChat"
 	},
 	"APIModules": {
-        "chatbot": "MediaWiki\\Extension\\Wikai\\APIChat"
+        "chatbot": "MediaWiki\\Extension\\Wanda\\APIChat"
     },
 	"ResourceModules": {
-		"ext.wikai.main": {
+		"ext.wanda.main": {
 			"scripts": [
 				"libs/index.js"
 			],
@@ -51,11 +51,11 @@
 				"oojs-ui-widgets"
 			],
 			"messages": [
-				"wikai-chat-welcometext",
-				"wikai-chat-welcomedesc",
-				"wikai-chat-instruction1",
-				"wikai-chat-instruction2",
-				"wikai-chat-pdftotext-error"
+				"wanda-chat-welcometext",
+				"wanda-chat-welcomedesc",
+				"wanda-chat-instruction1",
+				"wanda-chat-instruction2",
+				"wanda-chat-pdftotext-error"
 			],
 			"targets": [
 				"desktop",
@@ -65,11 +65,11 @@
 	},
 	"ResourceFileModulePaths": {
 		"localBasePath": "",
-		"remoteExtPath": "Wikai"
+		"remoteExtPath": "Wanda"
 	},
 	"Hooks": {
-		"PageSaveComplete": "MediaWiki\\Extension\\Wikai\\Hooks\\PageIndexUpdater::onPageSaveComplete",
-		"FileUploadComplete": "MediaWiki\\Extension\\Wikai\\Hooks\\PageIndexUpdater::onFileUploadComplete"
+		"PageSaveComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onPageSaveComplete",
+		"FileUploadComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onFileUploadComplete"
 	},
 	"config": {
 		"LLMApiEndpoint": "http://ollama:11434/api/",

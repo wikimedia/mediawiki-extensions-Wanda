@@ -4,12 +4,12 @@
  *
  * @author  Sanjay Thiyagarajan <sanjayipscoc@gmail.com>
  * @file
- * @ingroup Wikai
+ * @ingroup Wanda
  * @category specialpage
  * @license MIT
  */
 
- namespace MediaWiki\Extension\Wikai;
+ namespace MediaWiki\Extension\Wanda;
 
  use Html;
  use SpecialPage;
@@ -20,7 +20,7 @@
 class SpecialAIChat extends SpecialPage {
 
 	public function __construct() {
-		parent::__construct( 'Wikai' );
+		parent::__construct( 'Wanda' );
 	}
 
 	/**
@@ -34,7 +34,7 @@ class SpecialAIChat extends SpecialPage {
 		$out = $this->getOutput();
 		$req = $this->getRequest();
 
-		$out->addModules( 'ext.wikai.main' );
+		$out->addModules( 'ext.wanda.main' );
 
 		$out->addHTML(
 			Html::rawElement(
