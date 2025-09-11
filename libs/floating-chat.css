@@ -1,0 +1,243 @@
+/* Floating Chat Button */
+.wanda-floating-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    z-index: 1000;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.wanda-floating-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
+}
+
+/* Floating Chat Window */
+.wanda-floating-window {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 450px;
+    height: 650px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.wanda-floating-window.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Chat Header */
+.wanda-chat-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.wanda-close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.wanda-close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Floating Chat Container */
+.wanda-floating-chat {
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+}
+
+.wanda-floating-chat .chat-box {
+    flex: 1;
+    max-height: none;
+    min-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+}
+
+.wanda-floating-chat .chat-instructions {
+    padding: 15px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.wanda-floating-chat .chat-instructions h2 {
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+.wanda-floating-chat .chat-instructions li {
+    font-size: 12px;
+}
+
+.wanda-floating-chat .chat-message {
+    font-size: 13px;
+    padding: 8px 12px;
+    max-width: 85%;
+    border-radius: 15px;
+    word-wrap: break-word;
+}
+
+/* Chat Message Bubbles */
+.wanda-floating-chat .chat-message-wrapper {
+    display: flex;
+    max-width: 95%;
+}
+
+.wanda-floating-chat .user-wrapper {
+    justify-content: flex-end;
+}
+
+.wanda-floating-chat .bot-wrapper {
+    justify-content: flex-start;
+}
+
+.wanda-floating-chat .user-message {
+    background-color: #007bff;
+    color: white;
+    border-bottom-right-radius: 5px;
+}
+
+.wanda-floating-chat .bot-message {
+    background-color: #e9ecef;
+    color: #333;
+    border-bottom-left-radius: 5px;
+}
+
+.wanda-floating-chat .chat-input-container {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background-color: white;
+    border-top: 1px solid #e0e0e0;
+    flex-shrink: 0;
+    min-height: 60px;
+}
+
+.wanda-floating-chat .chat-input-box {
+    flex: 1;
+    margin-right: 8px;
+    min-width: 0; /* Allow flex item to shrink below content size */
+}
+
+.wanda-floating-chat .oo-ui-textInputWidget {
+    max-width: 100%;
+    width: 100%;
+}
+
+.wanda-floating-chat .oo-ui-buttonWidget {
+    flex-shrink: 0;
+    margin-left: 0;
+}
+
+.wanda-floating-chat .chat-progress-bar {
+    width: 100%;
+    max-width: 100%;
+    margin: 5px 0;
+    flex-shrink: 0;
+}
+
+.wanda-floating-chat .oo-ui-buttonElement-button {
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .wanda-floating-window {
+        width: 90vw;
+        height: 75vh;
+        bottom: 10px;
+        right: 5vw;
+    }
+
+    .wanda-floating-button {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .wanda-floating-chat .chat-box {
+        min-height: 300px;
+    }
+}
+
+@media (max-width: 480px) {
+    .wanda-floating-window {
+        width: 95vw;
+        height: 80vh;
+        right: 2.5vw;
+    }
+
+    .wanda-chat-header {
+        padding: 12px 15px;
+        font-size: 14px;
+    }
+
+    .wanda-floating-chat .chat-input-container {
+        padding: 8px;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .wanda-floating-chat .chat-input-box {
+        flex: 1;
+        margin-right: 8px;
+    }
+
+    .wanda-floating-chat .chat-box {
+        min-height: 250px;
+    }
+}

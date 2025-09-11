@@ -10,5 +10,16 @@
 	"wanda-chat-welcomedesc": "Description message to the user, displayed in the chatbot",
 	"wanda-chat-instruction1": "Instruction shown to the user in the chatbot",
 	"wanda-chat-instruction2": "Instruction shown to the user in the chatbot",
-	"wanda-chat-pdftotext-error": "Error message to notify the user that there is a problem with a utility setup"
+	"wanda-chat-pdftotext-error": "Error message to notify the user that there is a problem with a utility setup",
+	"wanda-floating-chat-title": "Tooltip text for the floating chat button",
+	"wanda-api-error-empty-question": "Error message when user submits an empty question",
+	"wanda-api-error-question-too-long": "Error message when user's question exceeds character limit",
+	"wanda-api-error-config-invalid": "Error message when the chat service is not properly configured",
+	"wanda-api-error-no-index": "Error message when no Elasticsearch index is found",
+	"wanda-api-error-no-results": "Error message when no relevant information is found in the wiki",
+	"wanda-api-error-generation-failed": "Error message when LLM response generation fails",
+	"wanda-api-error-openai-key": "Error message when OpenAI API key is not configured",
+	"wanda-api-error-anthropic-key": "Error message when Anthropic API key is not configured",
+	"wanda-api-error-azure-key": "Error message when Azure API key is not configured",
+	"wanda-api-error-fallback": "Default fallback message when LLM cannot provide a response"
 }

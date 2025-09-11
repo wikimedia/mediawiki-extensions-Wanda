@@ -28,7 +28,8 @@
         "MediaWiki\\Extension\\Wanda\\SpecialAIChat": "includes/specials/SpecialAIChat.php",
 		"MediaWiki\\Extension\\Wanda\\APIChat": "includes/APIChat.php",
 		"MediaWiki\\Extension\\Wanda\\Maintenance\\ReindexAllPages": "maintenance/ReindexAllPages.php",
-		"MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater": "includes/Hooks/PageIndexUpdater.php"
+		"MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater": "includes/Hooks/PageIndexUpdater.php",
+		"MediaWiki\\Extension\\Wanda\\Hooks\\FloatingChatHook": "includes/Hooks/FloatingChatHook.php"
 	},
 	"SpecialPages": {
 		"Wanda": "MediaWiki\\Extension\\Wanda\\SpecialAIChat"
@@ -61,6 +62,31 @@
 				"desktop",
 				"mobile"
 			]
+		},
+		"ext.wanda.floating": {
+			"scripts": [
+				"libs/floating-chat.js"
+			],
+			"styles": [
+				"libs/floating-chat.css"
+			],
+			"dependencies": [
+				"mediawiki.util",
+				"mediawiki.api",
+				"oojs-ui-core",
+				"oojs-ui-widgets"
+			],
+			"messages": [
+				"wanda-chat-welcometext",
+				"wanda-chat-welcomedesc",
+				"wanda-chat-instruction1",
+				"wanda-chat-instruction2",
+				"wanda-floating-chat-title"
+			],
+			"targets": [
+				"desktop",
+				"mobile"
+			]
 		}
 	},
 	"ResourceFileModulePaths": {
@@ -69,14 +95,20 @@
 	},
 	"Hooks": {
 		"PageSaveComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onPageSaveComplete",
-		"FileUploadComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onFileUploadComplete"
+		"FileUploadComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onFileUploadComplete",
+		"BeforePageDisplay": "MediaWiki\\Extension\\Wanda\\Hooks\\FloatingChatHook::onBeforePageDisplay"
 	},
 	"config": {
+		"LLMProvider": "ollama",
 		"LLMApiEndpoint": "http://ollama:11434/api/",
-		"LLMOllamaEmbeddingModel": "nomic-embed-text",
+		"LLMApiKey": "",
+		"LLMModel": "gemma:2b",
+		"LLMEmbeddingModel": "nomic-embed-text",
 		"LLMElasticsearchUrl": "http://elasticsearch:9200",
 		"LLMEmbeddingChunkSize": 8000,
-		"LLMOllamaModel": "gemma:2b"
+		"LLMMaxTokens": 1000,
+		"LLMTemperature": 0.7,
+		"LLMTimeout": 30
     },
 	"manifest_version": 1
 }
