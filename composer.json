@@ -1,16 +1,16 @@
 {
-    "name": "wikiworks/wanda",
-    "description": "Chatbot for MediaWiki",
-    "type": "project",
-    "authors": [
-        {
-            "name": "Sanjay Thiyagarajan",
-            "email": "sanjayipscoc@gmail.com"
-        }
-    ],
-    "require-dev": {
-		"mediawiki/mediawiki-codesniffer": "46.0.0",
-		"mediawiki/mediawiki-phan-config": "0.15.1",
+	"name": "wikiworks/wanda",
+	"description": "Chatbot for MediaWiki",
+	"type": "project",
+	"authors": [
+		{
+			"name": "Sanjay Thiyagarajan",
+			"email": "sanjayipscoc@gmail.com"
+		}
+	],
+	"require-dev": {
+		"mediawiki/mediawiki-codesniffer": "48.0.0",
+		"mediawiki/mediawiki-phan-config": "0.17.0",
 		"mediawiki/minus-x": "1.1.3",
 		"php-parallel-lint/php-console-highlighter": "1.0.0",
 		"php-parallel-lint/php-parallel-lint": "1.4.0"
@@ -30,8 +30,8 @@
 	},
 	"config": {
 		"allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true,
-            "composer/installers": true
-        }
+			"dealerdirect/phpcodesniffer-composer-installer": true,
+			"composer/installers": true
+		}
 	}
 }

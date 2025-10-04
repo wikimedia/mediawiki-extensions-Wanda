@@ -1,30 +1,30 @@
-$(document).ready(function () {
+$(document).ready(() => {
   // Don't load floating chat on the special page itself
   if (mw.config.get('wgCanonicalSpecialPageName') === 'Wanda') {
     return;
   }
   console.log("Initializing floating chat...");
   // Create floating chat button
-  var floatingButton = $('<div>')
+  const floatingButton = $('<div>')
     .addClass('wanda-floating-button')
     .html('💬')
     .attr('title', mw.message( "wanda-floating-chat-title" ).text());
 
   // Create floating chat window
-  var floatingWindow = $('<div>')
+  const floatingWindow = $('<div>')
     .addClass('wanda-floating-window')
     .hide();
 
   // Create chat header
-  var chatHeader = $('<div>')
+  const chatHeader = $('<div>')
     .addClass('wanda-chat-header')
     .html('<span>Wanda AI Assistant</span><button class="wanda-close-btn">×</button>');
 
   // Create chat container (reuse existing chat functionality)
-  var chatContainer = $('<div>').addClass('chat-container wanda-floating-chat');
-  var chatBox = $('<div>').addClass('chat-box');
+  const chatContainer = $('<div>').addClass('chat-container wanda-floating-chat');
+  const chatBox = $('<div>').addClass('chat-box');
 
-  var instructionScreen = $('<div>').addClass('chat-instructions').html(`
+  const instructionScreen = $('<div>').addClass('chat-instructions').html(`
       <h2>${ mw.message( "wanda-chat-welcometext" ).text() }</h2>
       <p>${ mw.message( "wanda-chat-welcomedesc" ).text() }</p>
       <ul>
@@ -33,22 +33,22 @@ $(document).ready(function () {
       </ul>
   `);
 
-  var progressBar = new OO.ui.ProgressBarWidget({
+  const progressBar = new OO.ui.ProgressBarWidget({
       progress: false
   }).$element.addClass('chat-progress-bar').hide();
 
-  var chatInput = new OO.ui.MultilineTextInputWidget({
+  const chatInput = new OO.ui.MultilineTextInputWidget({
       placeholder: 'Type your message...',
       classes: [ 'chat-input-box' ],
       autosize: true,
       rows: 2
   });
-  var sendButton = new OO.ui.ButtonWidget({
+  const sendButton = new OO.ui.ButtonWidget({
       flags: [ 'primary', 'progressive' ],
       label: "Send"
   });
 
-  var inputContainer = $('<div>').addClass('chat-input-container');
+  const inputContainer = $('<div>').addClass('chat-input-container');
   inputContainer.append(chatInput.$element).append(sendButton.$element);
 
   chatContainer.append(chatBox).append(instructionScreen).append(progressBar).append(inputContainer);
@@ -68,8 +68,8 @@ $(document).ready(function () {
   function addMessage(role, text) {
       instructionScreen.hide();
       chatBox.show(); // Ensure chat box is visible when adding messages
-      var msgWrapper = $('<div>').addClass('chat-message-wrapper ' + role + '-wrapper');
-      var msgBubble = $('<div>').addClass('chat-message ' + role + '-message').html(text);
+      const msgWrapper = $('<div>').addClass('chat-message-wrapper ' + role + '-wrapper');
+      const msgBubble = $('<div>').addClass('chat-message ' + role + '-message').html(text);
 
       msgWrapper.append(msgBubble);
       chatBox.append(msgWrapper);
@@ -85,7 +85,7 @@ $(document).ready(function () {
   }
 
   function sendMessage() {
-      var userText = chatInput.getValue().trim();
+      const userText = chatInput.getValue().trim();
       if (!userText) return;
       chatBox.show();
 
@@ -102,7 +102,7 @@ $(document).ready(function () {
           },
           dataType: 'json',
           success: function (data) {
-              var response = data.response || 'Error fetching response';
+              let response = data.response || 'Error fetching response';
               response = response + "<br><b>Source</b>: " + data.source;
               addMessage('bot', response);
           },
@@ -116,22 +116,22 @@ $(document).ready(function () {
   }
 
   // Event handlers
-  floatingButton.on('click', function() {
+  floatingButton.on('click', () => {
     floatingWindow.show();
     // Add show class after a small delay to trigger animation
-    setTimeout(function() {
+    setTimeout(() => {
       floatingWindow.addClass('show');
     }, 10);
     floatingButton.hide();
     // Focus on input if window is opened
-    setTimeout(function() {
+    setTimeout(() => {
       chatInput.focus();
     }, 100);
   });
 
-  chatHeader.find('.wanda-close-btn').on('click', function() {
+  chatHeader.find('.wanda-close-btn').on('click', () => {
     floatingWindow.removeClass('show');
-    setTimeout(function() {
+    setTimeout(() => {
       floatingWindow.hide();
       floatingButton.show();
     }, 300);
@@ -139,7 +139,7 @@ $(document).ready(function () {
 
   sendButton.on('click', sendMessage);
 
-  chatInput.$element.on('keydown', function (e) {
+  chatInput.$element.on('keydown', (e) => {
       if (e.which === 13 && !e.shiftKey) {
           e.preventDefault();
           sendMessage();
@@ -152,11 +152,11 @@ $(document).ready(function () {
   }
 
   // Click outside to close
-  $(document).on('click', function(e) {
+  $(document).on('click', (e) => {
     if (!$(e.target).closest('.wanda-floating-window, .wanda-floating-button').length) {
       if (floatingWindow.is(':visible')) {
         floatingWindow.removeClass('show');
-        setTimeout(function() {
+        setTimeout(() => {
           floatingWindow.hide();
           floatingButton.show();
         }, 300);

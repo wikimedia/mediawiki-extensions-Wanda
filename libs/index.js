@@ -1,9 +1,9 @@
-$(document).ready(function () {
-  var chatContainer = $('<div>').addClass('chat-container');
-  var chatBox = $('<div>').addClass('chat-box');
+$(document).ready(() => {
+  const chatContainer = $('<div>').addClass('chat-container');
+  const chatBox = $('<div>').addClass('chat-box');
   chatBox.hide();
 
-  var instructionScreen = $('<div>').addClass('chat-instructions').html(`
+  const instructionScreen = $('<div>').addClass('chat-instructions').html(`
       <h2>${ mw.message( "wanda-chat-welcometext" ).text() }</h2>
       <p>${ mw.message( "wanda-chat-welcomedesc" ).text() }</p>
       <ul>
@@ -12,21 +12,21 @@ $(document).ready(function () {
       </ul>
   `);
 
-  var progressBar = new OO.ui.ProgressBarWidget({
+  const progressBar = new OO.ui.ProgressBarWidget({
       progress: false
   }).$element.addClass('chat-progress-bar').hide();
 
-  var chatInput = new OO.ui.MultilineTextInputWidget({
+  const chatInput = new OO.ui.MultilineTextInputWidget({
       placeholder: 'Type your message...',
       classes: [ 'chat-input-box' ],
       autosize: true
   });
-  var sendButton = new OO.ui.ButtonWidget({
+  const sendButton = new OO.ui.ButtonWidget({
       flags: [ 'primary', 'progressive' ],
       label: "Submit"
   });
 
-  var inputContainer = $('<div>').addClass('chat-input-container');
+  const inputContainer = $('<div>').addClass('chat-input-container');
   inputContainer.append(chatInput.$element).append(sendButton.$element);
 
   chatContainer.append(chatBox).append(instructionScreen).append(progressBar).append(inputContainer);
@@ -34,8 +34,8 @@ $(document).ready(function () {
 
   function addMessage(role, text) {
       instructionScreen.hide();
-      var msgWrapper = $('<div>').addClass('chat-message-wrapper ' + role + '-wrapper');
-      var msgBubble = $('<div>').addClass('chat-message ' + role + '-message').html(text);
+      const msgWrapper = $('<div>').addClass('chat-message-wrapper ' + role + '-wrapper');
+      const msgBubble = $('<div>').addClass('chat-message ' + role + '-message').html(text);
 
       msgWrapper.append(msgBubble);
       chatBox.append(msgWrapper);
@@ -51,7 +51,7 @@ $(document).ready(function () {
   }
 
   function sendMessage() {
-      var userText = chatInput.getValue().trim();
+      const userText = chatInput.getValue().trim();
       if (!userText) return;
       chatBox.show();
 
@@ -68,7 +68,7 @@ $(document).ready(function () {
           },
           dataType: 'json',
           success: function (data) {
-              var response = data.response || 'Error fetching response';
+              let response = data.response || 'Error fetching response';
               response = response + "<br><b>Source</b>: " + data.source;
               addMessage('bot', response);
           },
@@ -83,7 +83,7 @@ $(document).ready(function () {
 
   sendButton.on('click', sendMessage);
 
-  chatInput.$element.on('keydown', function (e) {
+  chatInput.$element.on('keydown', (e) => {
       if (e.which === 13 && !e.shiftKey) {
           e.preventDefault();
           sendMessage();

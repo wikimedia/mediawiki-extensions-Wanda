@@ -86,7 +86,7 @@ class APIChat extends ApiBase {
 		}
 
 		// Prepare source data
-		$sourceData = array_map( function( $result ) {
+		$sourceData = array_map( static function ( $result ) {
 			return isset( $result['_source']['page_title'] ) ? $result['_source']['page_title'] : 'Unknown source';
 		}, $searchResults );
 
@@ -149,7 +149,7 @@ class APIChat extends ApiBase {
 
 	private function queryElasticsearch( $queryText ) {
 		$queryEmbedding = $this->generateEmbedding( $queryText );
-		
+
 		if ( $queryEmbedding && isset( $queryEmbedding['embeddings'][0] ) ) {
 			// Use vector similarity search
 			return $this->vectorSearch( $queryEmbedding['embeddings'][0] );
@@ -206,7 +206,7 @@ class APIChat extends ApiBase {
 			"query" => [
 				"multi_match" => [
 					"query" => $queryText,
-					"fields" => ["title^2", "content"],
+					"fields" => [ "title^2", "content" ],
 					"type" => "best_fields",
 					"fuzziness" => "AUTO"
 				]
@@ -395,16 +395,16 @@ class APIChat extends ApiBase {
 	 * Generate response using Ollama
 	 */
 	private function generateOllamaResponse( $prompt ) {
-		$data = json_encode( [ 
-			"model" => self::$llmModel, 
-			"prompt" => $prompt, 
+		$data = json_encode( [
+			"model" => self::$llmModel,
+			"prompt" => $prompt,
 			"stream" => false,
 			"options" => [
 				"temperature" => self::$temperature,
 				"num_predict" => self::$maxTokens
 			]
 		] );
-		
+
 		$ch = curl_init( self::$llmApiEndpoint . "generate" );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
 		curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );

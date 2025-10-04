@@ -27,7 +27,7 @@ class FloatingChatHook {
 		if ( $out->getTitle() && $out->getTitle()->isSpecial( 'Wanda' ) ) {
 			return;
 		}
-		
+
 		// Add the floating chat module to all other pages
 		$out->addModules( 'ext.wanda.floating' );
 	}
