@@ -4,9 +4,8 @@ Wanda is a MediaWiki extension that provides an AI-powered chatbot interface for
 
 ## Features
 
-- **Multiple LLM Providers**: Support for Ollama (self-hosted), OpenAI, Anthropic Claude, and Azure OpenAI
-- **Vector Search**: Uses Elasticsearch with embeddings for semantic search
-- **Text Search Fallback**: Falls back to text-based search when embeddings are unavailable
+- **Multiple LLM Providers**: Support for Ollama (self-hosted), OpenAI, Anthropic Claude, Azure OpenAI, and Google Gemini
+- **Elasticsearch Text Search**: Uses Elasticsearch full‑text ranking over wiki pages
 - **Floating Chat Widget**: Always-accessible chat button on all pages
 - **Special Page**: Dedicated chat interface at Special:Wanda
 - **Responsive Design**: Works on desktop and mobile devices
@@ -36,7 +35,7 @@ Add these configuration variables to your `LocalSettings.php`:
 
 ```php
 // Choose your LLM provider
-$wgLLMProvider = 'ollama'; // Options: 'ollama', 'openai', 'anthropic', 'azure'
+$wgLLMProvider = 'ollama'; // Options: 'ollama', 'openai', 'anthropic', 'azure', 'gemini'
 
 // Provider-specific settings
 $wgLLMApiKey = 'your-api-key-here'; // Not needed for Ollama
@@ -54,7 +53,6 @@ $wgLLMElasticsearchUrl = 'http://elasticsearch:9200';
 $wgLLMProvider = 'ollama';
 $wgLLMApiEndpoint = 'http://localhost:11434/api/';
 $wgLLMModel = 'gemma:2b';
-$wgLLMEmbeddingModel = 'nomic-embed-text';
 ```
 
 **OpenAI**
@@ -62,7 +60,6 @@ $wgLLMEmbeddingModel = 'nomic-embed-text';
 $wgLLMProvider = 'openai';
 $wgLLMApiKey = 'sk-your-openai-api-key';
 $wgLLMModel = 'gpt-3.5-turbo';
-$wgLLMEmbeddingModel = 'text-embedding-ada-002';
 ```
 
 **Anthropic Claude**
@@ -70,6 +67,15 @@ $wgLLMEmbeddingModel = 'text-embedding-ada-002';
 $wgLLMProvider = 'anthropic';
 $wgLLMApiKey = 'sk-ant-your-anthropic-key';
 $wgLLMModel = 'claude-3-haiku-20240307';
+```
+
+**Google Gemini (Generative Language API)**
+```php
+$wgLLMProvider = 'gemini';
+$wgLLMApiKey = 'your-gemini-api-key'; // Obtain from Google AI Studio
+$wgLLMModel = 'gemini-1.5-flash'; // Or gemini-1.5-pro, etc.
+// Optional: override endpoint (default used if omitted)
+$wgLLMApiEndpoint = 'https://generativelanguage.googleapis.com/v1';
 ```
 
 For detailed configuration options, see [LLM-CONFIG.md](LLM-CONFIG.md).
@@ -86,7 +92,26 @@ Visit `Special:Wanda` on your wiki to access the full-featured chat interface.
 
 ### Indexing Content
 
-To enable the chatbot to answer questions about your wiki content, you need to index your pages in Elasticsearch with embeddings. Use the maintenance script:
+To enable the chatbot to answer questions about your wiki content, you need to index your pages in Elasticsearch. Use the maintenance script:
+
+```bash
+php extensions/Wanda/maintenance/ReindexAllPages.php
+```
+
+#### Automatic Reindex After Updates
+
+This extension now schedules a full reindex automatically after you run `php maintenance/update.php` by registering the maintenance script as a post-update task. On large wikis this may be time-consuming. If you prefer to disable auto reindexing, remove the `LoadExtensionSchemaUpdates` hook entry from `extension.json` or replace the full reindex with a lighter custom script.
+
+To keep indexing continuously fresh without large batch jobs, the extension also updates the index on page saves and file uploads via hooks.
+
+You can also control this behavior via a configuration flag. Add to `LocalSettings.php`:
+
+```php
+// Disable automatic full reindex after update.php
+$wgWandaAutoReindex = false;
+```
+
+When set to `false`, the hook will skip scheduling the maintenance script; you can still run it manually:
 
 ```bash
 php extensions/Wanda/maintenance/ReindexAllPages.php
@@ -102,14 +127,15 @@ php extensions/Wanda/maintenance/ReindexAllPages.php
   - OpenAI API access
   - Anthropic Claude API access
   - Azure OpenAI service
+  - Google Gemini (Generative Language API)
 
 ## Architecture
 
-1. **Content Indexing**: Wiki pages are processed and stored in Elasticsearch with embeddings
-2. **Query Processing**: User queries are converted to embeddings (when available)
-3. **Similarity Search**: Elasticsearch finds the most relevant content
-4. **Response Generation**: The LLM generates responses based on the retrieved content
-5. **Fallback Mechanism**: Text-based search when embeddings are unavailable
+1. **Content Indexing**: Wiki pages (and extracted PDF text) are stored in Elasticsearch with their raw text
+2. **Query Processing**: User queries are issued as full‑text multi_match searches
+3. **Retrieval**: Elasticsearch returns the most relevant documents by BM25 scoring (with title boosted)
+4. **Response Generation**: The LLM generates an answer constrained to the retrieved content
+5. **Incremental Updates**: Page save and file upload hooks keep the index fresh
 
 ## Security Considerations
 

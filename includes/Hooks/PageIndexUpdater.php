@@ -12,6 +12,14 @@ class PageIndexUpdater {
 	private static $esHost;
 	/** @var string */
 	private static $indexName;
+	/** @var string */
+	private static $llmProvider;
+	/** @var string */
+	private static $llmApiKey;
+	/** @var string */
+	private static $llmApiEndpoint;
+	/** @var int */
+	private static $timeout;
 
 	/**
 	 * Initializes Elasticsearch settings from MediaWiki config.
@@ -20,6 +28,10 @@ class PageIndexUpdater {
 		$config = MediaWikiServices::getInstance()->getMainConfig();
 		self::$esHost = $config->get( 'LLMElasticsearchUrl' ) ?? "http://localhost:9200";
 		self::$indexName = self::detectOrCreateElasticsearchIndex();
+		self::$llmProvider = strtolower( $config->get( 'LLMProvider' ) ?? 'ollama' );
+		self::$llmApiKey = $config->get( 'LLMApiKey' ) ?? '';
+		self::$llmApiEndpoint = $config->get( 'LLMApiEndpoint' ) ?? 'http://ollama:11434/api/';
+		self::$timeout = $config->get( 'LLMTimeout' ) ?? 30;
 
 		if ( !self::$indexName ) {
 			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Skipping indexing." );
@@ -41,7 +53,7 @@ class PageIndexUpdater {
 			return self::createElasticsearchIndex();
 		}
 
-		// Filter indices related to MediaWiki embeddings
+		// Filter indices related to Wanda content
 		$validIndices = array_filter( $indices, static function ( $index ) {
 			return strpos( $index['index'], 'mediawiki_content_' ) === 0;
 		} );
@@ -59,7 +71,7 @@ class PageIndexUpdater {
 		}
 
 		self::verifyIndexMapping( $selectedIndex );
-		return $selectedIndex;
+		return $selectedIndex ?: null;
 	}
 
 	/**
@@ -71,8 +83,7 @@ class PageIndexUpdater {
 			"mappings" => [
 				"properties" => [
 					"title" => [ "type" => "text" ],
-					"content" => [ "type" => "text" ],
-					"embedding" => [ "type" => "dense_vector", "dims" => 768 ]
+					"content" => [ "type" => "text" ]
 				]
 			]
 		];
@@ -101,26 +112,6 @@ class PageIndexUpdater {
 
 		$mapping = json_decode( $response, true );
 
-		if ( !isset( $mapping[$indexName]['mappings']['properties']['embedding'] ) ) {
-			wfDebugLog( 'Chatbot', "Index $indexName missing embedding field. Updating mapping." );
-
-			$updateMapping = [
-				"properties" => [
-					"embedding" => [ "type" => "dense_vector", "dims" => 768 ]
-				]
-			];
-
-			$ch = curl_init( self::$esHost . "/$indexName/_mapping" );
-			curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "PUT" );
-			curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $updateMapping ) );
-			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-			curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
-
-			$response = curl_exec( $ch );
-			curl_close( $ch );
-
-			wfDebugLog( 'Chatbot', "Updated mapping for index $indexName. Response: $response" );
-		}
 	}
 
 	/**
@@ -139,21 +130,12 @@ class PageIndexUpdater {
 			return;
 		}
 
-		$contentHandler = $content->getContentHandler();
-		$text = $contentHandler::getContentText( $content );
+		$text = $content->getTextForSearchIndex( $content );
 		$pdfText = self::extractTextFromPDF( $title );
 		$fullText = trim( $text . "\n" . $pdfText );
-
-		$embedding = self::generateEmbedding( $fullText )[ 'embeddings' ][0] ?? null;
-		if ( !$embedding ) {
-			wfDebugLog( 'Chatbot', "Failed to generate embedding for: " . $title->getPrefixedText() );
-			return;
-		}
-
 		$document = [
 			"title" => $title->getPrefixedText(),
-			"content" => $fullText,
-			"embedding" => $embedding
+			"content" => $fullText
 		];
 
 		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_doc/" . urlencode( $title->getPrefixedText() ) );
@@ -190,32 +172,6 @@ class PageIndexUpdater {
 		return implode( "\n", $output );
 	}
 
-	/**
-	 * Generate an embedding for the text using Ollama API.
-	 */
-	private static function generateEmbedding( $text ) {
-		$config = MediaWikiServices::getInstance()->getMainConfig();
-		$embeddingModel = $config->get( 'LLMEmbeddingModel' ) ?? "nomic-embed-text";
-		$embeddingEndpoint = $config->get( 'LLMApiEndpoint' ) . "embed";
-
-		$payload = [ "model" => $embeddingModel, "input" => $text ];
-
-		$ch = curl_init( $embeddingEndpoint );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $payload ) );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
-
-		$response = curl_exec( $ch );
-		curl_close( $ch );
-
-		$jsonResponse = json_decode( $response, true );
-
-		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			wfDebugLog( 'Chatbot', "JSON Decode Error: " . json_last_error_msg() );
-		}
-		return $jsonResponse ?? null;
-	}
 
 	/**
 	 * Hooks to trigger indexing.

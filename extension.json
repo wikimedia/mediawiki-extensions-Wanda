@@ -22,8 +22,10 @@
 		"WandaAlias": "Wanda_Aliases.php"
 	},
 	"AutoloadNamespaces": {
-        "MediaWiki\\Extension\\Wanda": "includes"
-    },
+        "MediaWiki\\Extension\\Wanda": "includes",
+        "MediaWiki\\Extension\\Wanda\\Maintenance": "maintenance",
+        "MediaWiki\\Extension\\Wanda\\Hooks": "includes/Hooks"
+	},
 	"AutoloadClasses": {
         "MediaWiki\\Extension\\Wanda\\SpecialAIChat": "includes/specials/SpecialAIChat.php",
 		"MediaWiki\\Extension\\Wanda\\APIChat": "includes/APIChat.php",
@@ -96,19 +98,19 @@
 	"Hooks": {
 		"PageSaveComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onPageSaveComplete",
 		"FileUploadComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onFileUploadComplete",
-		"BeforePageDisplay": "MediaWiki\\Extension\\Wanda\\Hooks\\FloatingChatHook::onBeforePageDisplay"
+		"BeforePageDisplay": "MediaWiki\\Extension\\Wanda\\Hooks\\FloatingChatHook::onBeforePageDisplay",
+		"LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\Wanda\\Hooks\\SchemaUpdates::onLoadExtensionSchemaUpdates"
 	},
 	"config": {
 		"LLMProvider": "ollama",
 		"LLMApiEndpoint": "http://ollama:11434/api/",
 		"LLMApiKey": "",
 		"LLMModel": "gemma:2b",
-		"LLMEmbeddingModel": "nomic-embed-text",
 		"LLMElasticsearchUrl": "http://elasticsearch:9200",
-		"LLMEmbeddingChunkSize": 8000,
 		"LLMMaxTokens": 1000,
 		"LLMTemperature": 0.7,
-		"LLMTimeout": 30
+		"LLMTimeout": 30,
+		"WandaAutoReindex": true
     },
 	"manifest_version": 1
 }

@@ -21,5 +21,6 @@
 	"wanda-api-error-openai-key": "OpenAI API key not configured.",
 	"wanda-api-error-anthropic-key": "Anthropic API key not configured.",
 	"wanda-api-error-azure-key": "Azure API key not configured.",
+	"wanda-api-error-gemini-key": "Gemini API key not configured.",
 	"wanda-api-error-fallback": "I'm not sure about that."
 }

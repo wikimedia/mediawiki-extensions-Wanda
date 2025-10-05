@@ -18,8 +18,6 @@ class APIChat extends ApiBase {
 	private static $llmApiKey;
 	/** @var string */
 	private static $llmApiEndpoint;
-	/** @var string */
-	private static $embeddingModel;
 	/** @var int */
 	private static $maxTokens;
 	/** @var float */
@@ -37,7 +35,6 @@ class APIChat extends ApiBase {
 		self::$llmModel = $this->getConfig()->get( 'LLMModel' ) ?? "gemma:2b";
 		self::$llmApiKey = $this->getConfig()->get( 'LLMApiKey' ) ?? "";
 		self::$llmApiEndpoint = $this->getConfig()->get( 'LLMApiEndpoint' ) ?? "http://ollama:11434/api/";
-		self::$embeddingModel = $this->getConfig()->get( 'LLMEmbeddingModel' ) ?? "nomic-embed-text";
 		self::$maxTokens = $this->getConfig()->get( 'LLMMaxTokens' ) ?? 1000;
 		self::$temperature = $this->getConfig()->get( 'LLMTemperature' ) ?? 0.7;
 		self::$timeout = $this->getConfig()->get( 'LLMTimeout' ) ?? 30;
@@ -78,17 +75,19 @@ class APIChat extends ApiBase {
 			return;
 		}
 
-		// Generate response
-		$response = $this->generateLLMResponse( $userQuery, $searchResults );
+		// Build context string from results (single best match currently)
+		$contextStr = is_array( $searchResults ) && isset( $searchResults['content'] )
+			? $searchResults['content']
+			: (string)$searchResults;
+
+		$response = $this->generateLLMResponse( $userQuery, $contextStr );
 		if ( !$response ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-generation-failed' )->text() );
 			return;
 		}
 
 		// Prepare source data
-		$sourceData = array_map( static function ( $result ) {
-			return isset( $result['_source']['page_title'] ) ? $result['_source']['page_title'] : 'Unknown source';
-		}, $searchResults );
+		$sourceData = [ $searchResults['source'] ?? 'Unknown source' ];
 
 		// Return response along with source attribution
 		$this->getResult()->addValue( null, "response", $response );
@@ -103,6 +102,7 @@ class APIChat extends ApiBase {
 			case 'openai':
 			case 'anthropic':
 			case 'azure':
+			case 'gemini':
 				if ( empty( self::$llmApiKey ) ) {
 					return false;
 				}
@@ -132,7 +132,7 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
-		// Filter indices related to MediaWiki embeddings
+		// Filter indices related to Wanda content
 		$validIndices = array_filter( $indices, static function ( $index ) {
 			return strpos( $index['index'], 'mediawiki_content_' ) === 0;
 		} );
@@ -148,58 +148,11 @@ class APIChat extends ApiBase {
 	}
 
 	private function queryElasticsearch( $queryText ) {
-		$queryEmbedding = $this->generateEmbedding( $queryText );
-
-		if ( $queryEmbedding && isset( $queryEmbedding['embeddings'][0] ) ) {
-			// Use vector similarity search
-			return $this->vectorSearch( $queryEmbedding['embeddings'][0] );
-		} else {
-			// Fallback to text-based search
-			return $this->textSearch( $queryText );
-		}
+		return $this->textSearch( $queryText );
 	}
 
 	/**
-	 * Vector-based similarity search
-	 */
-	private function vectorSearch( $queryEmbedding ) {
-		$queryData = [
-			"query" => [
-				"script_score" => [
-					"query" => [ "match_all" => new stdClass() ],
-					"script" => [
-						"source" => "cosineSimilarity(params.query_vector, doc['embedding']) + 1.0",
-						"params" => [ "query_vector" => $queryEmbedding ]
-					]
-				]
-			],
-			"size" => 5
-		];
-
-		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_search" );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $queryData ) );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
-
-		$response = curl_exec( $ch );
-		curl_close( $ch );
-		$data = json_decode( $response, true );
-
-		if ( empty( $data['hits']['hits'] ) ) {
-			return null;
-		}
-
-		$bestMatch = $data['hits']['hits'][0]['_source'];
-		return [
-			"content" => $bestMatch['content'],
-			"source" => $bestMatch['title']
-		];
-	}
-
-	/**
-	 * Text-based search fallback
+	 * Text-based search
 	 */
 	private function textSearch( $queryText ) {
 		$queryData = [
@@ -237,158 +190,41 @@ class APIChat extends ApiBase {
 	}
 
 	/**
-	 * Generate an embedding for the query using configured LLM provider.
+	 * Generate response using Google Gemini (Generative Language API)
 	 */
-	private function generateEmbedding( $text ) {
-		switch ( self::$llmProvider ) {
-			case 'openai':
-				return $this->generateOpenAIEmbedding( $text );
-			case 'anthropic':
-				return $this->generateAnthropicEmbedding( $text );
-			case 'azure':
-				return $this->generateAzureEmbedding( $text );
-			case 'ollama':
-			default:
-				return $this->generateOllamaEmbedding( $text );
-		}
-	}
-
-	/**
-	 * Generate embedding using Ollama API.
-	 */
-	private function generateOllamaEmbedding( $text ) {
-		$payload = [ "model" => self::$embeddingModel, "input" => $text ];
-		$embeddingEndpoint = self::$llmApiEndpoint . "embed";
-
-		$ch = curl_init( $embeddingEndpoint );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $payload ) );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
-
-		$response = curl_exec( $ch );
-		curl_close( $ch );
-
-		$jsonResponse = json_decode( $response, true );
-
-		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			return null;
-		}
-
-		return $jsonResponse ?? null;
-	}
-
-	/**
-	 * Generate embedding using OpenAI API.
-	 */
-	private function generateOpenAIEmbedding( $text ) {
+	private function generateGeminiResponse( $prompt ) {
 		if ( empty( self::$llmApiKey ) ) {
-			return null;
+			return $this->msg( 'wanda-api-error-gemini-key' )->text();
 		}
 
+		$model = self::$llmModel ?: 'gemini-1.5-flash';
+		$base = rtrim( self::$llmApiEndpoint ?: 'https://generativelanguage.googleapis.com/v1', '/' );
+		$url = $base . '/models/' . rawurlencode( $model ) . ':generateContent?key=' . urlencode( self::$llmApiKey );
 		$payload = [
-			"input" => $text,
-			"model" => self::$embeddingModel ?: "text-embedding-ada-002"
+			'contents' => [ [ 'role' => 'user', 'parts' => [ [ 'text' => $prompt ] ] ] ],
+			'generationConfig' => [
+				'temperature' => self::$temperature,
+				'maxOutputTokens' => self::$maxTokens
+			]
 		];
 
-		$ch = curl_init( "https://api.openai.com/v1/embeddings" );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
+		$ch = curl_init( $url );
+		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, 'POST' );
 		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $payload ) );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [
-			"Content-Type: application/json",
-			"Authorization: Bearer " . self::$llmApiKey
-		] );
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ 'Content-Type: application/json' ] );
 
 		$response = curl_exec( $ch );
 		curl_close( $ch );
-
-		$jsonResponse = json_decode( $response, true );
-
+		$json = json_decode( $response, true );
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			return null;
+			return $this->msg( 'wanda-api-error-fallback' )->text();
 		}
-
-		// Convert OpenAI response format to match Ollama format
-		if ( isset( $jsonResponse['data'][0]['embedding'] ) ) {
-			return [ 'embeddings' => [ $jsonResponse['data'][0]['embedding'] ] ];
+		if ( isset( $json['candidates'][0]['content']['parts'][0]['text'] ) ) {
+			return $json['candidates'][0]['content']['parts'][0]['text'];
 		}
-
-		return null;
-	}
-
-	/**
-	 * Generate embedding using Azure OpenAI API.
-	 */
-	private function generateAzureEmbedding( $text ) {
-		if ( empty( self::$llmApiKey ) ) {
-			return null;
-		}
-
-		$payload = [
-			"input" => $text
-		];
-
-		// Azure endpoint should include the deployment name
-		$ch = curl_init( self::$llmApiEndpoint );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $payload ) );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [
-			"Content-Type: application/json",
-			"api-key: " . self::$llmApiKey
-		] );
-
-		$response = curl_exec( $ch );
-		curl_close( $ch );
-
-		$jsonResponse = json_decode( $response, true );
-
-		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			return null;
-		}
-
-		// Convert Azure response format to match Ollama format
-		if ( isset( $jsonResponse['data'][0]['embedding'] ) ) {
-			return [ 'embeddings' => [ $jsonResponse['data'][0]['embedding'] ] ];
-		}
-
-		return null;
-	}
-
-	/**
-	 * Generate embedding using Anthropic API (placeholder - Anthropic doesn't have embeddings API)
-	 */
-	private function generateAnthropicEmbedding( $text ) {
-		// Anthropic doesn't provide embeddings API, fall back to text similarity
-		return null;
-	}
-
-	/**
-	 * Generates response using configured LLM provider with context
-	 */
-	private function generateLLMResponse( $query, $context ) {
-		$prompt = "Based on the following wiki content, answer the query:\n\n"
-			. "Wiki Content:\n" . $context . "\n\n"
-			. "User Query:\n" . $query . "\n\n"
-			. "\nYour answer should be based on the provided context only."
-			. " Do not hallucinate and do not write anything apart from the answer."
-			. " No need to mention these instructions in the answer.";
-
-		switch ( self::$llmProvider ) {
-			case 'openai':
-				return $this->generateOpenAIResponse( $prompt );
-			case 'anthropic':
-				return $this->generateAnthropicResponse( $prompt );
-			case 'azure':
-				return $this->generateAzureResponse( $prompt );
-			case 'ollama':
-			default:
-				return $this->generateOllamaResponse( $prompt );
-		}
+		return $this->msg( 'wanda-api-error-fallback' )->text();
 	}
 
 	/**
@@ -540,6 +376,71 @@ class APIChat extends ApiBase {
 		}
 
 		return $jsonResponse['choices'][0]['message']['content'] ?? $this->msg( 'wanda-api-error-fallback' )->text();
+	}
+
+	/**
+	 * Driver function to generate an LLM response given a user query and retrieved context.
+	 *
+	 * @param string $userQuery  The original user question
+	 * @param string|null $context Retrieved wiki content used as grounding context
+	 * @return string|false LLM answer text or false on complete failure
+	 */
+	private function generateLLMResponse( $userQuery, $context ) {
+		// Basic guards
+		if ( !$userQuery ) {
+			return false;
+		}
+
+		// Prepare (truncate) context to avoid excessively large prompts.
+		$context = trim( (string)$context );
+		if ( $context === '' ) {
+			$contextBlock = "(No additional context from the knowledge base was found.)";
+		} else {
+			// Rough character cap – MediaWiki pages can be large; keep prompt manageable.
+			$maxContextChars = 8000; // heuristic
+			if ( strlen( $context ) > $maxContextChars ) {
+				$context = substr( $context, 0, $maxContextChars ) . "\n[...truncated...]";
+			}
+			$contextBlock = $context;
+		}
+
+		// Prompt template – keep instructions concise & deterministic.
+		$prompt = "You are an assistant helping answer questions about this MediaWiki instance.\n" .
+			"Use ONLY the provided context to answer. If the answer is not contained in the context, say you do not have enough information.\n" .
+			"Cite the source title(s) mentioned in the context if relevant.\n\n" .
+			"Context:\n" . $contextBlock . "\n\n" .
+			"User Question: " . $userQuery . "\n\n" .
+			"Answer:";
+
+		$response = null;
+		switch ( self::$llmProvider ) {
+			case 'ollama':
+				$response = $this->generateOllamaResponse( $prompt );
+				break;
+			case 'openai':
+				$response = $this->generateOpenAIResponse( $prompt );
+				break;
+			case 'anthropic':
+				$response = $this->generateAnthropicResponse( $prompt );
+				break;
+			case 'azure':
+				$response = $this->generateAzureResponse( $prompt );
+				break;
+			case 'gemini':
+				$response = $this->generateGeminiResponse( $prompt );
+				break;
+			default:
+				return false; // Unknown provider (should have been validated earlier)
+		}
+
+		// Normalize / sanitize response
+		if ( !is_string( $response ) || trim( $response ) === '' ) {
+			return false;
+		}
+
+		// Remove any leading/trailing whitespace or stray control characters
+		$clean = trim( preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]+/u', ' ', $response ) );
+		return $clean === '' ? false : $clean;
 	}
 
 	public function getAllowedParams() {

@@ -21,5 +21,6 @@
 	"wanda-api-error-openai-key": "Error message when OpenAI API key is not configured",
 	"wanda-api-error-anthropic-key": "Error message when Anthropic API key is not configured",
 	"wanda-api-error-azure-key": "Error message when Azure API key is not configured",
+	"wanda-api-error-gemini-key": "Error message when Gemini (Google Generative Language) API key is not configured",
 	"wanda-api-error-fallback": "Default fallback message when LLM cannot provide a response"
 }
