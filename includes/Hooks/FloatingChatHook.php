@@ -10,6 +10,8 @@
 
 namespace MediaWiki\Extension\Wanda\Hooks;
 
+use MediaWiki\MediaWikiServices;
+
 /**
  * Hooks for adding the floating chat widget
  */
@@ -27,6 +29,9 @@ class FloatingChatHook {
 		if ( $out->getTitle() && $out->getTitle()->isSpecial( 'Wanda' ) ) {
 			return;
 		}
+
+		$config = MediaWikiServices::getInstance()->getMainConfig();
+		$out->addJsConfigVars( 'ShowWandaPopup', $config->get( 'ShowWandaPopup' ) );
 
 		// Add the floating chat module to all other pages
 		// $out->addModules( 'ext.wanda.floating' );

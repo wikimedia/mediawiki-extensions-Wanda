@@ -92,6 +92,7 @@
 		"LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\Wanda\\Hooks\\SchemaUpdates::onLoadExtensionSchemaUpdates"
 	},
 	"config": {
+		"ShowWandaPopup": true,
 		"LLMProvider": "ollama",
 		"LLMApiEndpoint": "http://ollama:11434/api/",
 		"LLMApiKey": "",
