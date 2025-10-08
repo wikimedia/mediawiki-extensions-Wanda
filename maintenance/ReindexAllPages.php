@@ -5,7 +5,7 @@ namespace MediaWiki\Extension\Wanda\Maintenance;
 use Maintenance;
 use MediaWiki\Extension\Wanda\Hooks\PageIndexUpdater;
 use MediaWiki\MediaWikiServices;
-use Title;
+use MediaWiki\Title\Title;
 
 $IP = getenv( 'MW_INSTALL_PATH' );
 if ( $IP === false ) {

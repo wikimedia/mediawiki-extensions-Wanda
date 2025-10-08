@@ -12,6 +12,8 @@
 	"wanda-chat-instruction2": "Instruction shown to the user in the chatbot",
 	"wanda-chat-pdftotext-error": "Error message to notify the user that there is a problem with a utility setup",
 	"wanda-floating-chat-title": "Tooltip text for the floating chat button",
+	"apihelp-chatbot-summary": "{{doc-apihelp-summary|chatbot}}",
+	"apihelp-chatbot-param-message": "{{doc-apihelp-param|chatbot|message}}",
 	"wanda-api-error-empty-question": "Error message when user submits an empty question",
 	"wanda-api-error-question-too-long": "Error message when user's question exceeds character limit",
 	"wanda-api-error-config-invalid": "Error message when the chat service is not properly configured",

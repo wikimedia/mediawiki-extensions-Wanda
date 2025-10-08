@@ -4,12 +4,12 @@
  *
  * @file
  * @ingroup Extensions
- * @ingroup Wikai
+ * @ingroup Wanda
  */
 
 $specialPageAliases = [];
 
 /** English (English) */
 $specialPageAliases['en'] = [
-	'Wikai' => [ 'Wikai' ]
+	'Wanda' => [ 'Wanda' ]
 ];

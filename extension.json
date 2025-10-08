@@ -5,7 +5,7 @@
 	"author": [
 		"Sanjay Thiyagarajan"
 	],
-	"url": "",
+	"url": "https://www.mediawiki.org/wiki/Extension:Wanda",
 	"descriptionmsg": "wanda-desc",
 	"load_composer_autoloader": true,
 	"license-name": "GPL-2.0-or-later",
@@ -22,23 +22,17 @@
 		"WandaAlias": "Wanda_Aliases.php"
 	},
 	"AutoloadNamespaces": {
-        "MediaWiki\\Extension\\Wanda": "includes",
-        "MediaWiki\\Extension\\Wanda\\Maintenance": "maintenance",
-        "MediaWiki\\Extension\\Wanda\\Hooks": "includes/Hooks"
-	},
-	"AutoloadClasses": {
-        "MediaWiki\\Extension\\Wanda\\SpecialAIChat": "includes/specials/SpecialAIChat.php",
-		"MediaWiki\\Extension\\Wanda\\APIChat": "includes/APIChat.php",
-		"MediaWiki\\Extension\\Wanda\\Maintenance\\ReindexAllPages": "maintenance/ReindexAllPages.php",
-		"MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater": "includes/Hooks/PageIndexUpdater.php",
-		"MediaWiki\\Extension\\Wanda\\Hooks\\FloatingChatHook": "includes/Hooks/FloatingChatHook.php"
+		"MediaWiki\\Extension\\Wanda\\": "includes/",
+		"MediaWiki\\Extension\\Wanda\\Specials\\": "includes/specials/",
+		"MediaWiki\\Extension\\Wanda\\Maintenance\\": "maintenance/",
+		"MediaWiki\\Extension\\Wanda\\Hooks\\": "includes/Hooks/"
 	},
 	"SpecialPages": {
-		"Wanda": "MediaWiki\\Extension\\Wanda\\SpecialAIChat"
+		"Wanda": "MediaWiki\\Extension\\Wanda\\Specials\\SpecialAIChat"
 	},
 	"APIModules": {
-        "chatbot": "MediaWiki\\Extension\\Wanda\\APIChat"
-    },
+		"chatbot": "MediaWiki\\Extension\\Wanda\\APIChat"
+	},
 	"ResourceModules": {
 		"ext.wanda.main": {
 			"scripts": [
@@ -84,10 +78,6 @@
 				"wanda-chat-instruction1",
 				"wanda-chat-instruction2",
 				"wanda-floating-chat-title"
-			],
-			"targets": [
-				"desktop",
-				"mobile"
 			]
 		}
 	},
@@ -111,6 +101,6 @@
 		"LLMTemperature": 0.7,
 		"LLMTimeout": 30,
 		"WandaAutoReindex": true
-    },
+	},
 	"manifest_version": 1
 }

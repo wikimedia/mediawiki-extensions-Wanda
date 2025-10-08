@@ -29,6 +29,6 @@ class FloatingChatHook {
 		}
 
 		// Add the floating chat module to all other pages
-		$out->addModules( 'ext.wanda.floating' );
+		// $out->addModules( 'ext.wanda.floating' );
 	}
 }

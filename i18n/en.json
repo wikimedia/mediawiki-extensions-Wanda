@@ -12,6 +12,8 @@
 	"wanda-chat-instruction2": "AI-powered responses",
 	"wanda-chat-pdftotext-error": "Please ensure that pdftotext utility is installed and ready to use.",
 	"wanda-floating-chat-title": "Chat with Wanda",
+	"apihelp-chatbot-summary": "Send a question or request to the Wanda extension chatbot",
+	"apihelp-chatbot-param-message": "Message to be sent to the chatbot",
 	"wanda-api-error-empty-question": "Please provide a valid question.",
 	"wanda-api-error-question-too-long": "Your question is too long. Please keep it under 1000 characters.",
 	"wanda-api-error-config-invalid": "Chat service is not properly configured. Please contact an administrator.",

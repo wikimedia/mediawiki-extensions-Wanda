@@ -4,7 +4,7 @@ namespace MediaWiki\Extension\Wanda\Hooks;
 
 use File;
 use MediaWiki\MediaWikiServices;
-use Title;
+use MediaWiki\Title\Title;
 use WikiPage;
 
 class PageIndexUpdater {
@@ -111,7 +111,6 @@ class PageIndexUpdater {
 		curl_close( $ch );
 
 		$mapping = json_decode( $response, true );
-
 	}
 
 	/**
@@ -171,7 +170,6 @@ class PageIndexUpdater {
 
 		return implode( "\n", $output );
 	}
-
 
 	/**
 	 * Hooks to trigger indexing.

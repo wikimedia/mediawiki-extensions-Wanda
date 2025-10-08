@@ -9,14 +9,11 @@
  * @license MIT
  */
 
- namespace MediaWiki\Extension\Wanda;
+namespace MediaWiki\Extension\Wanda\Specials;
 
- use Html;
- use SpecialPage;
+use MediaWiki\Html\Html;
+use SpecialPage;
 
-/**
- * @ingroup PFSpecialPages
- */
 class SpecialAIChat extends SpecialPage {
 
 	public function __construct() {
@@ -32,8 +29,6 @@ class SpecialAIChat extends SpecialPage {
 		$this->setHeaders();
 
 		$out = $this->getOutput();
-		$req = $this->getRequest();
-
 		$out->addModules( 'ext.wanda.main' );
 
 		$out->addHTML(
@@ -42,6 +37,13 @@ class SpecialAIChat extends SpecialPage {
 				[ 'id' => 'chat-bot-container' ],
 			)
 		);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	protected function getGroupName() {
+		return 'wiki';
 	}
 
 }

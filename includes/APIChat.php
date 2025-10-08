@@ -3,7 +3,6 @@
 namespace MediaWiki\Extension\Wanda;
 
 use ApiBase;
-use stdClass;
 
 class APIChat extends ApiBase {
 	/** @var string */
@@ -381,7 +380,7 @@ class APIChat extends ApiBase {
 	/**
 	 * Driver function to generate an LLM response given a user query and retrieved context.
 	 *
-	 * @param string $userQuery  The original user question
+	 * @param string $userQuery The original user question
 	 * @param string|null $context Retrieved wiki content used as grounding context
 	 * @return string|false LLM answer text or false on complete failure
 	 */
@@ -397,7 +396,8 @@ class APIChat extends ApiBase {
 			$contextBlock = "(No additional context from the knowledge base was found.)";
 		} else {
 			// Rough character cap – MediaWiki pages can be large; keep prompt manageable.
-			$maxContextChars = 8000; // heuristic
+			// Heuristic
+			$maxContextChars = 8000;
 			if ( strlen( $context ) > $maxContextChars ) {
 				$context = substr( $context, 0, $maxContextChars ) . "\n[...truncated...]";
 			}
@@ -406,7 +406,8 @@ class APIChat extends ApiBase {
 
 		// Prompt template – keep instructions concise & deterministic.
 		$prompt = "You are an assistant helping answer questions about this MediaWiki instance.\n" .
-			"Use ONLY the provided context to answer. If the answer is not contained in the context, say you do not have enough information.\n" .
+			"Use ONLY the provided context to answer. If the answer is not contained in the context, " .
+			"say you do not have enough information.\n" .
 			"Cite the source title(s) mentioned in the context if relevant.\n\n" .
 			"Context:\n" . $contextBlock . "\n\n" .
 			"User Question: " . $userQuery . "\n\n" .
@@ -430,7 +431,8 @@ class APIChat extends ApiBase {
 				$response = $this->generateGeminiResponse( $prompt );
 				break;
 			default:
-				return false; // Unknown provider (should have been validated earlier)
+				// Unknown provider (should have been validated earlier)
+				return false;
 		}
 
 		// Normalize / sanitize response
@@ -444,6 +446,8 @@ class APIChat extends ApiBase {
 	}
 
 	public function getAllowedParams() {
-		return [ "message" => [ "type" => "string", "required" => true ] ];
+		return [
+			"message" => null
+		];
 	}
 }

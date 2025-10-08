@@ -1,7 +1,7 @@
 {
-	"name": "wikiworks/wanda",
+	"name": "mediawiki/wanda",
 	"description": "Chatbot for MediaWiki",
-	"type": "project",
+	"type": "mediawiki-extension",
 	"authors": [
 		{
 			"name": "Sanjay Thiyagarajan",
