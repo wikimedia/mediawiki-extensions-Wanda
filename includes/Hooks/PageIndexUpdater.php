@@ -26,12 +26,12 @@ class PageIndexUpdater {
 	 */
 	public static function initialize() {
 		$config = MediaWikiServices::getInstance()->getMainConfig();
-		self::$esHost = $config->get( 'LLMElasticsearchUrl' ) ?? "http://localhost:9200";
+		self::$esHost = $config->get( 'WandaLLMElasticsearchUrl' ) ?? "http://localhost:9200";
 		self::$indexName = self::detectOrCreateElasticsearchIndex();
-		self::$llmProvider = strtolower( $config->get( 'LLMProvider' ) ?? 'ollama' );
-		self::$llmApiKey = $config->get( 'LLMApiKey' ) ?? '';
-		self::$llmApiEndpoint = $config->get( 'LLMApiEndpoint' ) ?? 'http://ollama:11434/api/';
-		self::$timeout = $config->get( 'LLMTimeout' ) ?? 30;
+		self::$llmProvider = strtolower( $config->get( 'WandaLLMProvider' ) ?? 'ollama' );
+		self::$llmApiKey = $config->get( 'WandaLLMApiKey' ) ?? '';
+		self::$llmApiEndpoint = $config->get( 'WandaLLMApiEndpoint' ) ?? 'http://ollama:11434/api/';
+		self::$timeout = $config->get( 'WandaLLMTimeout' ) ?? 30;
 
 		if ( !self::$indexName ) {
 			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Skipping indexing." );

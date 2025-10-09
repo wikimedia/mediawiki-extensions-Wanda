@@ -28,15 +28,15 @@ class APIChat extends ApiBase {
 		parent::__construct( $query, $moduleName );
 
 		// Fetch settings from MediaWiki config
-		self::$esHost = $this->getConfig()->get( 'LLMElasticsearchUrl' ) ?? "http://localhost:9200";
+		self::$esHost = $this->getConfig()->get( 'WandaLLMElasticsearchUrl' ) ?? "http://localhost:9200";
 		self::$indexName = $this->detectElasticsearchIndex();
-		self::$llmProvider = strtolower( $this->getConfig()->get( 'LLMProvider' ) ?? "ollama" );
-		self::$llmModel = $this->getConfig()->get( 'LLMModel' ) ?? "gemma:2b";
-		self::$llmApiKey = $this->getConfig()->get( 'LLMApiKey' ) ?? "";
-		self::$llmApiEndpoint = $this->getConfig()->get( 'LLMApiEndpoint' ) ?? "http://ollama:11434/api/";
-		self::$maxTokens = $this->getConfig()->get( 'LLMMaxTokens' ) ?? 1000;
-		self::$temperature = $this->getConfig()->get( 'LLMTemperature' ) ?? 0.7;
-		self::$timeout = $this->getConfig()->get( 'LLMTimeout' ) ?? 30;
+		self::$llmProvider = strtolower( $this->getConfig()->get( 'WandaLLMProvider' ) ?? "ollama" );
+		self::$llmModel = $this->getConfig()->get( 'WandaLLMModel' ) ?? "gemma:2b";
+		self::$llmApiKey = $this->getConfig()->get( 'WandaLLMApiKey' ) ?? "";
+		self::$llmApiEndpoint = $this->getConfig()->get( 'WandaLLMApiEndpoint' ) ?? "http://ollama:11434/api/";
+		self::$maxTokens = $this->getConfig()->get( 'WandaLLMMaxTokens' ) ?? 1000;
+		self::$temperature = $this->getConfig()->get( 'WandaLLMTemperature' ) ?? 0.7;
+		self::$timeout = $this->getConfig()->get( 'WandaLLMTimeout' ) ?? 30;
 	}
 
 	public function execute() {

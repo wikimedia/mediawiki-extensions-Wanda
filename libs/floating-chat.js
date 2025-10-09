@@ -1,6 +1,6 @@
 $(document).ready(() => {
   // Don't load floating chat on the special page itself
-  if (mw.config.get('wgCanonicalSpecialPageName') === 'Wanda' || !mw.config.get('ShowWandaPopup')) {
+  if (mw.config.get('wgCanonicalSpecialPageName') === 'Wanda' || !mw.config.get('WandaShowPopup')) {
     return;
   }
   // Create floating chat button

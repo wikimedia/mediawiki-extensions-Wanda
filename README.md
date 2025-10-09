@@ -35,47 +35,47 @@ Add these configuration variables to your `LocalSettings.php`:
 
 ```php
 // Choose your LLM provider
-$wgLLMProvider = 'ollama'; // Options: 'ollama', 'openai', 'anthropic', 'azure', 'gemini'
+$wgWandaLLMProvider = 'ollama'; // Options: 'ollama', 'openai', 'anthropic', 'azure', 'gemini'
 
 // Provider-specific settings
-$wgLLMApiKey = 'your-api-key-here'; // Not needed for Ollama
-$wgLLMModel = 'gemma:2b';
-$wgLLMApiEndpoint = 'http://localhost:11434/api/';
+$wgWandaLLMApiKey = 'your-api-key-here'; // Not needed for Ollama
+$wgWandaLLMModel = 'gemma:2b';
+$wgWandaLLMApiEndpoint = 'http://localhost:11434/api/';
 
 // Elasticsearch configuration
-$wgLLMElasticsearchUrl = 'http://elasticsearch:9200';
+$wgWandaLLMElasticsearchUrl = 'http://elasticsearch:9200';
 ```
 
 ### Provider Examples
 
 **Ollama (Self-hosted)**
 ```php
-$wgLLMProvider = 'ollama';
-$wgLLMApiEndpoint = 'http://localhost:11434/api/';
-$wgLLMModel = 'gemma:2b';
+$wgWandaLLMProvider = 'ollama';
+$wgWandaLLMApiEndpoint = 'http://localhost:11434/api/';
+$wgWandaLLMModel = 'gemma:2b';
 ```
 
 **OpenAI**
 ```php
-$wgLLMProvider = 'openai';
-$wgLLMApiKey = 'sk-your-openai-api-key';
-$wgLLMModel = 'gpt-3.5-turbo';
+$wgWandaLLMProvider = 'openai';
+$wgWandaLLMApiKey = 'sk-your-openai-api-key';
+$wgWandaLLMModel = 'gpt-3.5-turbo';
 ```
 
 **Anthropic Claude**
 ```php
-$wgLLMProvider = 'anthropic';
-$wgLLMApiKey = 'sk-ant-your-anthropic-key';
-$wgLLMModel = 'claude-3-haiku-20240307';
+$wgWandaLLMProvider = 'anthropic';
+$wgWandaLLMApiKey = 'sk-ant-your-anthropic-key';
+$wgWandaLLMModel = 'claude-3-haiku-20240307';
 ```
 
 **Google Gemini (Generative Language API)**
 ```php
-$wgLLMProvider = 'gemini';
-$wgLLMApiKey = 'your-gemini-api-key'; // Obtain from Google AI Studio
-$wgLLMModel = 'gemini-1.5-flash'; // Or gemini-1.5-pro, etc.
+$wgWandaLLMProvider = 'gemini';
+$wgWandaLLMApiKey = 'your-gemini-api-key'; // Obtain from Google AI Studio
+$wgWandaLLMModel = 'gemini-1.5-flash'; // Or gemini-1.5-pro, etc.
 // Optional: override endpoint (default used if omitted)
-$wgLLMApiEndpoint = 'https://generativelanguage.googleapis.com/v1';
+$wgWandaLLMApiEndpoint = 'https://generativelanguage.googleapis.com/v1';
 ```
 
 For detailed configuration options, see [LLM-CONFIG.md](LLM-CONFIG.md).
@@ -84,7 +84,13 @@ For detailed configuration options, see [LLM-CONFIG.md](LLM-CONFIG.md).
 
 ### Floating Chat Widget
 
-The floating chat widget appears on all pages (except Special:Wanda) as a blue chat button in the bottom-right corner. Click it to open the chat interface.
+The floating chat widget appears on all pages (except Special:Wanda) as a blue chat button in the bottom-right corner. Click it to open the chat interface. 
+
+Add the following configuration in LocalSettings.php to show/hide the floating chat widget.
+
+```php
+$wgWandaShowPopup = true;
+```
 
 ### Special Page
 

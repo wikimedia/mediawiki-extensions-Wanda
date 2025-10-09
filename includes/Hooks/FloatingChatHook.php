@@ -31,7 +31,7 @@ class FloatingChatHook {
 		}
 
 		$config = MediaWikiServices::getInstance()->getMainConfig();
-		$out->addJsConfigVars( 'ShowWandaPopup', $config->get( 'ShowWandaPopup' ) );
+		$out->addJsConfigVars( 'WandaShowPopup', $config->get( 'WandaShowPopup' ) );
 
 		// Add the floating chat module to all other pages
 		$out->addModules( 'ext.wanda.floating' );

@@ -96,15 +96,15 @@
 		"LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\Wanda\\Hooks\\SchemaUpdates::onLoadExtensionSchemaUpdates"
 	},
 	"config": {
-		"ShowWandaPopup": true,
-		"LLMProvider": "ollama",
-		"LLMApiEndpoint": "http://ollama:11434/api/",
-		"LLMApiKey": "",
-		"LLMModel": "gemma:2b",
-		"LLMElasticsearchUrl": "http://elasticsearch:9200",
-		"LLMMaxTokens": 1000,
-		"LLMTemperature": 0.7,
-		"LLMTimeout": 30,
+		"WandaShowPopup": true,
+		"WandaLLMProvider": "ollama",
+		"WandaLLMApiEndpoint": "http://ollama:11434/api/",
+		"WandaLLMApiKey": "",
+		"WandaLLMModel": "gemma:2b",
+		"WandaLLMElasticsearchUrl": "http://elasticsearch:9200",
+		"WandaLLMMaxTokens": 1000,
+		"WandaLLMTemperature": 0.7,
+		"WandaLLMTimeout": 30,
 		"WandaAutoReindex": true
 	},
 	"manifest_version": 1
