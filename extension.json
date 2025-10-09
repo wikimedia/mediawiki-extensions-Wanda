@@ -52,7 +52,8 @@
 				"wanda-chat-welcomedesc",
 				"wanda-chat-instruction1",
 				"wanda-chat-instruction2",
-				"wanda-chat-pdftotext-error"
+				"wanda-chat-pdftotext-error",
+				"wanda-llm-response-nocontext"
 			],
 			"targets": [
 				"desktop",
@@ -77,7 +78,8 @@
 				"wanda-chat-welcomedesc",
 				"wanda-chat-instruction1",
 				"wanda-chat-instruction2",
-				"wanda-floating-chat-title"
+				"wanda-floating-chat-title",
+				"wanda-llm-response-nocontext"
 			],
 			"targets": [
 				"desktop",

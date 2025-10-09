@@ -24,5 +24,6 @@
 	"wanda-api-error-anthropic-key": "Anthropic API key not configured.",
 	"wanda-api-error-azure-key": "Azure API key not configured.",
 	"wanda-api-error-gemini-key": "Gemini API key not configured.",
-	"wanda-api-error-fallback": "I'm not sure about that."
+	"wanda-api-error-fallback": "I'm not sure about that.",
+	"wanda-llm-response-nocontext": "I don’t have enough information in the wiki context to answer that."
 }

@@ -69,7 +69,14 @@ $(document).ready(() => {
           dataType: 'json',
           success: function (data) {
               let response = data.response || 'Error fetching response';
-              response = response + "<br><b>Source</b>: <a target='_blank' href='" + mw.util.getUrl(data.source) + "'>" + data.source + "</a>";
+              if (response === "NO_MATCHING_CONTEXT") {
+                response = mw.message( "wanda-llm-response-nocontext" );
+              } else {
+                if (data.source) {
+                  response += "<br><b>Source</b>: <a target='_blank' href='" +
+                    mw.util.getUrl(data.source) + "'>" + data.source + "</a>";
+                }
+              }
               addMessage('bot', response);
           },
           error: function () {

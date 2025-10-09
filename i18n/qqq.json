@@ -24,5 +24,6 @@
 	"wanda-api-error-anthropic-key": "Error message when Anthropic API key is not configured",
 	"wanda-api-error-azure-key": "Error message when Azure API key is not configured",
 	"wanda-api-error-gemini-key": "Error message when Gemini (Google Generative Language) API key is not configured",
-	"wanda-api-error-fallback": "Default fallback message when LLM cannot provide a response"
+	"wanda-api-error-fallback": "Default fallback message when LLM cannot provide a response",
+	"wanda-llm-response-nocontext": "Default response for questions which cannot be answered using wiki context"
 }

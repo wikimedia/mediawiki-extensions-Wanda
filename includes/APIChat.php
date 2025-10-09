@@ -407,7 +407,7 @@ class APIChat extends ApiBase {
 		// Prompt template – keep instructions concise & deterministic.
 		$prompt = "You are an assistant helping answer questions about this MediaWiki instance.\n" .
 			"Use ONLY the provided context to answer. If the answer is not contained in the context, " .
-			"say you do not have enough information.\n" .
+			"output exactly the single token: NO_MATCHING_CONTEXT (no other text).\n" .
 			"Cite the source title(s) mentioned in the context if relevant.\n\n" .
 			"Context:\n" . $contextBlock . "\n\n" .
 			"User Question: " . $userQuery . "\n\n" .
