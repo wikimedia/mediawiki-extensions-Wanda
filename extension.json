@@ -78,6 +78,10 @@
 				"wanda-chat-instruction1",
 				"wanda-chat-instruction2",
 				"wanda-floating-chat-title"
+			],
+			"targets": [
+				"desktop",
+				"mobile"
 			]
 		}
 	},

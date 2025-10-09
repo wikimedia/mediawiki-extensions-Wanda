@@ -1,0 +1,39 @@
+[
+	{
+		"@note": "Hack! We 'opt out' of performance budgeting for this (dynamically loaded) module, and all its dependencies.",
+		"resourceModule": "ext.wanda.floating",
+		"maxSize": null
+	},
+	{
+		"resourceModule": "mediawiki.util",
+		"maxSize": null
+	},
+	{
+		"resourceModule": "mediawiki.api",
+		"maxSize": null
+	},
+	{
+		"resourceModule": "oojs-ui-core",
+		"maxSize": null
+	},
+	{
+		"resourceModule": "oojs-ui-widgets",
+		"maxSize": null
+	},
+	{
+		"resourceModule": "oojs-ui-core.icons",
+		"maxSize": null
+	},
+	{
+		"resourceModule": "oojs-ui-core.styles",
+		"maxSize": null
+	},
+	{
+		"resourceModule": "oojs-ui.styles.indicators",
+		"maxSize": null
+	},
+	{
+		"resourceModule": "oojs-ui-widgets.icons",
+		"maxSize": null
+	}
+]

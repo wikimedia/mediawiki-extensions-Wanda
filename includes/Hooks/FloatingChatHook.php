@@ -34,6 +34,6 @@ class FloatingChatHook {
 		$out->addJsConfigVars( 'ShowWandaPopup', $config->get( 'ShowWandaPopup' ) );
 
 		// Add the floating chat module to all other pages
-		// $out->addModules( 'ext.wanda.floating' );
+		$out->addModules( 'ext.wanda.floating' );
 	}
 }
