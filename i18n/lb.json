@@ -1,0 +1,22 @@
+{
+	"@metadata": {
+		"authors": [
+			"Volvox"
+		]
+	},
+	"wanda-desc": "Chatbot fir MediaWiki",
+	"wanda-chat-welcometext": "Moien! Ech sinn d'Wanda, Är KI-Assistentin.",
+	"wanda-chat-welcomedesc": "Dir kënnt mir iwwer alles an Ärer Wiki Froe stellen an ech probéieren ze hëllefen!",
+	"apihelp-chatbot-param-message": "Message fir un den Chatbot ze schécken",
+	"wanda-api-error-empty-question": "Gitt wgl. eng gülteg Fro un.",
+	"wanda-api-error-question-too-long": "Är Fro ass ze laang. Haalt se wgl. méi kuerz ewéi 1000 Zeechen.",
+	"wanda-api-error-config-invalid": "Den Chat-Service ass net richteg konfiguréiert. Kontaktéiert wgl. en Administrateur.",
+	"wanda-api-error-no-index": "Ech konnt keng relevant Wiki-Informatioune fannen, well keng Indexe fonnt goufen. Vergewëssert Iech wgl., datt den Inhalt indizéiert gouf.",
+	"wanda-api-error-no-results": "Ech konnt op der Wiki keng relevant Informatiounen iwwer dat Theema fannen.",
+	"wanda-api-error-generation-failed": "Ech hunn am Moment Problemer fir eng Äntwert ze generéieren. Probéiert wgl. méi spéit nach eng Kéier.",
+	"wanda-api-error-openai-key": "OpenAI-API-Schlëssel net konfiguréiert.",
+	"wanda-api-error-anthropic-key": "Anthropic-API-Schlëssel net konfiguréiert.",
+	"wanda-api-error-azure-key": "Azure-API-Schlëssel net konfiguréiert.",
+	"wanda-api-error-gemini-key": "Gemini-API-Schlëssel net konfiguréiert.",
+	"wanda-api-error-fallback": "Ech si mir do net sécher."
+}
