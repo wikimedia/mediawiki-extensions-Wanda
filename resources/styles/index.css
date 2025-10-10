@@ -10,13 +10,13 @@
     background-color: #f8f9fa;
 }
 
-.oo-ui-textInputWidget {
+/* Codex text area max width */
+.chat-container textarea {
     max-width: 100%;
 }
 
 .chat-box {
     flex: 1;
-    overflow-y: auto;
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -82,22 +82,27 @@
 
 .chat-input-container {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    width: 100%;
     padding: 10px;
     background-color: white;
     border-top: 1px solid #ddd;
+    gap: 8px;
 }
 
 .chat-input-box {
-    width: 90%;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
-.oo-ui-buttonElement {
+/* Button sizing */
+.chat-input-container .cdx-button {
     font-size: medium;
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
-.oo-ui-progressBarWidget {
+.chat-progress-bar {
     width: 100%;
     max-width: 100%;
     margin: 5px 0;

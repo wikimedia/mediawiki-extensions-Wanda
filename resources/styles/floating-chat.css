@@ -30,14 +30,13 @@
     bottom: 20px;
     right: 20px;
     width: 450px;
-    height: 650px;
+    max-height: 450px;
     background: white;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     z-index: 1001;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     border: 1px solid #e0e0e0;
     transform: translateY(20px);
     opacity: 0;
@@ -91,13 +90,12 @@
     background-color: #f8f9fa;
     display: flex;
     flex-direction: column;
+    overflow-y: scroll;
 }
 
 .wanda-floating-chat .chat-box {
     flex: 1;
     max-height: none;
-    min-height: 300px;
-    overflow-y: auto;
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -156,28 +154,31 @@
 
 .wanda-floating-chat .chat-input-container {
     display: flex;
+    flex-direction: row;
     align-items: center;
     padding: 12px;
     background-color: white;
     border-top: 1px solid #e0e0e0;
     flex-shrink: 0;
     min-height: 60px;
+    gap: 8px;
 }
 
 .wanda-floating-chat .chat-input-box {
-    flex: 1;
-    margin-right: 8px;
+    flex: 1 1 auto;
+    margin-right: 0;
     min-width: 0; /* Allow flex item to shrink below content size */
 }
 
-.wanda-floating-chat .oo-ui-textInputWidget {
+.wanda-floating-chat textarea {
     max-width: 100%;
     width: 100%;
 }
 
-.wanda-floating-chat .oo-ui-buttonWidget {
-    flex-shrink: 0;
+.wanda-floating-chat .cdx-button {
+    flex: 0 0 auto;
     margin-left: 0;
+    white-space: nowrap;
 }
 
 .wanda-floating-chat .chat-progress-bar {
@@ -187,7 +188,7 @@
     flex-shrink: 0;
 }
 
-.wanda-floating-chat .oo-ui-buttonElement-button {
+.wanda-floating-chat .cdx-button {
     padding: 8px 12px;
     font-size: 14px;
 }

@@ -8,7 +8,12 @@ module.exports = function ( grunt ) {
 			options: {
 				cache: true
 			},
-			all: '.'
+			all: [
+				'**/*.js',
+				'!node_modules/**',
+				'!vendor/**',
+				'!**/*.vue'
+			]
 		},
 		stylelint: {
 			options: {

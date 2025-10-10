@@ -13,27 +13,11 @@
 		"maxSize": null
 	},
 	{
-		"resourceModule": "oojs-ui-core",
+		"resourceModule": "@wikimedia/codex",
 		"maxSize": null
 	},
 	{
-		"resourceModule": "oojs-ui-widgets",
-		"maxSize": null
-	},
-	{
-		"resourceModule": "oojs-ui-core.icons",
-		"maxSize": null
-	},
-	{
-		"resourceModule": "oojs-ui-core.styles",
-		"maxSize": null
-	},
-	{
-		"resourceModule": "oojs-ui.styles.indicators",
-		"maxSize": null
-	},
-	{
-		"resourceModule": "oojs-ui-widgets.icons",
+		"resourceModule": "vue",
 		"maxSize": null
 	}
 ]

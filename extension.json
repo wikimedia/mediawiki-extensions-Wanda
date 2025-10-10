@@ -11,7 +11,7 @@
 	"license-name": "GPL-2.0-or-later",
 	"type": "specialpage",
 	"requires": {
-		"MediaWiki": ">= 1.36.0"
+		"MediaWiki": ">= 1.42.0"
 	},
 	"MessagesDirs": {
 		"Wanda": [
@@ -35,17 +35,23 @@
 	},
 	"ResourceModules": {
 		"ext.wanda.main": {
-			"scripts": [
-				"libs/index.js"
+			"class": "MediaWiki\\ResourceLoader\\CodexModule",
+			"packageFiles": [
+				"resources/initMain.js",
+				"resources/components/ChatApp.vue"
 			],
 			"styles": [
-				"libs/index.css"
+				"resources/styles/index.css"
 			],
 			"dependencies": [
 				"mediawiki.util",
 				"mediawiki.api",
-				"oojs-ui-core",
-				"oojs-ui-widgets"
+				"vue"
+			],
+			"codexComponents": [
+				"CdxButton",
+				"CdxTextArea",
+				"CdxProgressBar"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -61,17 +67,23 @@
 			]
 		},
 		"ext.wanda.floating": {
-			"scripts": [
-				"libs/floating-chat.js"
+			"class": "MediaWiki\\ResourceLoader\\CodexModule",
+			"packageFiles": [
+				"resources/initFloating.js",
+				"resources/components/FloatingChat.vue"
 			],
 			"styles": [
-				"libs/floating-chat.css"
+				"resources/styles/floating-chat.css"
 			],
 			"dependencies": [
 				"mediawiki.util",
 				"mediawiki.api",
-				"oojs-ui-core",
-				"oojs-ui-widgets"
+				"vue"
+			],
+			"codexComponents": [
+				"CdxButton",
+				"CdxTextArea",
+				"CdxProgressBar"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
