@@ -93,7 +93,7 @@
 	},
 	"Hooks": {
 		"PageSaveComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onPageSaveComplete",
-		"FileUploadComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onFileUploadComplete",
+		"UploadComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onUploadComplete",
 		"BeforePageDisplay": "MediaWiki\\Extension\\Wanda\\Hooks\\FloatingChatHook::onBeforePageDisplay",
 		"LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\Wanda\\Hooks\\SchemaUpdates::onLoadExtensionSchemaUpdates"
 	},

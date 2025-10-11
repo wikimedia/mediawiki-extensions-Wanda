@@ -178,7 +178,9 @@ class PageIndexUpdater {
 		self::updateIndex( $wikiPage->getTitle(), $wikiPage );
 	}
 
-	public static function onFileUploadComplete( File $file ) {
+	public static function onUploadComplete( File $file ) {
+		// The UploadComplete hook passes the File object when an upload finishes.
+		// Maintain previous behavior: build a Title for the file and reindex it.
 		$title = Title::makeTitleSafe( NS_FILE, $file->getTitle() );
 		if ( !$title ) {
 			return;
