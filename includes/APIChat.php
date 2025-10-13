@@ -43,6 +43,7 @@ class APIChat extends ApiBase {
 	public function execute() {
 		$params = $this->extractRequestParams();
 		$userQuery = trim( $params['message'] );
+		$allowPublicKnowledge = !empty( $params['usepublicknowledge'] );
 
 		// If caller provided a temperature override, parse and validate it
 		if ( isset( $params['temperature'] ) ) {
@@ -69,37 +70,44 @@ class APIChat extends ApiBase {
 			return;
 		}
 
-		// Check for Elasticsearch index
+		// Check for Elasticsearch index unless we're allowed to fall back to public knowledge
 		$index = $this->detectElasticsearchIndex();
 		if ( !$index ) {
-			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-no-index' )->text() );
-			return;
+			if ( !$allowPublicKnowledge ) {
+				$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-no-index' )->text() );
+				return;
+			}
 		}
 
-		// Search for context
-		$searchResults = $this->queryElasticsearch( $userQuery );
-		if ( empty( $searchResults ) ) {
+		// Search for context when possible
+		$searchResults = $index ? $this->queryElasticsearch( $userQuery ) : null;
+		if ( empty( $searchResults ) && !$allowPublicKnowledge ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-no-results' )->text() );
 			return;
 		}
 
 		// Build context string from results (single best match currently)
-		$contextStr = is_array( $searchResults ) && isset( $searchResults['content'] )
+		$contextStr = $searchResults && is_array( $searchResults ) && isset( $searchResults['content'] )
 			? $searchResults['content']
-			: (string)$searchResults;
+			: ( $searchResults ? (string)$searchResults : null );
 
-		$response = $this->generateLLMResponse( $userQuery, $contextStr );
+		$response = $this->generateLLMResponse( $userQuery, $contextStr, $allowPublicKnowledge );
 		if ( !$response ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-generation-failed' )->text() );
 			return;
 		}
 
-		// Prepare source data
-		$sourceData = [ $searchResults['source'] ?? 'Unknown source' ];
+		// Prepare source data only when we used wiki context
+		$sourceData = [];
+		if ( $searchResults && isset( $searchResults['source'] ) ) {
+			$sourceData[] = $searchResults['source'];
+		}
 
 		// Return response along with source attribution
 		$this->getResult()->addValue( null, "response", $response );
-		$this->getResult()->addValue( null, "source", implode( ', ', array_unique( $sourceData ) ) );
+		if ( !empty( $sourceData ) ) {
+			$this->getResult()->addValue( null, "source", implode( ', ', array_unique( $sourceData ) ) );
+		}
 	}
 
 	/**
@@ -427,7 +435,7 @@ class APIChat extends ApiBase {
 	 * @param string|null $context Retrieved wiki content used as grounding context
 	 * @return string|false LLM answer text or false on complete failure
 	 */
-	private function generateLLMResponse( $userQuery, $context ) {
+	private function generateLLMResponse( $userQuery, $context, $allowPublicKnowledge = false ) {
 		// Basic guards
 		if ( !$userQuery ) {
 			return false;
@@ -447,14 +455,27 @@ class APIChat extends ApiBase {
 			$contextBlock = $context;
 		}
 
-		// Prompt template – keep instructions concise & deterministic.
-		$prompt = "You are an assistant helping answer questions about this MediaWiki instance.\n" .
-			"Use ONLY the provided context to answer. If the answer is not contained in the context, " .
-			"output exactly the single token: NO_MATCHING_CONTEXT (no other text).\n" .
-			"Cite the source title(s) mentioned in the context if relevant.\n\n" .
-			"Context:\n" . $contextBlock . "\n\n" .
-			"User Question: " . $userQuery . "\n\n" .
-			"Answer:";
+		// Prompt template – wiki-only vs wiki+public modes
+		if ( $allowPublicKnowledge ) {
+			$prompt = "You are a helpful assistant answering questions for a MediaWiki site.\n" .
+				"Prefer using the provided wiki context when possible. If the context is missing or insufficient, " .
+				"you may also rely on your general public knowledge to answer accurately.\n" .
+				"If using public knowledge due to missing wiki details, do NOT fabricate citations.\n" .
+				"Output <PUBLIC_KNOWLEDGE> in the response if your answer is based on general knowledge " .
+				"rather than the provided context.\n" .
+				"No need to mention if the current context cannot answer the question.\n" .
+				"Context (may be empty):\n" . $contextBlock . "\n\n" .
+				"User Question: " . $userQuery . "\n\n" .
+				"Answer:";
+		} else {
+			$prompt = "You are an assistant helping answer questions about this MediaWiki instance.\n" .
+				"Use ONLY the provided context to answer. If the answer is not contained in the context, " .
+				"output exactly the single token: NO_MATCHING_CONTEXT (no other text).\n" .
+				"Cite the source title(s) mentioned in the context if relevant.\n\n" .
+				"Context:\n" . $contextBlock . "\n\n" .
+				"User Question: " . $userQuery . "\n\n" .
+				"Answer:";
+		}
 
 		$response = null;
 		switch ( self::$llmProvider ) {
@@ -525,7 +546,8 @@ class APIChat extends ApiBase {
 				ParamValidator::PARAM_TYPE => 'string',
 				ParamValidator::PARAM_DEFAULT => self::$temperature,
 				ParamValidator::PARAM_REQUIRED => false
-			]
+			],
+			"usepublicknowledge" => false
 		];
 	}
 }

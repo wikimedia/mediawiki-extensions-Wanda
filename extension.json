@@ -51,7 +51,8 @@
 			"codexComponents": [
 				"CdxButton",
 				"CdxTextArea",
-				"CdxProgressBar"
+				"CdxProgressBar",
+				"CdxCheckbox"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -59,7 +60,10 @@
 				"wanda-chat-instruction1",
 				"wanda-chat-instruction2",
 				"wanda-chat-pdftotext-error",
-				"wanda-llm-response-nocontext"
+				"wanda-llm-response-nocontext",
+				"wanda-toggle-public-knowledge-label",
+				"wanda-toggle-public-knowledge-help",
+				"wanda-toggle-public-knowledge-aria"
 			],
 			"targets": [
 				"desktop",
@@ -83,7 +87,8 @@
 			"codexComponents": [
 				"CdxButton",
 				"CdxTextArea",
-				"CdxProgressBar"
+				"CdxProgressBar",
+				"CdxCheckbox"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -91,7 +96,10 @@
 				"wanda-chat-instruction1",
 				"wanda-chat-instruction2",
 				"wanda-floating-chat-title",
-				"wanda-llm-response-nocontext"
+				"wanda-llm-response-nocontext",
+				"wanda-toggle-public-knowledge-label",
+				"wanda-toggle-public-knowledge-help",
+				"wanda-toggle-public-knowledge-aria"
 			],
 			"targets": [
 				"desktop",

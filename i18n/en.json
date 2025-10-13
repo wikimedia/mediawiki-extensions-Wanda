@@ -21,6 +21,7 @@
 	"apihelp-chatbot-param-apikey": "API key for the cloud provider",
 	"apihelp-chatbot-param-apiendpoint": "Custom API endpoint for the cloud provider",
 	"apihelp-chatbot-param-timeout": "Timeout in seconds for the API request",
+	"apihelp-chatbot-param-usepublicknowledge": "Whether to allow the chatbot to use its public knowledge in addition to wiki context (true/false)",
 	"wanda-api-error-empty-question": "Please provide a valid question.",
 	"wanda-api-error-temperature-invalid": "Invalid temperature value. Please provide a number between 0.0 and 1.0.",
 	"wanda-api-error-temperature-outofrange": "Temperature value out of range. Please provide a number between 0.0 and 1.0.",
@@ -34,5 +35,8 @@
 	"wanda-api-error-azure-key": "Azure API key not configured.",
 	"wanda-api-error-gemini-key": "Gemini API key not configured.",
 	"wanda-api-error-fallback": "I'm not sure about that.",
-	"wanda-llm-response-nocontext": "I don’t have enough information in the wiki context to answer that."
+	"wanda-llm-response-nocontext": "I don’t have enough information in the wiki context to answer that.",
+	"wanda-toggle-public-knowledge-label": "Use public knowledge additionally",
+	"wanda-toggle-public-knowledge-help": "When enabled, the assistant may use its general knowledge in addition to wiki context.",
+	"wanda-toggle-public-knowledge-aria": "Toggle use of public knowledge"
 }

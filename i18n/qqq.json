@@ -21,6 +21,7 @@
 	"apihelp-chatbot-param-apikey": "{{doc-apihelp-param|chatbot|apikey}}",
 	"apihelp-chatbot-param-apiendpoint": "{{doc-apihelp-param|chatbot|apiendpoint}}",
 	"apihelp-chatbot-param-timeout": "{{doc-apihelp-param|chatbot|timeout}}",
+	"apihelp-chatbot-param-usepublicknowledge": "{{doc-apihelp-param|chatbot|usepublicknowledge}}",
 	"wanda-api-error-empty-question": "Error message when user submits an empty question",
 	"wanda-api-error-question-too-long": "Error message when user's question exceeds character limit",
 	"wanda-api-error-config-invalid": "Error message when the chat service is not properly configured",
@@ -34,5 +35,8 @@
 	"wanda-api-error-azure-key": "Error message when Azure API key is not configured",
 	"wanda-api-error-gemini-key": "Error message when Gemini (Google Generative Language) API key is not configured",
 	"wanda-api-error-fallback": "Default fallback message when LLM cannot provide a response",
-	"wanda-llm-response-nocontext": "Default response for questions which cannot be answered using wiki context"
+	"wanda-llm-response-nocontext": "Default response for questions which cannot be answered using wiki context",
+	"wanda-toggle-public-knowledge-label": "Label for the toggle that lets the user allow using public LLM knowledge in addition to wiki context",
+	"wanda-toggle-public-knowledge-help": "Short helper text shown next to the toggle explaining what it does",
+	"wanda-toggle-public-knowledge-aria": "ARIA label for the toggle to use public knowledge"
 }

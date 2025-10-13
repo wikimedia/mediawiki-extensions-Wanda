@@ -24,32 +24,41 @@
     </div>
 
     <div class="chat-input-container">
-      <cdx-text-area
-        v-model="inputText"
-        class="chat-input-box"
-        :rows="2"
-        placeholder="Type your message..."
-        @keydown.enter.exact.prevent="sendMessage"
-      ></cdx-text-area>
-      <cdx-button action="progressive" weight="primary" @click="sendMessage">
-        {{ sendLabel }}
-      </cdx-button>
+      <cdx-checkbox
+        v-model="usepublicknowledge"
+        id="wanda-toggle-public-knowledge"
+        :aria-label="msg('wanda-toggle-public-knowledge-aria')"
+      >
+        {{ msg('wanda-toggle-public-knowledge-label') }}
+      </cdx-checkbox>
+      <div class="wanda-floating-input-row">
+        <cdx-text-area
+          id="wanda-floating-chat-input"
+          v-model="inputText"
+          class="chat-input-box"
+          :rows="2"
+          placeholder="Type your message..."
+          @keydown.enter.exact.prevent="sendMessage"
+        ></cdx-text-area>
+        <cdx-button action="progressive" weight="primary" @click="sendMessage">Send</cdx-button>
+      </div>
     </div>
   </div>
-  
+
 </template>
 
 <script>
-const { CdxButton, CdxTextArea, CdxProgressBar } = require( '../../codex.js' );
+const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox } = require( '../../codex.js' );
 
 module.exports = exports = {
   name: 'ChatApp',
-  components: { CdxButton, CdxTextArea, CdxProgressBar },
+  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox },
   data() {
     return {
       inputText: '',
       messages: [],
-      loading: false
+      loading: false,
+      usepublicknowledge: false
     };
   },
   computed: {
@@ -97,12 +106,16 @@ module.exports = exports = {
         const data = await api.post( {
           action: 'chatbot',
           format: 'json',
-          message: userText
+          message: userText,
+          usepublicknowledge: this.usepublicknowledge ? true : false
         } );
 
         let response = data && data.response ? data.response : 'Error fetching response';
         if ( response === 'NO_MATCHING_CONTEXT' ) {
           response = this.msg( 'wanda-llm-response-nocontext' );
+        } else if ( response.includes( '<PUBLIC_KNOWLEDGE>' ) ) {
+          response = response.replace( '<PUBLIC_KNOWLEDGE>', '' );
+          response += '<br><b>Source</b>: Public';
         } else if ( data && data.source ) {
           const href = mw.util.getUrl( data.source );
           const safeTitle = this.escapeHtml( data.source );

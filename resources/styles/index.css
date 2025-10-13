@@ -83,8 +83,8 @@
 
 .chat-input-container {
     display: flex;
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
+    align-items: start;
     padding: 10px;
     background-color: white;
     border-top: 1px solid #ddd;
@@ -108,6 +108,14 @@
     width: 100%;
     max-width: 100%;
     margin: 5px 0;
+}
+
+.wanda-floating-input-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
 }
 
 @media (max-width: 600px) {
