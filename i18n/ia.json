@@ -1,0 +1,28 @@
+{
+	"@metadata": {
+		"authors": [
+			"McDutchie"
+		]
+	},
+	"wanda-desc": "Chatbot pro MediaWiki",
+	"wanda-chat-welcometext": "Salute! Io es Wanda, tu assistente IA.",
+	"wanda-chat-welcomedesc": "Pone me questiones sur qualcunque cosa in tu wiki, e io tentara adjutar te!",
+	"wanda-chat-instruction1": "Obtener responsas a tu questiones",
+	"wanda-chat-instruction2": "Responsas generate per IA",
+	"wanda-chat-pdftotext-error": "Assecura te que le utilitate “pdftotext” es installate e preste a usar.",
+	"wanda-floating-chat-title": "Conversar con Wanda",
+	"apihelp-chatbot-summary": "Invia un question o un requesta al chatbot del extension Wanda",
+	"apihelp-chatbot-param-message": "Message a inviar al chatbot",
+	"wanda-api-error-empty-question": "Per favor insere un question valide.",
+	"wanda-api-error-question-too-long": "Tu question es troppo longe. Per favor usa minus de 1000 characteres.",
+	"wanda-api-error-config-invalid": "Le servicio de chat non es correctemente configurate. Per favor contacta un administrator.",
+	"wanda-api-error-no-index": "Io non ha potite trovar informationes wiki pertinente perque necun indice ha essite trovate. Per favor assecura te que le contento ha essite indexate.",
+	"wanda-api-error-no-results": "Io non na potite trovar informationes pertinente a iste topico in le wiki.",
+	"wanda-api-error-generation-failed": "Io non succede a generar un responsa in iste momento. Per favor tenta lo de novo plus tarde.",
+	"wanda-api-error-openai-key": "Le clave API de OpenAI non ha essite configurate.",
+	"wanda-api-error-anthropic-key": "Le clave API de Anthropic non ha essite configurate.",
+	"wanda-api-error-azure-key": "Le clave API de Azure non ha essite configurate.",
+	"wanda-api-error-gemini-key": "Le clave API de Gemini non ha essite configurate.",
+	"wanda-api-error-fallback": "Io non es secur de isto.",
+	"wanda-llm-response-nocontext": "Io non ha satis information in le contexto del wiki pro responder a isto."
+}

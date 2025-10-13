@@ -1,0 +1,28 @@
+{
+	"@metadata": {
+		"authors": [
+			"McDutchie"
+		]
+	},
+	"wanda-desc": "Chatbot voor MediaWiki",
+	"wanda-chat-welcometext": "Hallo! Ik ben Wanda, uw AI-assistent.",
+	"wanda-chat-welcomedesc": "Stel mij gerust vragen over alles op uw wiki, dan probeer ik u te helpen!",
+	"wanda-chat-instruction1": "Krijg antwoorden op uw vragen",
+	"wanda-chat-instruction2": "AI-gestuurde reacties",
+	"wanda-chat-pdftotext-error": "Zorg ervoor dat het hulpprogramma ‘pdftotext’ geïnstalleerd en klaar voor gebruik is.",
+	"wanda-floating-chat-title": "Chat met Wanda",
+	"apihelp-chatbot-summary": "Een vraag of verzoek naar de chatbot van de uitbreiding Wanda sturen",
+	"apihelp-chatbot-param-message": "Het naar de chatbot te sturen bericht",
+	"wanda-api-error-empty-question": "Stel een geldige vraag.",
+	"wanda-api-error-question-too-long": "Uw vraag is te lang. Beperk hem tot maximaal 1000 tekens.",
+	"wanda-api-error-config-invalid": "De chatdienst is niet juist ingesteld. Neem contact op met een beheerder.",
+	"wanda-api-error-no-index": "Er is geen relevante wiki-informatie beschikbaar omdat er geen indexen zijn gevonden. Zorg ervoor dat de inhoud is geïndexeerd.",
+	"wanda-api-error-no-results": "Er is op de wiki geen relevante informatie over dat onderwerp gevonden.",
+	"wanda-api-error-generation-failed": "Er zijn momenteel problemen met het genereren van een antwoord. Probeer het later opnieuw.",
+	"wanda-api-error-openai-key": "De API-sleutel van OpenAI is niet geconfigureerd.",
+	"wanda-api-error-anthropic-key": "De API-sleutel van Anthropic is niet geconfigureerd.",
+	"wanda-api-error-azure-key": "De API-sleutel van Azure is niet geconfigureerd.",
+	"wanda-api-error-gemini-key": "De API-sleutel van Gemini is niet geconfigureerd.",
+	"wanda-api-error-fallback": "Dat weet ik niet zeker.",
+	"wanda-llm-response-nocontext": "Ik heb niet genoeg informatie in de wiki-context om die vraag te beantwoorden."
+}
