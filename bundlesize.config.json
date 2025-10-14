@@ -2,22 +2,12 @@
 	{
 		"@note": "Hack! We 'opt out' of performance budgeting for this (dynamically loaded) module, and all its dependencies.",
 		"resourceModule": "ext.wanda.floating",
-		"maxSize": null
+		"maxSize": null,
+		"ignoreDependencies": true
 	},
 	{
-		"resourceModule": "mediawiki.util",
-		"maxSize": null
-	},
-	{
-		"resourceModule": "mediawiki.api",
-		"maxSize": null
-	},
-	{
-		"resourceModule": "@wikimedia/codex",
-		"maxSize": null
-	},
-	{
-		"resourceModule": "vue",
-		"maxSize": null
+		"resourceModule": "ext.wanda.main",
+		"maxSize": null,
+		"ignoreDependencies": true
 	}
 ]
