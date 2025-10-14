@@ -1,0 +1,22 @@
+{
+	"@metadata": {
+		"authors": []
+	},
+	"wanda-desc": "Chatbot für MediaWiki",
+	"wanda-chat-welcometext": "Hallo! Ich bin Wanda, deine KI-Assistentin.",
+	"wanda-chat-welcomedesc": "Frage mich nach allem, was in deinem Wiki steht, und ich werde versuchen, dir zu helfen!",
+	"wanda-chat-instruction1": "Erhalte Antworten auf deine Fragen",
+	"wanda-chat-instruction2": "KI-gestützte Antworten",
+	"wanda-chat-pdftotext-error": "Bitte stelle sicher, dass das Dienstprogramm „pdftotext“ installiert und einsatzbereit ist.",
+	"wanda-floating-chat-title": "Chatte mit Wanda",
+	"wanda-api-error-empty-question": "Bitte gib eine gültige Frage ein.",
+	"wanda-api-error-question-too-long": "Deine Frage ist zu lang. Bitte beschränke sie auf weniger als 1000 Zeichen.",
+	"wanda-api-error-config-invalid": "Der Chat-Dienst ist nicht richtig konfiguriert. Bitte wende dich an einen Administrator.",
+	"wanda-api-error-no-index": "Ich konnte keine relevanten Wiki-Informationen finden, da keine Indizes gefunden wurden. Bitte stelle sicher, dass der Inhalt indiziert wurde.",
+	"wanda-api-error-no-results": "Ich konnte im Wiki keine relevanten Informationen zu diesem Thema finden.",
+	"wanda-api-error-generation-failed": "Ich habe momentan Probleme, eine Antwort zu generieren. Bitte versuche es später noch einmal.",
+	"wanda-api-error-openai-key": "OpenAI-API-Schlüssel nicht konfiguriert.",
+	"wanda-api-error-anthropic-key": "Anthropischer API-Schlüssel nicht konfiguriert.",
+	"wanda-api-error-azure-key": "Azure-API-Schlüssel nicht konfiguriert.",
+	"wanda-api-error-fallback": "Da bin ich mir nicht sicher."
+}

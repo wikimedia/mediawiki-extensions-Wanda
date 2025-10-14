@@ -1,0 +1,24 @@
+{
+	"@metadata": {
+		"authors": [
+			"Bjankuloski06"
+		]
+	},
+	"wanda-desc": "Виртуелен соговорник за МедијаВики",
+	"wanda-chat-welcometext": "Здраво! Јас сум Ванда, вашата ВИ-помошничка.",
+	"wanda-chat-welcomedesc": "Прашајте ме било што за содржините на вашето вики, а јас ќе се потрудам да ви помогнам!",
+	"wanda-chat-instruction1": "Одговори на вашите прашања",
+	"wanda-chat-instruction2": "Одговори со ВИ",
+	"wanda-chat-pdftotext-error": "Проверете дали е воспоставен наменскиот програм „pdftotext“ и дека е спремен за употреба.",
+	"wanda-floating-chat-title": "Разговарајте со Ванда",
+	"wanda-api-error-empty-question": "Внесете важечко прашање.",
+	"wanda-api-error-question-too-long": "Прашањето ви е предолго. Треба да не надминува 1000 знаци.",
+	"wanda-api-error-config-invalid": "Службата за разговор не е поставена како што треба. Обратете се кај администратор.",
+	"wanda-api-error-no-index": "Не можев да најдам релевантни викиинформации бидејќи не најдов индекси. Проверете дали содржината е индексирана.",
+	"wanda-api-error-no-results": "Не можев да најдам релевантни информации за таа тема на викито.",
+	"wanda-api-error-generation-failed": "Моментално имам проблем со срочување на одговор. Обидете се подоцна.",
+	"wanda-api-error-openai-key": "Не е поставен приложнички клуч за OpenAI.",
+	"wanda-api-error-anthropic-key": "Не е поставен приложнички клуч за Anthropic.",
+	"wanda-api-error-azure-key": "Не е поставен приложнички клуч за Azure.",
+	"wanda-api-error-fallback": "Не сум сигурна за ова."
+}

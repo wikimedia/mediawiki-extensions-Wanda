@@ -1,0 +1,24 @@
+{
+	"@metadata": {
+		"authors": [
+			"WillyM"
+		]
+	},
+	"wanda-desc": "Chatbot pour MediaWiki",
+	"wanda-chat-welcometext": "Salut ! Je suis Wanda, votre assistante IA.",
+	"wanda-chat-welcomedesc": "Posez-moi n'importe quelle question sur votre wiki et j'essaierai de vous aider !",
+	"wanda-chat-instruction1": "Obtenez des réponses à vos questions",
+	"wanda-chat-instruction2": "Réponses générées par l'IA",
+	"wanda-chat-pdftotext-error": "Veuillez vous assurer que l'utilitaire pdftotext est installé et prêt à être utilisé.",
+	"wanda-floating-chat-title": "Discuter avec Wanda",
+	"wanda-api-error-empty-question": "Veuillez fournir une question valide.",
+	"wanda-api-error-question-too-long": "Votre question est trop longue. Veuillez ne pas dépasser 1 000 caractères.",
+	"wanda-api-error-config-invalid": "Le service de chat n'est pas correctement configuré. Veuillez contacter un administrateur.",
+	"wanda-api-error-no-index": "Je n'ai pas trouvé d'informations wiki pertinentes, car aucun index n'a été trouvé. Veuillez vous assurer que le contenu a été indexé.",
+	"wanda-api-error-no-results": "Je n'ai pas pu trouver d'informations pertinentes sur ce sujet dans le wiki.",
+	"wanda-api-error-generation-failed": "Je n'arrive pas à générer de réponse pour le moment. Veuillez réessayer plus tard.",
+	"wanda-api-error-openai-key": "Clé API OpenAI non configurée.",
+	"wanda-api-error-anthropic-key": "Clé API anthropique non configurée.",
+	"wanda-api-error-azure-key": "Clé API Azure non configurée.",
+	"wanda-api-error-fallback": "Je n'en suis pas sûr."
+}
