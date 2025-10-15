@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\Wanda;
 
 use ApiBase;
+use Wikimedia\ParamValidator\ParamValidator;
 
 class APIChat extends ApiBase {
 	/** @var string */
@@ -42,6 +43,14 @@ class APIChat extends ApiBase {
 	public function execute() {
 		$params = $this->extractRequestParams();
 		$userQuery = trim( $params['message'] );
+
+		// If caller provided a temperature override, parse and validate it
+		if ( isset( $params['temperature'] ) ) {
+			self::$temperature = $this->parseTemperature( $params['temperature'] );
+		} else {
+			// Ensure configured temperature is a valid float within range
+			self::$temperature = $this->parseTemperature( self::$temperature );
+		}
 
 		// Validate input parameters
 		if ( empty( $userQuery ) ) {
@@ -115,6 +124,40 @@ class APIChat extends ApiBase {
 				return false;
 		}
 		return true;
+	}
+
+	/**
+	 * Parse temperature value and validate it's between 0.0 and 1.0.
+	 * Throws a MediaWiki exception if value is invalid or out of range.
+	 *
+	 * @param mixed $temp
+	 * @return float
+	 * @throws \MediaWiki\Rest\HttpException
+	 */
+	private function parseTemperature( $temp ): float {
+		// Use configured default if null or empty
+		if ( $temp === null || $temp === '' ) {
+			return floatval( self::$temperature );
+		}
+
+		// Must be numeric
+		if ( !is_numeric( $temp ) ) {
+			throw new \MediaWiki\Rest\HttpException(
+				$this->msg( 'wanda-api-error-temperature-invalid' )->text(),
+				400
+			);
+		}
+
+		$t = floatval( $temp );
+		// Must be within range 0.0 - 1.0
+		if ( $t < 0.0 || $t > 1.0 ) {
+			throw new \MediaWiki\Rest\HttpException(
+				$this->msg( 'wanda-api-error-temperature-outofrange' )->text(),
+				400
+			);
+		}
+
+		return $t;
 	}
 
 	/**
@@ -447,7 +490,42 @@ class APIChat extends ApiBase {
 
 	public function getAllowedParams() {
 		return [
-			"message" => null
+			"message" => null,
+			"maxtokens" => [
+				ParamValidator::PARAM_TYPE => 'integer',
+				ParamValidator::PARAM_DEFAULT => self::$maxTokens,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"model" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => self::$llmModel,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"provider" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => self::$llmProvider,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"apikey" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => self::$llmApiKey,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"apiendpoint" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => self::$llmApiEndpoint,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"timeout" => [
+				ParamValidator::PARAM_TYPE => 'integer',
+				ParamValidator::PARAM_DEFAULT => self::$timeout,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"temperature" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => self::$temperature,
+				ParamValidator::PARAM_REQUIRED => false
+			]
 		];
 	}
 }

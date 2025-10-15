@@ -117,7 +117,7 @@
 		"WandaLLMModel": "gemma:2b",
 		"WandaLLMElasticsearchUrl": "http://elasticsearch:9200",
 		"WandaLLMMaxTokens": 1000,
-		"WandaLLMTemperature": 0.7,
+		"WandaLLMTemperature": "0.7",
 		"WandaLLMTimeout": 30,
 		"WandaAutoReindex": true
 	},
