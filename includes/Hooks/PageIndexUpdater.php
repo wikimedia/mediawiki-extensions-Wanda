@@ -2,9 +2,9 @@
 
 namespace MediaWiki\Extension\Wanda\Hooks;
 
-use File;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
+use UploadBase;
 use WikiPage;
 
 class PageIndexUpdater {
@@ -178,10 +178,15 @@ class PageIndexUpdater {
 		self::updateIndex( $wikiPage->getTitle(), $wikiPage );
 	}
 
-	public static function onUploadComplete( File $file ) {
+	/**
+	 * Hook to index files upon upload completion.
+	 *
+	 * @param UploadBase $uploadBase The uploaded file object.
+	 */
+	public static function onUploadComplete( UploadBase $uploadBase ) {
 		// The UploadComplete hook passes the File object when an upload finishes.
 		// Maintain previous behavior: build a Title for the file and reindex it.
-		$title = Title::makeTitleSafe( NS_FILE, $file->getTitle() );
+		$title = Title::makeTitleSafe( NS_FILE, $uploadBase->getTitle() );
 		if ( !$title ) {
 			return;
 		}
