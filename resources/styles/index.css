@@ -16,7 +16,8 @@
 }
 
 .chat-box {
-    flex: 1;
+    flex: 1 1 auto;
+    overflow-y: auto;
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -88,6 +89,7 @@
     background-color: white;
     border-top: 1px solid #ddd;
     gap: 8px;
+    flex-shrink: 0;
 }
 
 .chat-input-box {

@@ -90,11 +90,12 @@
     background-color: #f8f9fa;
     display: flex;
     flex-direction: column;
-    overflow-y: scroll;
+    overflow: hidden;
 }
 
 .wanda-floating-chat .chat-box {
-    flex: 1;
+    flex: 1 1 auto;
+    overflow-y: auto;
     max-height: none;
     padding: 10px;
     display: flex;
@@ -167,7 +168,7 @@
 .wanda-floating-chat .chat-input-box {
     flex: 1 1 auto;
     margin-right: 0;
-    min-width: 0; /* Allow flex item to shrink below content size */
+    min-width: 0;
 }
 
 .wanda-floating-chat textarea {
@@ -179,6 +180,8 @@
     flex: 0 0 auto;
     margin-left: 0;
     white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 14px;
 }
 
 .wanda-floating-chat .chat-progress-bar {
@@ -186,11 +189,6 @@
     max-width: 100%;
     margin: 5px 0;
     flex-shrink: 0;
-}
-
-.wanda-floating-chat .cdx-button {
-    padding: 8px 12px;
-    font-size: 14px;
 }
 
 /* Mobile responsiveness */
