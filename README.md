@@ -104,6 +104,22 @@ To enable the chatbot to answer questions about your wiki content, you need to i
 php extensions/Wanda/maintenance/ReindexAllPages.php
 ```
 
+### Custom Prompt Configuration
+
+You can configure a custom prompt in two ways:
+
+1. Use a custom prompt directly
+```php
+$wgWandaCustomPrompt = "Custom_Prompt_to_be_used";
+```
+
+2. Use a custom prompt from a wiki page
+```php
+$wgWandaCustomPromptTitle = "Title_of_the_page";
+```
+
+**Note**: If both **$wgWandaCustomPrompt** and **$wgWandaCustomPromptTitle** are set, **$wgWandaCustomPrompt** will take precedence.
+
 #### Automatic Reindex After Updates
 
 This extension now schedules a full reindex automatically after you run `php maintenance/update.php` by registering the maintenance script as a post-update task. On large wikis this may be time-consuming. If you prefer to disable auto reindexing, remove the `LoadExtensionSchemaUpdates` hook entry from `extension.json` or replace the full reindex with a lighter custom script.

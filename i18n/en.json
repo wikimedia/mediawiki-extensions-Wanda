@@ -14,6 +14,8 @@
 	"wanda-floating-chat-title": "Chat with Wanda",
 	"apihelp-chatbot-summary": "Send a question or request to the Wanda extension chatbot",
 	"apihelp-chatbot-param-message": "Message to be sent to the chatbot",
+	"apihelp-chatbot-param-customprompt": "Prompt text to use instead of the default prompt",
+	"apihelp-chatbot-param-customprompttitle": "Title of a wiki page to use as a custom prompt template",
 	"apihelp-chatbot-param-temperature": "Sampling temperature for response generation (0.0 to 1.0). Higher values yield more diverse responses.",
 	"apihelp-chatbot-param-maxtokens": "Maximum number of tokens in the response",
 	"apihelp-chatbot-param-model": "Language model to use for generating the response",

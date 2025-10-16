@@ -14,6 +14,8 @@
 	"wanda-floating-chat-title": "Tooltip text for the floating chat button",
 	"apihelp-chatbot-summary": "{{doc-apihelp-summary|chatbot}}",
 	"apihelp-chatbot-param-message": "{{doc-apihelp-param|chatbot|message}}",
+	"apihelp-chatbot-param-customprompt": "{{doc-apihelp-param|chatbot|customprompt}}",
+	"apihelp-chatbot-param-customprompttitle": "{{doc-apihelp-param|chatbot|customprompttitle}}",
 	"apihelp-chatbot-param-temperature": "{{doc-apihelp-param|chatbot|temperature}}",
 	"apihelp-chatbot-param-maxtokens": "{{doc-apihelp-param|chatbot|maxtokens}}",
 	"apihelp-chatbot-param-model": "{{doc-apihelp-param|chatbot|model}}",

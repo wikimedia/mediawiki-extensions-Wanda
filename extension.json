@@ -119,6 +119,8 @@
 	},
 	"config": {
 		"WandaShowPopup": true,
+		"WandaCustomPrompt": "",
+		"WandaCustomPromptTitle": "",
 		"WandaLLMProvider": "ollama",
 		"WandaLLMApiEndpoint": "http://ollama:11434/api/",
 		"WandaLLMApiKey": "",

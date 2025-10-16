@@ -3,7 +3,9 @@
 namespace MediaWiki\Extension\Wanda;
 
 use ApiBase;
+use MediaWiki\Title\Title;
 use Wikimedia\ParamValidator\ParamValidator;
+use WikiPage;
 
 class APIChat extends ApiBase {
 	/** @var string */
@@ -24,6 +26,10 @@ class APIChat extends ApiBase {
 	private static $temperature;
 	/** @var int */
 	private static $timeout;
+	/** @var string */
+	private static $customPromptTitle;
+	/** @var string */
+	private static $customPrompt;
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName );
@@ -38,6 +44,8 @@ class APIChat extends ApiBase {
 		self::$maxTokens = $this->getConfig()->get( 'WandaLLMMaxTokens' ) ?? 1000;
 		self::$temperature = $this->getConfig()->get( 'WandaLLMTemperature' ) ?? 0.7;
 		self::$timeout = $this->getConfig()->get( 'WandaLLMTimeout' ) ?? 30;
+		self::$customPromptTitle = $this->getConfig()->get( 'WandaCustomPromptTitle' ) ?? "";
+		self::$customPrompt = $this->getConfig()->get( 'WandaCustomPrompt' ) ?? "";
 	}
 
 	public function execute() {
@@ -51,6 +59,14 @@ class APIChat extends ApiBase {
 		} else {
 			// Ensure configured temperature is a valid float within range
 			self::$temperature = $this->parseTemperature( self::$temperature );
+		}
+
+		if ( isset( $params['customprompt'] ) ) {
+			self::$customPrompt = trim( $params['customprompt'] );
+		}
+
+		if ( isset( $params['customprompttitle'] ) ) {
+			self::$customPromptTitle = trim( $params['customprompttitle'] );
 		}
 
 		// Validate input parameters
@@ -455,26 +471,43 @@ class APIChat extends ApiBase {
 			$contextBlock = $context;
 		}
 
-		// Prompt template – wiki-only vs wiki+public modes
-		if ( $allowPublicKnowledge ) {
-			$prompt = "You are a helpful assistant answering questions for a MediaWiki site.\n" .
-				"Prefer using the provided wiki context when possible. If the context is missing or insufficient, " .
-				"you may also rely on your general public knowledge to answer accurately.\n" .
-				"If using public knowledge due to missing wiki details, do NOT fabricate citations.\n" .
-				"Output <PUBLIC_KNOWLEDGE> in the response if your answer is based on general knowledge " .
-				"rather than the provided context.\n" .
-				"No need to mention if the current context cannot answer the question.\n" .
-				"Context (may be empty):\n" . $contextBlock . "\n\n" .
+		if ( self::$customPrompt !== '' ) {
+			$prompt = self::$customPrompt .
+				"\n\nContext:\n" . $contextBlock . "\n\n" .
+				"User Question: " . $userQuery . "\n\n" .
+				"Answer:";
+		} elseif ( self::$customPromptTitle !== '' ) {
+			$title = Title::newFromText( self::$customPromptTitle );
+			$wikipage = new WikiPage( $title );
+			$content = $wikipage->getContent()->getText();
+
+			$prompt = $content .
+				"\n\nContext:\n" . $contextBlock . "\n\n" .
 				"User Question: " . $userQuery . "\n\n" .
 				"Answer:";
 		} else {
-			$prompt = "You are an assistant helping answer questions about this MediaWiki instance.\n" .
-				"Use ONLY the provided context to answer. If the answer is not contained in the context, " .
-				"output exactly the single token: NO_MATCHING_CONTEXT (no other text).\n" .
-				"Cite the source title(s) mentioned in the context if relevant.\n\n" .
-				"Context:\n" . $contextBlock . "\n\n" .
-				"User Question: " . $userQuery . "\n\n" .
-				"Answer:";
+			// Prompt template – wiki-only vs wiki+public modes
+			if ( $allowPublicKnowledge ) {
+				$prompt = "You are a helpful assistant answering questions for a MediaWiki site.\n" .
+					"Prefer using the provided wiki context when possible. " .
+					"If the context is missing or insufficient, " .
+					"you may also rely on your general public knowledge to answer accurately.\n" .
+					"If using public knowledge due to missing wiki details, do NOT fabricate citations.\n" .
+					"Output <PUBLIC_KNOWLEDGE> in the response if your answer is based on general knowledge " .
+					"rather than the provided context.\n" .
+					"No need to mention if the current context cannot answer the question.\n" .
+					"Context (may be empty):\n" . $contextBlock . "\n\n" .
+					"User Question: " . $userQuery . "\n\n" .
+					"Answer:";
+			} else {
+				$prompt = "You are an assistant helping answer questions about this MediaWiki instance.\n" .
+					"Use ONLY the provided context to answer. If the answer is not contained in the context, " .
+					"output exactly the single token: NO_MATCHING_CONTEXT (no other text).\n" .
+					"Cite the source title(s) mentioned in the context if relevant.\n\n" .
+					"Context:\n" . $contextBlock . "\n\n" .
+					"User Question: " . $userQuery . "\n\n" .
+					"Answer:";
+			}
 		}
 
 		$response = null;
@@ -512,6 +545,16 @@ class APIChat extends ApiBase {
 	public function getAllowedParams() {
 		return [
 			"message" => null,
+			"customprompt" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => self::$customPrompt,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"customprompttitle" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => self::$customPromptTitle,
+				ParamValidator::PARAM_REQUIRED => false
+			],
 			"maxtokens" => [
 				ParamValidator::PARAM_TYPE => 'integer',
 				ParamValidator::PARAM_DEFAULT => self::$maxTokens,
