@@ -13,7 +13,17 @@
 	"wanda-floating-chat-title": "Разговарајте со Ванда",
 	"apihelp-chatbot-summary": "Испратете прашање или барање до виртуелниот соговорник-додаток Ванда",
 	"apihelp-chatbot-param-message": "Пораката што се праќа до виртуелниот соговорник",
+	"apihelp-chatbot-param-temperature": "Испробувам температура за создавање на одговори (0.0 до 1.0). Повисоките вредности даваат поразновидни одговори.",
+	"apihelp-chatbot-param-maxtokens": "Максимален број на шифри во одговорот",
+	"apihelp-chatbot-param-model": "Кој јазичен модел да се користи во создавањето на одговорот",
+	"apihelp-chatbot-param-provider": "Кој облачен услужник да се користи за јазичниот модел",
+	"apihelp-chatbot-param-apikey": "Приложнички клуч за облачниот услужник",
+	"apihelp-chatbot-param-apiendpoint": "Прилагодена приложничка завршница за облачниот услужник",
+	"apihelp-chatbot-param-timeout": "Истек на време во секунди за барањето до приложникот",
+	"apihelp-chatbot-param-usepublicknowledge": "Дали да му се дозволи на виртуелнио соговорник да ги користи неговите општи познавања покрај викиконтекстот (true/false)",
 	"wanda-api-error-empty-question": "Внесете важечко прашање.",
+	"wanda-api-error-temperature-invalid": "Неважечка температурна вредност. Укажете број помеѓу 0.0 и 1.0.",
+	"wanda-api-error-temperature-outofrange": "Температурната вредност е вон опсегот. Укажете број помеѓу 0.0 и 1.0.",
 	"wanda-api-error-question-too-long": "Прашањето ви е предолго. Треба да не надминува 1000 знаци.",
 	"wanda-api-error-config-invalid": "Службата за разговор не е поставена како што треба. Обратете се кај администратор.",
 	"wanda-api-error-no-index": "Не можев да најдам релевантни викиинформации бидејќи не најдов индекси. Проверете дали содржината е индексирана.",
@@ -24,5 +34,8 @@
 	"wanda-api-error-azure-key": "Не е поставен приложнички клуч за Azure.",
 	"wanda-api-error-gemini-key": "Не е поставен приложнички клуч за Gemini.",
 	"wanda-api-error-fallback": "Не сум сигурна за ова.",
-	"wanda-llm-response-nocontext": "Немам доволно информации во викиконтекстот за да одговорам на тоа."
+	"wanda-llm-response-nocontext": "Немам доволно информации во викиконтекстот за да одговорам на тоа.",
+	"wanda-toggle-public-knowledge-label": "Дополнително користи општи познавања",
+	"wanda-toggle-public-knowledge-help": "Кога е овозможено, помошникот може да ги користи неговите општи познавања покрај викиконтекстот.",
+	"wanda-toggle-public-knowledge-aria": "Вклучи/исклучи употреба на општи познавања"
 }
