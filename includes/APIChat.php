@@ -30,6 +30,8 @@ class APIChat extends ApiBase {
 	private static $customPromptTitle;
 	/** @var string */
 	private static $customPrompt;
+	/** @var bool */
+	private static $usePublicKnowledge = false;
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName );
@@ -52,22 +54,7 @@ class APIChat extends ApiBase {
 		$params = $this->extractRequestParams();
 		$userQuery = trim( $params['message'] );
 		$allowPublicKnowledge = !empty( $params['usepublicknowledge'] );
-
-		// If caller provided a temperature override, parse and validate it
-		if ( isset( $params['temperature'] ) ) {
-			self::$temperature = $this->parseTemperature( $params['temperature'] );
-		} else {
-			// Ensure configured temperature is a valid float within range
-			self::$temperature = $this->parseTemperature( self::$temperature );
-		}
-
-		if ( isset( $params['customprompt'] ) ) {
-			self::$customPrompt = trim( $params['customprompt'] );
-		}
-
-		if ( isset( $params['customprompttitle'] ) ) {
-			self::$customPromptTitle = trim( $params['customprompttitle'] );
-		}
+		$this->overrideLlmParameters( $params );
 
 		// Validate input parameters
 		if ( empty( $userQuery ) ) {
@@ -123,6 +110,47 @@ class APIChat extends ApiBase {
 		$this->getResult()->addValue( null, "response", $response );
 		if ( !empty( $sourceData ) ) {
 			$this->getResult()->addValue( null, "source", implode( ', ', array_unique( $sourceData ) ) );
+		}
+	}
+
+	/**
+	 * Override default LLM parameters with values from request.
+	 *
+	 * @param array $params Parameter array to update LLM settings.
+	 * @return void
+	 */
+	private function overrideLlmParameters( array $params ) {
+		if ( isset( $params['provider'] ) && !empty( $params['provider'] ) ) {
+			self::$llmProvider = strtolower( trim( $params['provider'] ) );
+		}
+		if ( isset( $params['model'] ) && !empty( $params['model'] ) ) {
+			self::$llmModel = trim( $params['model'] );
+		}
+		if ( isset( $params['apikey'] ) && !empty( $params['apikey'] ) ) {
+			self::$llmApiKey = trim( $params['apikey'] );
+		}
+		if ( isset( $params['apiendpoint'] ) && !empty( $params['apiendpoint'] ) ) {
+			self::$llmApiEndpoint = trim( $params['apiendpoint'] );
+		}
+		if ( isset( $params['maxtokens'] ) && is_numeric( $params['maxtokens'] ) ) {
+			self::$maxTokens = $params['maxtokens'];
+		}
+		if ( isset( $params['temperature'] ) ) {
+			self::$temperature = $this->parseTemperature( $params['temperature'] );
+		} else {
+			self::$temperature = $this->parseTemperature( self::$temperature );
+		}
+		if ( isset( $params['timeout'] ) && is_numeric( $params['timeout'] ) ) {
+			self::$timeout = $params['timeout'];
+		}
+		if ( isset( $params['usepublicknowledge'] ) ) {
+			self::$usePublicKnowledge = $params['usepublicknowledge'];
+		}
+		if ( isset( $params['customprompt'] ) ) {
+			self::$customPrompt = trim( $params['customprompt'] );
+		}
+		if ( isset( $params['customprompttitle'] ) ) {
+			self::$customPromptTitle = trim( $params['customprompttitle'] );
 		}
 	}
 
@@ -590,7 +618,11 @@ class APIChat extends ApiBase {
 				ParamValidator::PARAM_DEFAULT => self::$temperature,
 				ParamValidator::PARAM_REQUIRED => false
 			],
-			"usepublicknowledge" => false
+			"usepublicknowledge" => [
+				ParamValidator::PARAM_TYPE => 'boolean',
+				ParamValidator::PARAM_DEFAULT => self::$usePublicKnowledge,
+				ParamValidator::PARAM_REQUIRED => false
+			]
 		];
 	}
 }
