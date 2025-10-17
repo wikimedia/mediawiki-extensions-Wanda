@@ -13,7 +13,17 @@
 	"wanda-floating-chat-title": "Chat met Wanda",
 	"apihelp-chatbot-summary": "Een vraag of verzoek naar de chatbot van de uitbreiding Wanda sturen",
 	"apihelp-chatbot-param-message": "Het naar de chatbot te sturen bericht",
+	"apihelp-chatbot-param-temperature": "Bemonsteringstemperatuur voor responsgeneratie (0,0 tot 1,0). Hogere waarden leveren diversere responsen op.",
+	"apihelp-chatbot-param-maxtokens": "Maximaal aantal tokens in het antwoord",
+	"apihelp-chatbot-param-model": "Taalmodel om te gebruiken voor het genereren van de respons",
+	"apihelp-chatbot-param-provider": "Cloudprovider om te gebruiken voor het taalmodel",
+	"apihelp-chatbot-param-apikey": "API-sleutel voor de cloudprovider",
+	"apihelp-chatbot-param-apiendpoint": "Aangepast API-eindpunt voor de cloudprovider",
+	"apihelp-chatbot-param-timeout": "Time-out in seconden voor de API-aanvraag",
+	"apihelp-chatbot-param-usepublicknowledge": "Of de chatbot zijn openbare kennis mag gebruiken naast de wiki-context (waar/onwaar)",
 	"wanda-api-error-empty-question": "Stel een geldige vraag.",
+	"wanda-api-error-temperature-invalid": "Ongeldige temperatuurwaarde. Geef een getal tussen 0,0 en 1,0 op.",
+	"wanda-api-error-temperature-outofrange": "Temperatuurwaarde buiten bereik. Geef een getal tussen 0,0 en 1,0.",
 	"wanda-api-error-question-too-long": "Uw vraag is te lang. Beperk hem tot maximaal 1000 tekens.",
 	"wanda-api-error-config-invalid": "De chatdienst is niet juist ingesteld. Neem contact op met een beheerder.",
 	"wanda-api-error-no-index": "Er is geen relevante wiki-informatie beschikbaar omdat er geen indexen zijn gevonden. Zorg ervoor dat de inhoud is geïndexeerd.",
@@ -24,5 +34,8 @@
 	"wanda-api-error-azure-key": "De API-sleutel van Azure is niet geconfigureerd.",
 	"wanda-api-error-gemini-key": "De API-sleutel van Gemini is niet geconfigureerd.",
 	"wanda-api-error-fallback": "Dat weet ik niet zeker.",
-	"wanda-llm-response-nocontext": "Ik heb niet genoeg informatie in de wiki-context om die vraag te beantwoorden."
+	"wanda-llm-response-nocontext": "Ik heb niet genoeg informatie in de wiki-context om die vraag te beantwoorden.",
+	"wanda-toggle-public-knowledge-label": "Gebruik daarnaast ook openbare kennis",
+	"wanda-toggle-public-knowledge-help": "Na inschakeling kan de assistent naast de wiki-context ook zijn algemene kennis gebruiken.",
+	"wanda-toggle-public-knowledge-aria": "Gebruik van openbare kennis in-/uitschakelen"
 }

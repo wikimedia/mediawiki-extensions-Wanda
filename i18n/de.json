@@ -11,6 +11,15 @@
 	"wanda-floating-chat-title": "Chatte mit Wanda",
 	"apihelp-chatbot-summary": "Sende eine Frage oder Anfrage an den Chatbot der Wanda-Erweiterung",
 	"apihelp-chatbot-param-message": "An den Chatbot zu sendende Nachricht",
+	"apihelp-chatbot-param-customprompt": "Anstelle der Standardaufforderung zu verwendender Eingabeaufforderungstext",
+	"apihelp-chatbot-param-customprompttitle": "Titel einer Wiki-Seite, die als benutzerdefinierte Eingabeaufforderungsvorlage verwendet werden soll",
+	"apihelp-chatbot-param-maxtokens": "Höchstzahl von Token in der Antwort",
+	"apihelp-chatbot-param-model": "Sprachenmodell zur Erstellung der Antwort",
+	"apihelp-chatbot-param-provider": "Für das Sprachmodell zu verwendender Cloud-Anbieter",
+	"apihelp-chatbot-param-apikey": "API-Schlüssel für den Cloud-Anbieter",
+	"apihelp-chatbot-param-apiendpoint": "Benutzerdefinierter API-Endpunkt für den Cloud-Anbieter",
+	"apihelp-chatbot-param-timeout": "Timeout in Sekunden für die API-Anforderung",
+	"apihelp-chatbot-param-usepublicknowledge": "Ob dem Chatbot erlaubt werden soll, neben dem Wiki-Kontext auch sein öffentliches Wissen zu verwenden (true/false)",
 	"wanda-api-error-empty-question": "Bitte gib eine gültige Frage ein.",
 	"wanda-api-error-question-too-long": "Deine Frage ist zu lang. Bitte beschränke sie auf weniger als 1000 Zeichen.",
 	"wanda-api-error-config-invalid": "Der Chat-Dienst ist nicht richtig konfiguriert. Bitte wende dich an einen Administrator.",
@@ -22,5 +31,8 @@
 	"wanda-api-error-azure-key": "Azure-API-Schlüssel nicht konfiguriert.",
 	"wanda-api-error-gemini-key": "Gemini-API-Schlüssel nicht konfiguriert.",
 	"wanda-api-error-fallback": "Da bin ich mir nicht sicher.",
-	"wanda-llm-response-nocontext": "Ich habe nicht genügend Informationen im Wiki-Kontext, um das zu beantworten."
+	"wanda-llm-response-nocontext": "Ich habe nicht genügend Informationen im Wiki-Kontext, um das zu beantworten.",
+	"wanda-toggle-public-knowledge-label": "Öffentliches Wissen zusätzlich nutzen",
+	"wanda-toggle-public-knowledge-help": "Wenn diese Option aktiviert ist, kann der Assistent zusätzlich zum Wiki-Kontext sein allgemeines Wissen nutzen.",
+	"wanda-toggle-public-knowledge-aria": "Nutzung öffentlichen Wissens umschalten"
 }
