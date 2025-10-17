@@ -31,7 +31,7 @@
 		"Wanda": "MediaWiki\\Extension\\Wanda\\Specials\\SpecialAIChat"
 	},
 	"APIModules": {
-		"chatbot": "MediaWiki\\Extension\\Wanda\\APIChat"
+		"wandachat": "MediaWiki\\Extension\\Wanda\\APIChat"
 	},
 	"ResourceModules": {
 		"ext.wanda.main": {

@@ -23,15 +23,15 @@ class ReindexAllPages extends Maintenance {
 		foreach ( $res as $row ) {
 			$title = Title::newFromText( $row->page_title, $row->page_namespace );
 			if ( !$title ) {
-				wfDebugLog( 'Chatbot', "Invalid title found in database: " . $row->page_title );
+				wfDebugLog( 'Wanda', "Invalid title found in database: " . $row->page_title );
 				continue;
 			}
 
-			wfDebugLog( 'Chatbot', "Reindexing page => " . $title->getPrefixedText() );
+			wfDebugLog( 'Wanda', "Reindexing page => " . $title->getPrefixedText() );
 
 			$wikiPage = MediaWikiServices::getInstance()->getWikiPageFactory()->newFromTitle( $title );
 			if ( !$wikiPage ) {
-				wfDebugLog( 'Chatbot', "Failed to load WikiPage for " . $title->getPrefixedText() );
+				wfDebugLog( 'Wanda', "Failed to load WikiPage for " . $title->getPrefixedText() );
 				continue;
 			}
 

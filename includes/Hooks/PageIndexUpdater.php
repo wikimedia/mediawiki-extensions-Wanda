@@ -34,7 +34,7 @@ class PageIndexUpdater {
 		self::$timeout = $config->get( 'WandaLLMTimeout' ) ?? 30;
 
 		if ( !self::$indexName ) {
-			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Skipping indexing." );
+			wfDebugLog( 'Wanda', "No valid Elasticsearch index found. Skipping indexing." );
 		}
 	}
 
@@ -49,7 +49,7 @@ class PageIndexUpdater {
 
 		$indices = json_decode( $response, true );
 		if ( !$indices || !is_array( $indices ) ) {
-			wfDebugLog( 'Chatbot', "Failed to retrieve Elasticsearch indices." );
+			wfDebugLog( 'Wanda', "Failed to retrieve Elasticsearch indices." );
 			return self::createElasticsearchIndex();
 		}
 
@@ -66,7 +66,7 @@ class PageIndexUpdater {
 		$selectedIndex = $validIndices[0]['index'] ?? null;
 
 		if ( !$selectedIndex ) {
-			wfDebugLog( 'Chatbot', "No valid Elasticsearch index found. Creating a new one." );
+			wfDebugLog( 'Wanda', "No valid Elasticsearch index found. Creating a new one." );
 			return self::createElasticsearchIndex();
 		}
 
@@ -97,7 +97,7 @@ class PageIndexUpdater {
 		$response = curl_exec( $ch );
 		curl_close( $ch );
 
-		wfDebugLog( 'Chatbot', "Created new Elasticsearch index: $newIndex. Response: $response" );
+		wfDebugLog( 'Wanda', "Created new Elasticsearch index: $newIndex. Response: $response" );
 		return $newIndex;
 	}
 
@@ -119,13 +119,13 @@ class PageIndexUpdater {
 	public static function updateIndex( Title $title, WikiPage $wikiPage ) {
 		self::initialize();
 		if ( !self::$indexName ) {
-			wfDebugLog( 'Chatbot', "Skipping indexing due to missing index." );
+			wfDebugLog( 'Wanda', "Skipping indexing due to missing index." );
 			return;
 		}
 
 		$content = $wikiPage->getContent();
 		if ( !$content ) {
-			wfDebugLog( 'Chatbot', "Skipping indexing for empty content: " . $title->getPrefixedText() );
+			wfDebugLog( 'Wanda', "Skipping indexing for empty content: " . $title->getPrefixedText() );
 			return;
 		}
 
@@ -146,7 +146,7 @@ class PageIndexUpdater {
 		$response = curl_exec( $ch );
 		curl_close( $ch );
 
-		wfDebugLog( 'Chatbot', "Indexed page: " . $title->getPrefixedText() . " Response: " . $response );
+		wfDebugLog( 'Wanda', "Indexed page: " . $title->getPrefixedText() . " Response: " . $response );
 	}
 
 	/**
