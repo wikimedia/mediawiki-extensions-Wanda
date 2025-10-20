@@ -4,8 +4,8 @@
 			"Beta16"
 		]
 	},
-	"apihelp-chatbot-param-temperature": "Temperatura di campionamento per la generazione della risposta (da 0,0 a 1,0). Valori più elevati producono risposte maggiormente diversificate.",
-	"apihelp-chatbot-param-maxtokens": "Numero massimo di token nella risposta",
+	"apihelp-wandachat-param-temperature": "Temperatura di campionamento per la generazione della risposta (da 0,0 a 1,0). Valori più elevati producono risposte maggiormente diversificate.",
+	"apihelp-wandachat-param-maxtokens": "Numero massimo di token nella risposta",
 	"wanda-api-error-temperature-invalid": "Valore di temperatura non valido. Inserisci un numero compreso tra 0,0 e 1,0.",
 	"wanda-llm-response-nocontext": "Non ho abbastanza informazioni nel contesto wiki per rispondere a questa domanda."
 }

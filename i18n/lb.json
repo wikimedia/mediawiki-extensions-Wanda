@@ -7,7 +7,7 @@
 	"wanda-desc": "Chatbot fir MediaWiki",
 	"wanda-chat-welcometext": "Moien! Ech sinn d'Wanda, Är KI-Assistentin.",
 	"wanda-chat-welcomedesc": "Dir kënnt mir iwwer alles an Ärer Wiki Froe stellen an ech probéieren ze hëllefen!",
-	"apihelp-chatbot-param-message": "Message fir un den Chatbot ze schécken",
+	"apihelp-wandachat-param-message": "Message fir un den Chatbot ze schécken",
 	"wanda-api-error-empty-question": "Gitt wgl. eng gülteg Fro un.",
 	"wanda-api-error-temperature-invalid": "Ongültegen Temperaturwäert. Gitt wgl. eng Zuel tëscht 0,0 an 1,0 un.",
 	"wanda-api-error-question-too-long": "Är Fro ass ze laang. Haalt se wgl. méi kuerz ewéi 1000 Zeechen.",
