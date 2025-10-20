@@ -104,7 +104,7 @@ module.exports = exports = {
       try {
         const api = new mw.Api();
         const data = await api.post( {
-          action: 'chatbot',
+          action: 'wandachat',
           format: 'json',
           message: userText,
           usepublicknowledge: this.usepublicknowledge ? true : false
@@ -123,7 +123,7 @@ module.exports = exports = {
         }
         this.addMessage( 'bot', response );
       } catch ( e ) {
-        this.addMessage( 'bot', 'Error connecting to chatbot API.' );
+        this.addMessage( 'bot', 'Error connecting to Wanda chatbot API.' );
       } finally {
         this.loading = false;
       }
