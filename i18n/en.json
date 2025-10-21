@@ -4,7 +4,8 @@
 			"Sanjay Thiyagarajan"
 		]
 	},
-    "wanda": "Wanda",
+	"wanda": "Wanda",
+	"wanda-name": "Wanda",
 	"wanda-desc": "Chatbot for MediaWiki",
 	"wanda-chat-welcometext": "Hi! I am Wanda, your AI assistant.",
 	"wanda-chat-welcomedesc": "Ask me about anything in your wiki, and I'll try to help!",

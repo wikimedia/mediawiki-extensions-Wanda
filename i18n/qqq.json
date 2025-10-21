@@ -4,7 +4,8 @@
 			"Sanjay Thiyagarajan"
 		]
 	},
-	"wanda": "Wanda",
+	"wanda": "The name of the special page for this extension",
+	"wanda-name": "{{name}}",
 	"wanda-desc": "Extension description",
 	"wanda-chat-welcometext": "Welcome message displayed in the chatbot",
 	"wanda-chat-welcomedesc": "Description message to the user, displayed in the chatbot",
