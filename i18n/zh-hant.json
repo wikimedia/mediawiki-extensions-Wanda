@@ -1,0 +1,24 @@
+{
+	"@metadata": {
+		"authors": [
+			"Kly"
+		]
+	},
+	"wanda-desc": "MediaWiki 的聊天機器人",
+	"wanda-chat-welcometext": "嗨！我是您的 AI 助手 Wanda。",
+	"wanda-chat-welcomedesc": "請向我詢問有關您的 wiki 任何問題，我會盡力幫助您！",
+	"wanda-chat-instruction1": "取得您問題的答案",
+	"wanda-chat-instruction2": "人工智慧響應",
+	"wanda-chat-pdftotext-error": "請確認已安裝 pdftotext 公用程式並可使用。",
+	"wanda-floating-chat-title": "與 Wanda 聊天",
+	"wanda-api-error-empty-question": "請提供一個有效的問題。",
+	"wanda-api-error-question-too-long": "您的問題太長。請控制在 1000 個字元以內。",
+	"wanda-api-error-config-invalid": "聊天服務配置不正確。請聯絡管理員。",
+	"wanda-api-error-no-index": "由於未找到索引，我找不到相關的 wiki 資訊。請確認內容已編入索引。",
+	"wanda-api-error-no-results": "我在 wiki 裡找不到有關該主題的相關資訊。",
+	"wanda-api-error-generation-failed": "我現在無法產生回應。請稍後重試。",
+	"wanda-api-error-openai-key": "未配置 OpenAI API 金鑰。",
+	"wanda-api-error-anthropic-key": "未配置 Anthropic API 金鑰。",
+	"wanda-api-error-azure-key": "未配置 Azure API 金鑰。",
+	"wanda-api-error-fallback": "這我不太確定。"
+}
