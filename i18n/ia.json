@@ -15,7 +15,17 @@
 	"apihelp-wandachat-param-message": "Message a inviar al chatbot",
 	"apihelp-wandachat-param-customprompt": "Texto del prompt a usar in loco del prompt predefinite",
 	"apihelp-wandachat-param-customprompttitle": "Titulo de un pagina wiki a servir de patrono de prompt personalisate",
+	"apihelp-wandachat-param-temperature": "Temperatura de prisa de monstras pro le generation de responsas (inter 0,0 e 1,0). Valores plus alte produce responsas plus diverse.",
+	"apihelp-wandachat-param-maxtokens": "Numero maxime de tokens in le responsa",
+	"apihelp-wandachat-param-model": "Modello de linguage a usar pro generar le responsa",
+	"apihelp-wandachat-param-provider": "Fornitor de computation in nube a usar pro le modello de linguage",
+	"apihelp-wandachat-param-apikey": "Clave API pro le fornitor de computation in nube",
+	"apihelp-wandachat-param-apiendpoint": "Puncto final API personalisate pro le fornitor de computation in nube",
+	"apihelp-wandachat-param-timeout": "Tempore limite in secundas pro le requesta API",
+	"apihelp-wandachat-param-usepublicknowledge": "Si le chatbot debe esser autorisate a usar su cognoscentia public in addition al contexto del wiki (ver/false)",
 	"wanda-api-error-empty-question": "Per favor insere un question valide.",
+	"wanda-api-error-temperature-invalid": "Valor de temperatura non valide. Forni un numero inter 0,0 e 1,0.",
+	"wanda-api-error-temperature-outofrange": "Le valor del temperatura es foras de portata. Forni un numero inter 0,0 e 1,0.",
 	"wanda-api-error-question-too-long": "Tu question es troppo longe. Per favor usa minus de 1000 characteres.",
 	"wanda-api-error-config-invalid": "Le servicio de chat non es correctemente configurate. Per favor contacta un administrator.",
 	"wanda-api-error-no-index": "Io non ha potite trovar informationes wiki pertinente perque necun indice ha essite trovate. Per favor assecura te que le contento ha essite indexate.",
@@ -26,5 +36,8 @@
 	"wanda-api-error-azure-key": "Le clave API de Azure non ha essite configurate.",
 	"wanda-api-error-gemini-key": "Le clave API de Gemini non ha essite configurate.",
 	"wanda-api-error-fallback": "Io non es secur de isto.",
-	"wanda-llm-response-nocontext": "Io non ha satis information in le contexto del wiki pro responder a isto."
+	"wanda-llm-response-nocontext": "Io non ha satis information in le contexto del wiki pro responder a isto.",
+	"wanda-toggle-public-knowledge-label": "Usar cognoscentia public in addition",
+	"wanda-toggle-public-knowledge-help": "Si iste option es activate, le assistente pote usar su cognoscentia general in addition al contexto del wiki.",
+	"wanda-toggle-public-knowledge-aria": "Commutar le uso de cognoscentia public"
 }
