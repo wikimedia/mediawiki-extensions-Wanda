@@ -41,5 +41,6 @@
 	"wanda-llm-response-nocontext": "Default response for questions which cannot be answered using wiki context",
 	"wanda-toggle-public-knowledge-label": "Label for the toggle that lets the user allow using public LLM knowledge in addition to wiki context",
 	"wanda-toggle-public-knowledge-help": "Short helper text shown next to the toggle explaining what it does",
-	"wanda-toggle-public-knowledge-aria": "ARIA label for the toggle to use public knowledge"
+	"wanda-toggle-public-knowledge-aria": "ARIA label for the toggle to use public knowledge",
+	"wanda-floating-chat-header": "Wanda AI Assistant"
 }

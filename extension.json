@@ -99,7 +99,8 @@
 				"wanda-llm-response-nocontext",
 				"wanda-toggle-public-knowledge-label",
 				"wanda-toggle-public-knowledge-help",
-				"wanda-toggle-public-knowledge-aria"
+				"wanda-toggle-public-knowledge-aria",
+				"wanda-floating-chat-header"
 			],
 			"targets": [
 				"desktop",

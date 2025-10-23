@@ -41,5 +41,6 @@
 	"wanda-llm-response-nocontext": "I don’t have enough information in the wiki context to answer that.",
 	"wanda-toggle-public-knowledge-label": "Use public knowledge additionally",
 	"wanda-toggle-public-knowledge-help": "When enabled, the assistant may use its general knowledge in addition to wiki context.",
-	"wanda-toggle-public-knowledge-aria": "Toggle use of public knowledge"
+	"wanda-toggle-public-knowledge-aria": "Toggle use of public knowledge",
+	"wanda-floating-chat-header": "Wanda AI Assistant"
 }

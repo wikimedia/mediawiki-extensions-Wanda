@@ -11,7 +11,7 @@
 
     <div class="wanda-floating-window" :class="{ show: open }" v-show="open && showPopup">
       <div class="wanda-chat-header">
-        <span>Wanda AI Assistant</span>
+        <span v-text="msg( 'wanda-floating-chat-header' )"></span>
         <button class="wanda-close-btn" @click="closeWindow">×</button>
       </div>
       <div class="chat-container wanda-floating-chat">
