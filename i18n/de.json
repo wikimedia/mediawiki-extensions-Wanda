@@ -34,5 +34,6 @@
 	"wanda-llm-response-nocontext": "Ich habe nicht genügend Informationen im Wiki-Kontext, um das zu beantworten.",
 	"wanda-toggle-public-knowledge-label": "Öffentliches Wissen zusätzlich nutzen",
 	"wanda-toggle-public-knowledge-help": "Wenn diese Option aktiviert ist, kann der Assistent zusätzlich zum Wiki-Kontext sein allgemeines Wissen nutzen.",
-	"wanda-toggle-public-knowledge-aria": "Nutzung öffentlichen Wissens umschalten"
+	"wanda-toggle-public-knowledge-aria": "Nutzung öffentlichen Wissens umschalten",
+	"wanda-floating-chat-header": "Wanda KI-Assistent"
 }
