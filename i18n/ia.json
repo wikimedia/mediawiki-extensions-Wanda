@@ -39,5 +39,6 @@
 	"wanda-llm-response-nocontext": "Io non ha satis information in le contexto del wiki pro responder a isto.",
 	"wanda-toggle-public-knowledge-label": "Usar cognoscentia public in addition",
 	"wanda-toggle-public-knowledge-help": "Si iste option es activate, le assistente pote usar su cognoscentia general in addition al contexto del wiki.",
-	"wanda-toggle-public-knowledge-aria": "Commutar le uso de cognoscentia public"
+	"wanda-toggle-public-knowledge-aria": "Commutar le uso de cognoscentia public",
+	"wanda-floating-chat-header": "Assistente de IA Wanda"
 }
