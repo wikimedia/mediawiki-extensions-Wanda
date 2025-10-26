@@ -62,6 +62,8 @@ $wgWandaLLMTimeout = 30; // Request timeout in seconds for LLM calls
 
 // Indexing settings
 $wgWandaAutoReindex = true; // Automatically reindex content after update.php
+
+$wgWandaSkipESQuery = false; //Skip Elastic Search
 ```
 
 ## API Actions

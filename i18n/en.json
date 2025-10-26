@@ -25,6 +25,7 @@
 	"apihelp-wandachat-param-apiendpoint": "Custom API endpoint for the cloud provider",
 	"apihelp-wandachat-param-timeout": "Timeout in seconds for the API request",
 	"apihelp-wandachat-param-usepublicknowledge": "Whether to allow the chatbot to use its public knowledge in addition to wiki context (true/false)",
+	"apihelp-wandachat-param-skipesquery": "Whether to skip Elasticsearch query",
 	"wanda-api-error-empty-question": "Please provide a valid question.",
 	"wanda-api-error-temperature-invalid": "Invalid temperature value. Please provide a number between 0.0 and 1.0.",
 	"wanda-api-error-temperature-outofrange": "Temperature value out of range. Please provide a number between 0.0 and 1.0.",

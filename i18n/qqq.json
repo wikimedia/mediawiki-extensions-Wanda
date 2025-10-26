@@ -25,6 +25,7 @@
 	"apihelp-wandachat-param-apiendpoint": "{{doc-apihelp-param|wandachat|apiendpoint}}",
 	"apihelp-wandachat-param-timeout": "{{doc-apihelp-param|wandachat|timeout}}",
 	"apihelp-wandachat-param-usepublicknowledge": "{{doc-apihelp-param|wandachat|usepublicknowledge}}",
+	"apihelp-wandachat-param-skipesquery": "{{doc-apihelp-param|wandachat|skipesquery}}",
 	"wanda-api-error-empty-question": "Error message when user submits an empty question",
 	"wanda-api-error-temperature-invalid": "Error message when temperature value is not numeric",
 	"wanda-api-error-temperature-outofrange": "Error message when temperature value is out of range.",

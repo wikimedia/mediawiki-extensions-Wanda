@@ -32,6 +32,8 @@ class APIChat extends ApiBase {
 	private static $customPrompt;
 	/** @var bool */
 	private static $usePublicKnowledge = false;
+	/** @var bool */
+	private static $skipESQuery = false;
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName );
@@ -48,6 +50,7 @@ class APIChat extends ApiBase {
 		self::$timeout = $this->getConfig()->get( 'WandaLLMTimeout' ) ?? 30;
 		self::$customPromptTitle = $this->getConfig()->get( 'WandaCustomPromptTitle' ) ?? "";
 		self::$customPrompt = $this->getConfig()->get( 'WandaCustomPrompt' ) ?? "";
+		self::$skipESQuery = $this->getConfig()->get( 'WandaSkipESQuery' ) ?? false;
 	}
 
 	public function execute() {
@@ -73,26 +76,32 @@ class APIChat extends ApiBase {
 			return;
 		}
 
-		// Check for Elasticsearch index unless we're allowed to fall back to public knowledge
-		$index = $this->detectElasticsearchIndex();
-		if ( !$index ) {
-			if ( !$allowPublicKnowledge ) {
-				$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-no-index' )->text() );
+		// If skipESQuery is enabled, use the context parameter (or empty string)
+		if ( self::$skipESQuery ) {
+			$contextStr = '';
+			$searchResults = null;
+		} else {
+			// Check for Elasticsearch index unless we're allowed to fall back to public knowledge
+			$index = $this->detectElasticsearchIndex();
+			if ( !$index ) {
+				if ( !$allowPublicKnowledge ) {
+					$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-no-index' )->text() );
+					return;
+				}
+			}
+
+			// Search for context when possible
+			$searchResults = $index ? $this->queryElasticsearch( $userQuery ) : null;
+			if ( empty( $searchResults ) && !$allowPublicKnowledge ) {
+				$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-no-results' )->text() );
 				return;
 			}
-		}
 
-		// Search for context when possible
-		$searchResults = $index ? $this->queryElasticsearch( $userQuery ) : null;
-		if ( empty( $searchResults ) && !$allowPublicKnowledge ) {
-			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-no-results' )->text() );
-			return;
+			// Build context string from results (single best match currently)
+			$contextStr = $searchResults && is_array( $searchResults ) && isset( $searchResults['content'] )
+				? $searchResults['content']
+				: ( $searchResults ? (string)$searchResults : null );
 		}
-
-		// Build context string from results (single best match currently)
-		$contextStr = $searchResults && is_array( $searchResults ) && isset( $searchResults['content'] )
-			? $searchResults['content']
-			: ( $searchResults ? (string)$searchResults : null );
 
 		$response = $this->generateLLMResponse( $userQuery, $contextStr, $allowPublicKnowledge );
 		if ( !$response ) {
@@ -151,6 +160,9 @@ class APIChat extends ApiBase {
 		}
 		if ( isset( $params['customprompttitle'] ) ) {
 			self::$customPromptTitle = trim( $params['customprompttitle'] );
+		}
+		if ( isset( $params['skipesquery'] ) ) {
+			self::$skipESQuery = $params['skipesquery'];
 		}
 	}
 
@@ -572,7 +584,11 @@ class APIChat extends ApiBase {
 
 	public function getAllowedParams() {
 		return [
-			"message" => null,
+			"message" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => '',
+				ParamValidator::PARAM_REQUIRED => false
+			],
 			"customprompt" => [
 				ParamValidator::PARAM_TYPE => 'string',
 				ParamValidator::PARAM_DEFAULT => self::$customPrompt,
@@ -621,6 +637,11 @@ class APIChat extends ApiBase {
 			"usepublicknowledge" => [
 				ParamValidator::PARAM_TYPE => 'boolean',
 				ParamValidator::PARAM_DEFAULT => self::$usePublicKnowledge,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"skipesquery" => [
+				ParamValidator::PARAM_TYPE => 'boolean',
+				ParamValidator::PARAM_DEFAULT => self::$skipESQuery,
 				ParamValidator::PARAM_REQUIRED => false
 			]
 		];

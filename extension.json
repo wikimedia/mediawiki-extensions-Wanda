@@ -130,7 +130,8 @@
 		"WandaLLMMaxTokens": 1000,
 		"WandaLLMTemperature": "0.7",
 		"WandaLLMTimeout": 30,
-		"WandaAutoReindex": true
+		"WandaAutoReindex": true,
+		"WandaSkipESQuery": false
 	},
 	"manifest_version": 1
 }
