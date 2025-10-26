@@ -29,8 +29,6 @@ php maintenance/update.php
 
 ## Configuration
 
-### Basic Setup
-
 Add these configuration variables to your `LocalSettings.php`:
 
 ```php
@@ -39,12 +37,62 @@ $wgWandaLLMProvider = 'ollama'; // Options: 'ollama', 'openai', 'anthropic', 'az
 
 // Provider-specific settings
 $wgWandaLLMApiKey = 'your-api-key-here'; // Not needed for Ollama
-$wgWandaLLMModel = 'gemma:2b';
-$wgWandaLLMApiEndpoint = 'http://localhost:11434/api/';
+
+$wgWandaLLMModel = 'gemma:2b'; // Model name to use for the LLM provider
+
+$wgWandaLLMApiEndpoint = 'http://localhost:11434/api/'; // API endpoint URL for the LLM provider
 
 // Elasticsearch configuration
 $wgWandaLLMElasticsearchUrl = 'http://elasticsearch:9200';
+
+// UI and interface settings
+$wgWandaShowPopup = true; // Show/hide the floating chat widget on all pages
+
+// Custom prompt settings
+$wgWandaCustomPrompt = ''; // Custom prompt template to override default behavior
+
+$wgWandaCustomPromptTitle = ''; // Wiki page title containing custom prompt template
+
+// LLM behavior settings
+$wgWandaLLMMaxTokens = 1000; // Maximum tokens in LLM responses
+
+$wgWandaLLMTemperature = '0.7'; // Creativity/randomness setting (0.0-1.0)
+
+$wgWandaLLMTimeout = 30; // Request timeout in seconds for LLM calls
+
+// Indexing settings
+$wgWandaAutoReindex = true; // Automatically reindex content after update.php
 ```
+
+## API Actions
+
+### Wandachat
+
+The Wanda extension provides a MediaWiki API module called `wandachat` for programmatic access to the AI chat functionality. This API allows you to send questions and receive AI-generated responses based on your wiki's content.
+
+**Required Parameters:**
+
+1. `action` (string) - Must be set to `wandachat`
+2. `message` (string) - The user's question or query (maximum 1000 characters)
+
+**Optional Parameters:**
+
+3. `format` (string) - Response format, recommended: `json`
+4. `usepublicknowledge` (boolean) - Allow fallback to public knowledge when wiki context is insufficient (default: `false`)
+
+**Optional LLM Override Parameters:**
+
+These parameters allow you to override the default configuration settings for individual API calls:
+
+5. `provider` (string) - Override LLM provider (`ollama`, `openai`, `anthropic`, `azure`, `gemini`)
+6. `model` (string) - Override the model name for the request
+7. `apikey` (string) - Override API key for the request
+8. `apiendpoint` (string) - Override API endpoint URL
+9. `maxtokens` (integer) - Override maximum tokens in the response
+10. `temperature` (float) - Override creativity/randomness setting (0.0-1.0)
+11. `timeout` (integer) - Override request timeout in seconds
+12. `customprompt` (string) - Override the default prompt template
+13. `customprompttitle` (string) - Override using content from a wiki page as prompt template
 
 ### Provider Examples
 
