@@ -10,7 +10,6 @@
 	"apihelp-wandachat-param-message": "Message fir un den Chatbot ze schécken",
 	"wanda-api-error-empty-question": "Gitt wgl. eng gülteg Fro un.",
 	"wanda-api-error-temperature-invalid": "Ongültegen Temperaturwäert. Gitt wgl. eng Zuel tëscht 0,0 an 1,0 un.",
-	"wanda-api-error-question-too-long": "Är Fro ass ze laang. Haalt se wgl. méi kuerz ewéi 1000 Zeechen.",
 	"wanda-api-error-config-invalid": "Den Chat-Service ass net richteg konfiguréiert. Kontaktéiert wgl. en Administrateur.",
 	"wanda-api-error-no-index": "Ech konnt keng relevant Wiki-Informatioune fannen, well keng Indexe fonnt goufen. Vergewëssert Iech wgl., datt den Inhalt indizéiert gouf.",
 	"wanda-api-error-no-results": "Ech konnt op der Wiki keng relevant Informatiounen iwwer dat Theema fannen.",

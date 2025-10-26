@@ -29,7 +29,6 @@
 	"wanda-api-error-empty-question": "Error message when user submits an empty question",
 	"wanda-api-error-temperature-invalid": "Error message when temperature value is not numeric",
 	"wanda-api-error-temperature-outofrange": "Error message when temperature value is out of range.",
-	"wanda-api-error-question-too-long": "Error message when user's question exceeds character limit",
 	"wanda-api-error-config-invalid": "Error message when the chat service is not properly configured",
 	"wanda-api-error-no-index": "Error message when no Elasticsearch index is found",
 	"wanda-api-error-no-results": "Error message when no relevant information is found in the wiki",

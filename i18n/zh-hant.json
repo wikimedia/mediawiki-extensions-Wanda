@@ -14,7 +14,6 @@
 	"apihelp-wandachat-summary": "向 Wanda 擴充聊天機器人發送問題或請求",
 	"apihelp-wandachat-param-message": "發送給聊天機器人的訊息",
 	"wanda-api-error-empty-question": "請提供一個有效的問題。",
-	"wanda-api-error-question-too-long": "您的問題太長。請控制在 1000 個字元以內。",
 	"wanda-api-error-config-invalid": "聊天服務配置不正確。請聯絡管理員。",
 	"wanda-api-error-no-index": "由於未找到索引，我找不到相關的 wiki 資訊。請確認內容已編入索引。",
 	"wanda-api-error-no-results": "我在 wiki 裡找不到有關該主題的相關資訊。",

@@ -75,7 +75,7 @@ The Wanda extension provides a MediaWiki API module called `wandachat` for progr
 **Required Parameters:**
 
 1. `action` (string) - Must be set to `wandachat`
-2. `message` (string) - The user's question or query (maximum 1000 characters)
+2. `message` (string) - The user's question or query
 
 **Optional Parameters:**
 

@@ -65,11 +65,6 @@ class APIChat extends ApiBase {
 			return;
 		}
 
-		if ( strlen( $userQuery ) > 1000 ) {
-			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-question-too-long' )->text() );
-			return;
-		}
-
 		// Validate provider configuration
 		if ( !$this->validateProviderConfig() ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-config-invalid' )->text() );

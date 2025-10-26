@@ -26,7 +26,6 @@
 	"wanda-api-error-empty-question": "Stel een geldige vraag.",
 	"wanda-api-error-temperature-invalid": "Ongeldige temperatuurwaarde. Geef een getal tussen 0,0 en 1,0 op.",
 	"wanda-api-error-temperature-outofrange": "Temperatuurwaarde buiten bereik. Geef een getal tussen 0,0 en 1,0.",
-	"wanda-api-error-question-too-long": "Uw vraag is te lang. Beperk hem tot maximaal 1000 tekens.",
 	"wanda-api-error-config-invalid": "De chatdienst is niet juist ingesteld. Neem contact op met een beheerder.",
 	"wanda-api-error-no-index": "Er is geen relevante wiki-informatie beschikbaar omdat er geen indexen zijn gevonden. Zorg ervoor dat de inhoud is geïndexeerd.",
 	"wanda-api-error-no-results": "Er is op de wiki geen relevante informatie over dat onderwerp gevonden.",

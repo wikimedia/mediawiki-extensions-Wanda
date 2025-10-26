@@ -26,7 +26,6 @@
 	"wanda-api-error-empty-question": "Per favor insere un question valide.",
 	"wanda-api-error-temperature-invalid": "Valor de temperatura non valide. Forni un numero inter 0,0 e 1,0.",
 	"wanda-api-error-temperature-outofrange": "Le valor del temperatura es foras de portata. Forni un numero inter 0,0 e 1,0.",
-	"wanda-api-error-question-too-long": "Tu question es troppo longe. Per favor usa minus de 1000 characteres.",
 	"wanda-api-error-config-invalid": "Le servicio de chat non es correctemente configurate. Per favor contacta un administrator.",
 	"wanda-api-error-no-index": "Io non ha potite trovar informationes wiki pertinente perque necun indice ha essite trovate. Per favor assecura te que le contento ha essite indexate.",
 	"wanda-api-error-no-results": "Io non na potite trovar informationes pertinente a iste topico in le wiki.",
