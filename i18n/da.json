@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Steenth"
+		]
+	},
+	"apihelp-wandachat-param-skipesquery": "Om Elasticsearch-forespørgslen skal springes over"
+}
