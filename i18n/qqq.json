@@ -1,10 +1,10 @@
 {
-    "@metadata": {
+	"@metadata": {
 		"authors": [
 			"Sanjay Thiyagarajan"
 		]
 	},
-    "wanda": "Wanda",
+	"wanda": "The name of the special page for this extension",
 	"wanda-desc": "Extension description",
 	"wanda-chat-welcometext": "Welcome message displayed in the chatbot",
 	"wanda-chat-welcomedesc": "Description message to the user, displayed in the chatbot",
