@@ -20,6 +20,7 @@
 	"apihelp-wandachat-param-apiendpoint": "Benutzerdefinierter API-Endpunkt für den Cloud-Anbieter",
 	"apihelp-wandachat-param-timeout": "Timeout in Sekunden für die API-Anforderung",
 	"apihelp-wandachat-param-usepublicknowledge": "Ob dem Chatbot erlaubt werden soll, neben dem Wiki-Kontext auch sein öffentliches Wissen zu verwenden (true/false)",
+	"apihelp-wandachat-param-skipesquery": "Ob die Elasticsearch-Abfrage übersprungen werden soll",
 	"wanda-api-error-empty-question": "Bitte gib eine gültige Frage ein.",
 	"wanda-api-error-config-invalid": "Der Chat-Dienst ist nicht richtig konfiguriert. Bitte wende dich an einen Administrator.",
 	"wanda-api-error-no-index": "Ich konnte keine relevanten Wiki-Informationen finden, da keine Indizes gefunden wurden. Bitte stelle sicher, dass der Inhalt indiziert wurde.",

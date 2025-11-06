@@ -1,7 +1,8 @@
 {
 	"@metadata": {
 		"authors": [
-			"McDutchie"
+			"McDutchie",
+			"Siebrand"
 		]
 	},
 	"wanda-desc": "Chatbot voor MediaWiki",
@@ -23,6 +24,7 @@
 	"apihelp-wandachat-param-apiendpoint": "Aangepast API-eindpunt voor de cloudprovider",
 	"apihelp-wandachat-param-timeout": "Time-out in seconden voor de API-aanvraag",
 	"apihelp-wandachat-param-usepublicknowledge": "Of de chatbot zijn openbare kennis mag gebruiken naast de wiki-context (waar/onwaar)",
+	"apihelp-wandachat-param-skipesquery": "Of de Elasticsearch-query moet worden overgeslagen",
 	"wanda-api-error-empty-question": "Stel een geldige vraag.",
 	"wanda-api-error-temperature-invalid": "Ongeldige temperatuurwaarde. Geef een getal tussen 0,0 en 1,0 op.",
 	"wanda-api-error-temperature-outofrange": "Temperatuurwaarde buiten bereik. Geef een getal tussen 0,0 en 1,0.",
@@ -38,5 +40,6 @@
 	"wanda-llm-response-nocontext": "Ik heb niet genoeg informatie in de wiki-context om die vraag te beantwoorden.",
 	"wanda-toggle-public-knowledge-label": "Gebruik daarnaast ook openbare kennis",
 	"wanda-toggle-public-knowledge-help": "Na inschakeling kan de assistent naast de wiki-context ook zijn algemene kennis gebruiken.",
-	"wanda-toggle-public-knowledge-aria": "Gebruik van openbare kennis in-/uitschakelen"
+	"wanda-toggle-public-knowledge-aria": "Gebruik van openbare kennis in-/uitschakelen",
+	"wanda-floating-chat-header": "Wanda AI-assistent"
 }

@@ -18,5 +18,6 @@
 	"wanda-api-error-anthropic-key": "Anthropic-API-Schlëssel net konfiguréiert.",
 	"wanda-api-error-azure-key": "Azure-API-Schlëssel net konfiguréiert.",
 	"wanda-api-error-gemini-key": "Gemini-API-Schlëssel net konfiguréiert.",
-	"wanda-api-error-fallback": "Ech si mir do net sécher."
+	"wanda-api-error-fallback": "Ech si mir do net sécher.",
+	"wanda-floating-chat-header": "Wanda KI-Assistent"
 }

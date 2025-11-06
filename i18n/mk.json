@@ -23,7 +23,8 @@
 	"apihelp-wandachat-param-apikey": "Приложнички клуч за облачниот услужник",
 	"apihelp-wandachat-param-apiendpoint": "Прилагодена приложничка завршница за облачниот услужник",
 	"apihelp-wandachat-param-timeout": "Истек на време во секунди за барањето до приложникот",
-	"apihelp-wandachat-param-usepublicknowledge": "Дали да му се дозволи на виртуелнио соговорник да ги користи неговите општи познавања покрај викиконтекстот (true/false)",
+	"apihelp-wandachat-param-usepublicknowledge": "Дали да му се дозволи на виртуелниот соговорник да ги користи неговите општи познавања покрај викиконтекстот (true/false)",
+	"apihelp-wandachat-param-skipesquery": "Дали да се прескокне барањето со Elasticsearch",
 	"wanda-api-error-empty-question": "Внесете важечко прашање.",
 	"wanda-api-error-temperature-invalid": "Неважечка температурна вредност. Укажете број помеѓу 0.0 и 1.0.",
 	"wanda-api-error-temperature-outofrange": "Температурната вредност е вон опсегот. Укажете број помеѓу 0.0 и 1.0.",
@@ -39,5 +40,6 @@
 	"wanda-llm-response-nocontext": "Немам доволно информации во викиконтекстот за да одговорам на тоа.",
 	"wanda-toggle-public-knowledge-label": "Дополнително користи општи познавања",
 	"wanda-toggle-public-knowledge-help": "Кога е овозможено, помошникот може да ги користи неговите општи познавања покрај викиконтекстот.",
-	"wanda-toggle-public-knowledge-aria": "Вклучи/исклучи употреба на општи познавања"
+	"wanda-toggle-public-knowledge-aria": "Вклучи/исклучи употреба на општи познавања",
+	"wanda-floating-chat-header": "Помошник со вештачка интелигенција „Ванда“"
 }

@@ -23,6 +23,7 @@
 	"apihelp-wandachat-param-apiendpoint": "Endpoint d'API personnalisé pour le fournisseur de cloud",
 	"apihelp-wandachat-param-timeout": "Délai d'expiration en secondes pour la requête API",
 	"apihelp-wandachat-param-usepublicknowledge": "S'il faut autoriser le chatbot à utiliser ses connaissances publiques en plus du contexte wiki (vrai/faux)",
+	"apihelp-wandachat-param-skipesquery": "S'il faut ignorer la requête Elasticsearch",
 	"wanda-api-error-empty-question": "Veuillez fournir une question valide.",
 	"wanda-api-error-temperature-invalid": "Valeur de température non valide. Veuillez indiquer une valeur comprise entre 0,0 et 1,0.",
 	"wanda-api-error-temperature-outofrange": "Valeur de température hors limites. Veuillez indiquer une valeur comprise entre 0,0 et 1,0.",
@@ -38,5 +39,6 @@
 	"wanda-llm-response-nocontext": "Je n'ai pas assez d'informations dans le contexte wiki pour répondre à cette question.",
 	"wanda-toggle-public-knowledge-label": "Utiliser en complément les connaissances publiques",
 	"wanda-toggle-public-knowledge-help": "Lorsque cette option est activée, l'assistant peut utiliser ses connaissances générales en plus du contexte wiki.",
-	"wanda-toggle-public-knowledge-aria": "Activer/désactiver l'utilisation des connaissances publiques"
+	"wanda-toggle-public-knowledge-aria": "Activer/désactiver l'utilisation des connaissances publiques",
+	"wanda-floating-chat-header": "Wanda Assistant IA"
 }
