@@ -38,7 +38,14 @@
 			"class": "MediaWiki\\ResourceLoader\\CodexModule",
 			"packageFiles": [
 				"resources/initMain.js",
-				"resources/components/ChatApp.vue"
+				"resources/components/ChatApp.vue",
+				{
+					"name": "icons.json",
+					"callback": "MediaWiki\\ResourceLoader\\CodexModule::getIcons",
+					"callbackParam": [
+						"cdxIconImage"
+					]
+				}
 			],
 			"styles": [
 				"resources/styles/index.css"
@@ -52,7 +59,10 @@
 				"CdxButton",
 				"CdxTextArea",
 				"CdxProgressBar",
-				"CdxCheckbox"
+				"CdxCheckbox",
+				"CdxDialog",
+				"CdxTextInput",
+				"CdxIcon"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -63,7 +73,19 @@
 				"wanda-llm-response-nocontext",
 				"wanda-toggle-public-knowledge-label",
 				"wanda-toggle-public-knowledge-help",
-				"wanda-toggle-public-knowledge-aria"
+				"wanda-toggle-public-knowledge-aria",
+				"wanda-floating-chat-header",
+				"wanda-attach-image-title",
+				"wanda-remove-image-aria",
+				"wanda-image-picker-title",
+				"wanda-image-search-placeholder",
+				"wanda-image-search-placeholder-text",
+				"wanda-image-no-results",
+				"wanda-image-search-error",
+				"wanda-image-too-large",
+				"wanda-image-limit-reached",
+				"wanda-close",
+				"apihelp-wandachat-param-images"
 			],
 			"targets": [
 				"desktop",
@@ -74,7 +96,14 @@
 			"class": "MediaWiki\\ResourceLoader\\CodexModule",
 			"packageFiles": [
 				"resources/initFloating.js",
-				"resources/components/FloatingChat.vue"
+				"resources/components/FloatingChat.vue",
+				{
+					"name": "icons.json",
+					"callback": "MediaWiki\\ResourceLoader\\CodexModule::getIcons",
+					"callbackParam": [
+						"cdxIconImage"
+					]
+				}
 			],
 			"styles": [
 				"resources/styles/floating-chat.css"
@@ -88,7 +117,10 @@
 				"CdxButton",
 				"CdxTextArea",
 				"CdxProgressBar",
-				"CdxCheckbox"
+				"CdxCheckbox",
+				"CdxDialog",
+				"CdxTextInput",
+				"CdxIcon"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -100,7 +132,18 @@
 				"wanda-toggle-public-knowledge-label",
 				"wanda-toggle-public-knowledge-help",
 				"wanda-toggle-public-knowledge-aria",
-				"wanda-floating-chat-header"
+				"wanda-floating-chat-header",
+				"wanda-attach-image-title",
+				"wanda-remove-image-aria",
+				"wanda-image-picker-title",
+				"wanda-image-search-placeholder",
+				"wanda-image-search-placeholder-text",
+				"wanda-image-no-results",
+				"wanda-image-search-error",
+				"wanda-image-too-large",
+				"wanda-image-limit-reached",
+				"wanda-close",
+				"apihelp-wandachat-param-images"
 			],
 			"targets": [
 				"desktop",
@@ -131,7 +174,9 @@
 		"WandaLLMTemperature": "0.7",
 		"WandaLLMTimeout": 30,
 		"WandaAutoReindex": true,
-		"WandaSkipESQuery": false
+		"WandaSkipESQuery": false,
+		"WandaMaxImageSize": 5242880,
+		"WandaMaxImageCount": 10
 	},
 	"manifest_version": 1
 }

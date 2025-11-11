@@ -42,5 +42,16 @@
 	"wanda-toggle-public-knowledge-label": "Use public knowledge additionally",
 	"wanda-toggle-public-knowledge-help": "When enabled, the assistant may use its general knowledge in addition to wiki context.",
 	"wanda-toggle-public-knowledge-aria": "Toggle use of public knowledge",
-	"wanda-floating-chat-header": "Wanda AI Assistant"
+	"wanda-floating-chat-header": "Wanda AI Assistant",
+	"wanda-attach-image-title": "Attach images from wiki",
+	"wanda-remove-image-aria": "Remove attached image",
+	"wanda-image-picker-title": "Select image from your wiki",
+	"wanda-image-search-placeholder": "Search for images...",
+	"wanda-image-search-placeholder-text": "Your search results will appear here",
+	"wanda-image-no-results": "No images found",
+	"wanda-image-search-error": "Error searching for images. Please try again.",
+	"wanda-image-too-large": "This image is too large. Maximum file size is $1.",
+	"wanda-image-limit-reached": "Maximum of $1 images can be attached.",
+	"wanda-close": "Close",
+	"apihelp-wandachat-param-images": "Pipe-separated list of image titles to attach (e.g., 'File:Example.jpg|File:Image2.png')"
 }

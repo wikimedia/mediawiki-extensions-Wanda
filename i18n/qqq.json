@@ -42,5 +42,16 @@
 	"wanda-toggle-public-knowledge-label": "Label for the toggle that lets the user allow using public LLM knowledge in addition to wiki context",
 	"wanda-toggle-public-knowledge-help": "Short helper text shown next to the toggle explaining what it does",
 	"wanda-toggle-public-knowledge-aria": "ARIA label for the toggle to use public knowledge",
-	"wanda-floating-chat-header": "Wanda AI Assistant"
+	"wanda-floating-chat-header": "Header text displayed at the top of the floating chat window",
+	"wanda-attach-image-title": "Tooltip text for the button that opens the image picker to attach images from the wiki",
+	"wanda-remove-image-aria": "ARIA label for the button that removes an attached image from the message",
+	"wanda-image-picker-title": "Title of the dialog window where users can search and select images from the wiki",
+	"wanda-image-search-placeholder": "Placeholder text in the search input field for finding images",
+	"wanda-image-search-placeholder-text": "Placeholder message displayed in the empty search results area before any search is performed",
+	"wanda-image-no-results": "Message displayed when the image search returns no results",
+	"wanda-image-search-error": "Error message displayed when there is a problem searching for images",
+	"wanda-image-too-large": "Error message displayed when user tries to attach an image that exceeds the size limit.\nParameters: $1 - Maximum allowed file size (e.g., '5 MB')",
+	"wanda-image-limit-reached": "Error message displayed when user tries to attach more than the maximum allowed number of images.\nParameters: $1 - Maximum number of images allowed",
+	"wanda-close": "Label for the close button in dialogs and modal windows",
+	"apihelp-wandachat-param-images": "{{doc-apihelp-param|wandachat|images}}"
 }

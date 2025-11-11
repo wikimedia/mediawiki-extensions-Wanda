@@ -14,7 +14,7 @@
     font-size: 24px;
     color: white;
     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
-    z-index: 1000;
+    z-index: 99;
     transition: all 0.3s ease;
     user-select: none;
 }
@@ -34,7 +34,7 @@
     background: white;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    z-index: 1001;
+    z-index: 100;
     display: flex;
     flex-direction: column;
     border: 1px solid #e0e0e0;
@@ -220,6 +220,229 @@
     }
 }
 
+/* Image attachment styles for floating chat */
+.wanda-floating-chat .wanda-attached-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.wanda-floating-chat .wanda-image-thumbnail {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    max-width: 100%;
+    font-size: 12px;
+}
+
+.wanda-floating-chat .wanda-image-thumbnail img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.wanda-floating-chat .wanda-image-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.wanda-floating-chat .wanda-image-title {
+    font-size: 11px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wanda-floating-chat .wanda-image-size {
+    font-size: 10px;
+    color: #666;
+}
+
+.wanda-floating-chat .wanda-remove-image {
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wanda-floating-chat .wanda-remove-image:hover {
+    background: #cc0000;
+}
+
+.wanda-floating-chat .wanda-attach-button {
+    padding: 6px 8px !important;
+}
+
+.wanda-floating-chat .wanda-attach-button .cdx-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Message images displayed as small thumbnails below the message */
+.wanda-floating-chat .wanda-message-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+    justify-content: flex-end;
+}
+
+.wanda-floating-chat .chat-message-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    max-width: 100%;
+}
+
+.wanda-floating-chat .bot-wrapper .chat-message-container {
+    align-items: flex-start;
+}
+
+.wanda-floating-chat .bot-wrapper .wanda-message-images {
+    justify-content: flex-start;
+}
+
+.wanda-floating-chat .wanda-message-image {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.wanda-floating-chat .wanda-message-image:hover {
+    transform: scale(2.2);
+    border-color: rgba(0, 123, 255, 0.8);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+/* Image picker dialog content styles */
+.wanda-image-picker-dialog .cdx-dialog__body {
+    height: 50vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.wanda-image-picker-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+}
+
+.wanda-image-picker-results {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+    overflow-y: auto;
+    padding-top: 8px;
+    flex: 1;
+    align-content: start;
+}
+
+.wanda-image-result {
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-top: 4px;
+    min-width: 0;
+}
+
+.wanda-image-result:hover:not(.disabled) {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
+    transform: translateY(-2px);
+    position: relative;
+    z-index: 1;
+}
+
+.wanda-image-result.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #f5f5f5;
+}
+
+.wanda-image-result img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background: #f0f0f0;
+}
+
+.wanda-image-result-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.wanda-image-result-title {
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #333;
+    max-width: 100%;
+    display: block;
+}
+
+.wanda-search-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #999;
+    background-color: #f5f5f5;
+    font-size: 14px;
+    flex: 1;
+    width: 100%;
+}
+
+.wanda-no-results {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+
+.wanda-searching {
+    padding: 20px;
+    text-align: center;
+}
+
 @media (max-width: 480px) {
     .wanda-floating-window {
         width: 95vw;
@@ -245,5 +468,19 @@
 
     .wanda-floating-chat .chat-box {
         min-height: 250px;
+    }
+
+    .wanda-floating-chat .wanda-image-thumbnail {
+        padding: 4px;
+        gap: 4px;
+    }
+
+    .wanda-floating-chat .wanda-image-thumbnail img {
+        width: 30px;
+        height: 30px;
+    }
+
+    .wanda-image-picker-dialog .cdx-dialog__body {
+        height: 45vh;
     }
 }

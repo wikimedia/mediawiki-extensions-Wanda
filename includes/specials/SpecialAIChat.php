@@ -29,6 +29,13 @@ class SpecialAIChat extends SpecialPage {
 		$this->setHeaders();
 
 		$out = $this->getOutput();
+		$config = $this->getConfig();
+
+		$out->addJsConfigVars( [
+			'WandaMaxImageSize' => $config->get( 'WandaMaxImageSize' ),
+			'WandaMaxImageCount' => $config->get( 'WandaMaxImageCount' )
+		] );
+
 		$out->addModules( 'ext.wanda.main' );
 
 		$out->addHTML(
