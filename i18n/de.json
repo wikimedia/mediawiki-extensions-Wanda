@@ -35,5 +35,16 @@
 	"wanda-toggle-public-knowledge-label": "Öffentliches Wissen zusätzlich nutzen",
 	"wanda-toggle-public-knowledge-help": "Wenn diese Option aktiviert ist, kann der Assistent zusätzlich zum Wiki-Kontext sein allgemeines Wissen nutzen.",
 	"wanda-toggle-public-knowledge-aria": "Nutzung öffentlichen Wissens umschalten",
-	"wanda-floating-chat-header": "Wanda KI-Assistent"
+	"wanda-floating-chat-header": "Wanda KI-Assistent",
+	"wanda-attach-image-title": "Bilder aus dem Wiki einfügen",
+	"wanda-remove-image-aria": "Angehängtes Bild entfernen",
+	"wanda-image-picker-title": "Wähle ein Bild aus deinem Wiki aus.",
+	"wanda-image-search-placeholder": "Bilder suchen …",
+	"wanda-image-search-placeholder-text": "Deine Suchergebnisse werden hier angezeigt.",
+	"wanda-image-no-results": "Keine Bilder gefunden",
+	"wanda-image-search-error": "Fehler beim Suchen der Bilder. Bitte versuche es erneut.",
+	"wanda-image-too-large": "Dieses Bild ist zu groß. Die maximale Dateigröße beträgt $1.",
+	"wanda-image-limit-reached": "Es können maximal $1 Bilder angehängt werden.",
+	"wanda-close": "Schließen",
+	"apihelp-wandachat-param-images": "Durch Pipes getrennte Liste der anzuhängenden Bildtitel (z. B. „File:Example.jpg|File:Image2.png“)"
 }
