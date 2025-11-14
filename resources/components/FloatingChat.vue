@@ -76,7 +76,7 @@
           </div>
 
           <div class="wanda-floating-input-row">
-            <cdx-button
+            <cdx-button v-if="enableAttachments"
               class="wanda-attach-button"
               action="default"
               weight="quiet"
@@ -163,6 +163,7 @@ module.exports = exports = {
       messages: [],
       loading: false,
       showPopup: !!mw.config.get( 'WandaShowPopup' ),
+      enableAttachments: !!mw.config.get( 'WandaEnableAttachments' ),
       usepublicknowledge: false,
       attachedImages: [],
       imagePickerOpen: false,

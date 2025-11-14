@@ -48,6 +48,8 @@ $wgWandaLLMElasticsearchUrl = 'http://elasticsearch:9200';
 // UI and interface settings
 $wgWandaShowPopup = true; // Show/hide the floating chat widget on all pages
 
+$wgWandaEnableAttachments = true; // Show/hide the "Attach images" icon
+
 // Custom prompt settings
 $wgWandaCustomPrompt = ''; // Custom prompt template to override default behavior
 

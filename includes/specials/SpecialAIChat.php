@@ -32,6 +32,7 @@ class SpecialAIChat extends SpecialPage {
 		$config = $this->getConfig();
 
 		$out->addJsConfigVars( [
+			'WandaEnableAttachments' => $config->get( 'WandaEnableAttachments' ),
 			'WandaMaxImageSize' => $config->get( 'WandaMaxImageSize' ),
 			'WandaMaxImageCount' => $config->get( 'WandaMaxImageCount' )
 		] );

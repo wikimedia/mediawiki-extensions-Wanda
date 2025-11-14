@@ -163,6 +163,7 @@
 	},
 	"config": {
 		"WandaShowPopup": true,
+		"WandaEnableAttachments": true,
 		"WandaCustomPrompt": "",
 		"WandaCustomPromptTitle": "",
 		"WandaLLMProvider": "ollama",

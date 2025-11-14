@@ -33,6 +33,7 @@ class FloatingChatHook {
 		$config = MediaWikiServices::getInstance()->getMainConfig();
 		$out->addJsConfigVars( [
 			'WandaShowPopup' => $config->get( 'WandaShowPopup' ),
+			'WandaEnableAttachments' => $config->get( 'WandaEnableAttachments' ),
 			'WandaMaxImageSize' => $config->get( 'WandaMaxImageSize' ),
 			'WandaMaxImageCount' => $config->get( 'WandaMaxImageCount' )
 		] );
