@@ -41,5 +41,16 @@
 	"wanda-toggle-public-knowledge-label": "Дополнително користи општи познавања",
 	"wanda-toggle-public-knowledge-help": "Кога е овозможено, помошникот може да ги користи неговите општи познавања покрај викиконтекстот.",
 	"wanda-toggle-public-knowledge-aria": "Вклучи/исклучи употреба на општи познавања",
-	"wanda-floating-chat-header": "Помошник со вештачка интелигенција „Ванда“"
+	"wanda-floating-chat-header": "Помошник со вештачка интелигенција „Ванда“",
+	"wanda-attach-image-title": "Прикачи слики од вики",
+	"wanda-remove-image-aria": "Отстрани прикачена слика",
+	"wanda-image-picker-title": "Изберете слика од вашето вики",
+	"wanda-image-search-placeholder": "Пребарување на слики...",
+	"wanda-image-search-placeholder-text": "Исходот од пребараното ќе се прикаже овде",
+	"wanda-image-no-results": "Не пронајдов ниедна слика",
+	"wanda-image-search-error": "Грешка при пребарувањето на сликите. Обидете се подоцна.",
+	"wanda-image-too-large": "Оваа слика е преголема. Се дозволуваат највеќе $1.",
+	"wanda-image-limit-reached": "Може да се прикачат највеќе $1 слики.",
+	"wanda-close": "Затвори",
+	"apihelp-wandachat-param-images": "Список на наслови на слики за прикачување, одделени со прави цртви (на пр. „File:Example.jpg|File:Image2.png“)"
 }

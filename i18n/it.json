@@ -7,5 +7,10 @@
 	"apihelp-wandachat-param-temperature": "Temperatura di campionamento per la generazione della risposta (da 0,0 a 1,0). Valori più elevati producono risposte maggiormente diversificate.",
 	"apihelp-wandachat-param-maxtokens": "Numero massimo di token nella risposta",
 	"wanda-api-error-temperature-invalid": "Valore di temperatura non valido. Inserisci un numero compreso tra 0,0 e 1,0.",
-	"wanda-llm-response-nocontext": "Non ho abbastanza informazioni nel contesto wiki per rispondere a questa domanda."
+	"wanda-llm-response-nocontext": "Non ho abbastanza informazioni nel contesto wiki per rispondere a questa domanda.",
+	"wanda-remove-image-aria": "Rimuovi l'immagine allegata",
+	"wanda-image-no-results": "Nessuna immagine trovata",
+	"wanda-image-too-large": "Questa immagine è troppo grande. La dimensione massima del file è $1.",
+	"wanda-image-limit-reached": "È possibile allegare un massimo di $1 immagini.",
+	"wanda-close": "Chiudi"
 }
