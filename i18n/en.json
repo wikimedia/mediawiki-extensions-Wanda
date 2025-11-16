@@ -51,7 +51,7 @@
 	"wanda-image-no-results": "No images found",
 	"wanda-image-search-error": "Error searching for images. Please try again.",
 	"wanda-image-too-large": "This image is too large. Maximum file size is $1.",
-	"wanda-image-limit-reached": "Maximum of $1 images can be attached.",
+	"wanda-image-limit-reached": "Maximum of {{PLURAL:$1|$1 image|$1 images}} can be attached.",
 	"wanda-close": "Close",
 	"apihelp-wandachat-param-images": "Pipe-separated list of image titles to attach (e.g., 'File:Example.jpg|File:Image2.png')"
 }
