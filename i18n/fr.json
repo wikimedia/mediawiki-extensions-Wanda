@@ -40,5 +40,16 @@
 	"wanda-toggle-public-knowledge-label": "Utiliser en complément les connaissances publiques",
 	"wanda-toggle-public-knowledge-help": "Lorsque cette option est activée, l'assistant peut utiliser ses connaissances générales en plus du contexte wiki.",
 	"wanda-toggle-public-knowledge-aria": "Activer/désactiver l'utilisation des connaissances publiques",
-	"wanda-floating-chat-header": "Wanda Assistant IA"
+	"wanda-floating-chat-header": "Wanda Assistant IA",
+	"wanda-attach-image-title": "Insérer des images du wiki",
+	"wanda-remove-image-aria": "Supprimer l'image jointe",
+	"wanda-image-picker-title": "Sélectionnez une image de votre wiki",
+	"wanda-image-search-placeholder": "Recherche d'images...",
+	"wanda-image-search-placeholder-text": "Vos résultats de recherche apparaîtront ici.",
+	"wanda-image-no-results": "Aucune image trouvée !",
+	"wanda-image-search-error": "Erreur lors de la recherche d'images. Veuillez réessayer.",
+	"wanda-image-too-large": "Cette image est trop volumineuse. La taille maximale du fichier est $1 .",
+	"wanda-image-limit-reached": "Un maximum de $1 d'images peut être joint.",
+	"wanda-close": "Fermer",
+	"apihelp-wandachat-param-images": "Liste de titres d'images à joindre, séparés par des barres verticales (ex. : « Fichier:Example.jpg|Fichier:Image2.png »)."
 }

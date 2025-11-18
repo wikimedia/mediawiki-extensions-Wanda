@@ -41,5 +41,16 @@
 	"wanda-toggle-public-knowledge-label": "Gebruik daarnaast ook openbare kennis",
 	"wanda-toggle-public-knowledge-help": "Na inschakeling kan de assistent naast de wiki-context ook zijn algemene kennis gebruiken.",
 	"wanda-toggle-public-knowledge-aria": "Gebruik van openbare kennis in-/uitschakelen",
-	"wanda-floating-chat-header": "Wanda AI-assistent"
+	"wanda-floating-chat-header": "Wanda AI-assistent",
+	"wanda-attach-image-title": "Afbeeldingen van wiki toevoegen",
+	"wanda-remove-image-aria": "Bijgevoegde afbeelding verwijderen",
+	"wanda-image-picker-title": "Selecteer een afbeelding uit uw wiki",
+	"wanda-image-search-placeholder": "Naar afbeeldingen zoeken...",
+	"wanda-image-search-placeholder-text": "Uw zoekresultaten verschijnen hier",
+	"wanda-image-no-results": "Geen afbeeldingen gevonden",
+	"wanda-image-search-error": "Fout bij het zoeken naar afbeeldingen. Probeer het opnieuw.",
+	"wanda-image-too-large": "Deze afbeelding is te groot. De maximale bestandsgrootte is $1.",
+	"wanda-image-limit-reached": "Er kunnen maximaal $1 afbeeldingen worden bijgevoegd.",
+	"wanda-close": "Sluiten",
+	"apihelp-wandachat-param-images": "Door pijpteken (|) gescheiden lijst met bij te voegen afbeeldingtitels (bijvoorbeeld \"Bestand:Example.jpg|Bestand:Image2.png\")"
 }
