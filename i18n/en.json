@@ -37,6 +37,7 @@
 	"wanda-api-error-anthropic-key": "Anthropic API key not configured.",
 	"wanda-api-error-azure-key": "Azure API key not configured.",
 	"wanda-api-error-gemini-key": "Gemini API key not configured.",
+	"wanda-api-error-token-limit": "Response was truncated due to token limit ($1 tokens). Please try asking a more specific question or increase WandaLLMMaxTokens in configuration.",
 	"wanda-api-error-fallback": "I'm not sure about that.",
 	"wanda-llm-response-nocontext": "I don’t have enough information in the wiki context to answer that.",
 	"wanda-toggle-public-knowledge-label": "Use public knowledge additionally",
@@ -51,7 +52,7 @@
 	"wanda-image-no-results": "No images found",
 	"wanda-image-search-error": "Error searching for images. Please try again.",
 	"wanda-image-too-large": "This image is too large. Maximum file size is $1.",
-	"wanda-image-limit-reached": "Maximum of {{PLURAL:$1|$1 image|$1 images}} can be attached.",
+	"wanda-image-limit-reached": "Maximum of $1 images can be attached.",
 	"wanda-close": "Close",
 	"apihelp-wandachat-param-images": "Pipe-separated list of image titles to attach (e.g., 'File:Example.jpg|File:Image2.png')"
 }

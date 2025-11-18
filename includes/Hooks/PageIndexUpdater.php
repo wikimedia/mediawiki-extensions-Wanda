@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\Wanda\Hooks;
 
+use MediaWiki\Extension\Wanda\EmbeddingGenerator;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
 use UploadBase;
@@ -12,6 +13,10 @@ class PageIndexUpdater {
 	private static $esHost;
 	/** @var string */
 	private static $indexName;
+	/** @var string */
+	private static $llmModel;
+	/** @var string */
+	private static $llmEmbeddingModel;
 	/** @var string */
 	private static $llmProvider;
 	/** @var string */
@@ -27,11 +32,15 @@ class PageIndexUpdater {
 	public static function initialize() {
 		$config = MediaWikiServices::getInstance()->getMainConfig();
 		self::$esHost = $config->get( 'WandaLLMElasticsearchUrl' ) ?? "http://localhost:9200";
-		self::$indexName = self::detectOrCreateElasticsearchIndex();
+
 		self::$llmProvider = strtolower( $config->get( 'WandaLLMProvider' ) ?? 'ollama' );
+		self::$llmModel = $config->get( 'WandaLLMModel' ) ?? 'gemma:2b';
+		self::$llmEmbeddingModel = $config->get( 'WandaLLMEmbeddingModel' ) ?? self::$llmModel;
 		self::$llmApiKey = $config->get( 'WandaLLMApiKey' ) ?? '';
 		self::$llmApiEndpoint = $config->get( 'WandaLLMApiEndpoint' ) ?? 'http://ollama:11434/api/';
 		self::$timeout = $config->get( 'WandaLLMTimeout' ) ?? 30;
+
+		self::$indexName = self::detectOrCreateElasticsearchIndex();
 
 		if ( !self::$indexName ) {
 			wfDebugLog( 'Wanda', "No valid Elasticsearch index found. Skipping indexing." );
@@ -79,11 +88,30 @@ class PageIndexUpdater {
 	 */
 	private static function createElasticsearchIndex() {
 		$newIndex = "mediawiki_content_" . time();
+
+		wfDebugLog( 'Wanda', "Creating index with provider: " . self::$llmProvider );
+
+		$dimensions = EmbeddingGenerator::getDimensions( self::$llmProvider );
+		wfDebugLog( 'Wanda', "Using embedding dimensions: $dimensions for provider: " . self::$llmProvider );
+
 		$mapping = [
 			"mappings" => [
 				"properties" => [
 					"title" => [ "type" => "text" ],
-					"content" => [ "type" => "text" ]
+					"content" => [ "type" => "text" ],
+					"content_chunks" => [ "type" => "text" ],
+					"content_vectors" => [
+						"type" => "nested",
+						"properties" => [
+							"vector" => [
+								"type" => "dense_vector",
+								"dims" => $dimensions,
+								"index" => true,
+								"similarity" => "cosine"
+							],
+							"chunk_index" => [ "type" => "integer" ]
+						]
+					]
 				]
 			]
 		];
@@ -97,7 +125,10 @@ class PageIndexUpdater {
 		$response = curl_exec( $ch );
 		curl_close( $ch );
 
-		wfDebugLog( 'Wanda', "Created new Elasticsearch index: $newIndex. Response: $response" );
+		wfDebugLog(
+			'Wanda',
+			"Created new Elasticsearch index: $newIndex with embedding dimensions: $dimensions. Response: $response"
+		);
 		return $newIndex;
 	}
 
@@ -132,10 +163,48 @@ class PageIndexUpdater {
 		$text = $content->getTextForSearchIndex( $content );
 		$pdfText = self::extractTextFromPDF( $title );
 		$fullText = trim( $text . "\n" . $pdfText );
+
+		// Chunk the text semantically
+		$chunks = EmbeddingGenerator::chunkText( $fullText, 5000 );
+		$logMsg = "[WANDA INDEXING] Split " . $title->getPrefixedText() . " into " . count( $chunks ) . " chunks";
+		wfDebugLog( 'Wanda', $logMsg );
+
+		// Generate embeddings for each chunk
+		$embeddings = EmbeddingGenerator::generateBatch(
+			$chunks,
+			self::$llmProvider,
+			self::$llmApiKey,
+			self::$llmApiEndpoint,
+			self::$llmEmbeddingModel,
+			self::$timeout
+		);
+
 		$document = [
 			"title" => $title->getPrefixedText(),
-			"content" => $fullText
+			"content" => $fullText,
+			"content_chunks" => $chunks
 		];
+
+		if ( !empty( $embeddings ) ) {
+			// Format embeddings for nested structure
+			$vectorObjects = [];
+			foreach ( $embeddings as $index => $embedding ) {
+				$vectorObjects[] = [
+					"vector" => $embedding,
+					"chunk_index" => $index
+				];
+			}
+			$document['content_vectors'] = $vectorObjects;
+			wfDebugLog(
+				'Wanda',
+				"Generated " . count( $embeddings ) . " embeddings for: " . $title->getPrefixedText()
+			);
+		} else {
+			wfDebugLog(
+				'Wanda',
+				"Failed to generate embeddings for: " . $title->getPrefixedText()
+			);
+		}
 
 		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_doc/" . urlencode( $title->getPrefixedText() ) );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
@@ -169,6 +238,20 @@ class PageIndexUpdater {
 		exec( "pdftotext -layout " . escapeshellarg( $pdfPath ) . " -", $output );
 
 		return implode( "\n", $output );
+	}
+
+	/**
+	 * Generate embedding vector for text using configured provider
+	 */
+	private static function generateEmbedding( $text ) {
+		return EmbeddingGenerator::generate(
+			$text,
+			self::$llmProvider,
+			self::$llmApiKey,
+			self::$llmApiEndpoint,
+			self::$llmEmbeddingModel,
+			self::$timeout
+		);
 	}
 
 	/**

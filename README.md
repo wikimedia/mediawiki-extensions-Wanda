@@ -5,7 +5,8 @@ Wanda is a MediaWiki extension that provides an AI-powered chatbot interface for
 ## Features
 
 - **Multiple LLM Providers**: Support for Ollama (self-hosted), OpenAI, Anthropic Claude, Azure OpenAI, and Google Gemini
-- **Elasticsearch Text Search**: Uses Elasticsearch full‑text ranking over wiki pages
+- **Vector-Based Semantic Search**: Uses high-dimensional embeddings for intelligent content retrieval with configurable similarity thresholds
+- **Dual Search Strategy**: Automatic fallback from vector search to text-based search for reliability
 - **Floating Chat Widget**: Always-accessible chat button on all pages
 - **Special Page**: Dedicated chat interface at Special:Wanda
 - **Responsive Design**: Works on desktop and mobile devices
@@ -44,6 +45,12 @@ $wgWandaLLMApiEndpoint = 'http://localhost:11434/api/'; // API endpoint URL for 
 
 // Elasticsearch configuration
 $wgWandaLLMElasticsearchUrl = 'http://elasticsearch:9200';
+
+// Embedding model configuration (for semantic search)
+$wgWandaLLMEmbeddingModel = 'text-embedding-004'; // Model for generating embeddings
+
+// Vector search configuration
+$wgWandaVectorSearchMinScore = 1.7; // Minimum similarity score threshold (1.0-2.0, default: 1.7)
 
 // UI and interface settings
 $wgWandaShowPopup = true; // Show/hide the floating chat widget on all pages
@@ -195,7 +202,7 @@ php extensions/Wanda/maintenance/ReindexAllPages.php
 
 - MediaWiki 1.36.0 or later
 - PHP 7.4 or later
-- Elasticsearch (for content indexing and search)
+- Elasticsearch (with dense_vector support for semantic search)
 - One of the supported LLM providers:
   - Ollama (self-hosted)
   - OpenAI API access
@@ -205,11 +212,15 @@ php extensions/Wanda/maintenance/ReindexAllPages.php
 
 ## Architecture
 
-1. **Content Indexing**: Wiki pages (and extracted PDF text) are stored in Elasticsearch with their raw text
-2. **Query Processing**: User queries are issued as full‑text multi_match searches
-3. **Retrieval**: Elasticsearch returns the most relevant documents by BM25 scoring (with title boosted)
-4. **Response Generation**: The LLM generates an answer constrained to the retrieved content
-5. **Incremental Updates**: Page save and file upload hooks keep the index fresh
+1. **Content Indexing**: Wiki pages (and extracted PDF text) are chunked and stored in Elasticsearch with semantic embeddings
+2. **Query Processing**: User queries are converted to embeddings using the configured embedding model
+3. **Vector Search**: Elasticsearch performs cosine similarity search with configurable threshold
+   - **Similarity Score Range**: 1.0 (no similarity) to 2.0 (perfect match)
+   - **Default Threshold**: 1.7 (cosine similarity ≥ 0.7)
+   - **Configuration**: Adjustable via `$wgWandaVectorSearchMinScore`
+4. **Fallback Strategy**: If vector search fails or returns no results, falls back to text-based BM25 search
+5. **Response Generation**: The LLM generates answers based on the top 3 most relevant content chunks
+6. **Incremental Updates**: Page save and file upload hooks automatically regenerate embeddings and update the index
 
 ## Security Considerations
 

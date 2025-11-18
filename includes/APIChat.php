@@ -18,6 +18,8 @@ class APIChat extends ApiBase {
 	/** @var string */
 	private static $llmModel;
 	/** @var string */
+	private static $llmEmbeddingModel;
+	/** @var string */
 	private static $llmApiKey;
 	/** @var string */
 	private static $llmApiEndpoint;
@@ -35,6 +37,8 @@ class APIChat extends ApiBase {
 	private static $usePublicKnowledge = false;
 	/** @var bool */
 	private static $skipESQuery = false;
+	/** @var float */
+	private static $vectorSearchMinScore;
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName );
@@ -44,6 +48,7 @@ class APIChat extends ApiBase {
 		self::$indexName = $this->detectElasticsearchIndex();
 		self::$llmProvider = strtolower( $this->getConfig()->get( 'WandaLLMProvider' ) ?? "ollama" );
 		self::$llmModel = $this->getConfig()->get( 'WandaLLMModel' ) ?? "gemma:2b";
+		self::$llmEmbeddingModel = $this->getConfig()->get( 'WandaLLMEmbeddingModel' ) ?? self::$llmModel;
 		self::$llmApiKey = $this->getConfig()->get( 'WandaLLMApiKey' ) ?? "";
 
 		// Set default endpoint based on provider
@@ -53,12 +58,13 @@ class APIChat extends ApiBase {
 		}
 		self::$llmApiEndpoint = $this->getConfig()->get( 'WandaLLMApiEndpoint' ) ?? $defaultEndpoint;
 
-		self::$maxTokens = $this->getConfig()->get( 'WandaLLMMaxTokens' ) ?? 1000;
+		self::$maxTokens = $this->getConfig()->get( 'WandaLLMMaxTokens' ) ?? 2048;
 		self::$temperature = $this->getConfig()->get( 'WandaLLMTemperature' ) ?? 0.7;
 		self::$timeout = $this->getConfig()->get( 'WandaLLMTimeout' ) ?? 30;
 		self::$customPromptTitle = $this->getConfig()->get( 'WandaCustomPromptTitle' ) ?? "";
 		self::$customPrompt = $this->getConfig()->get( 'WandaCustomPrompt' ) ?? "";
 		self::$skipESQuery = $this->getConfig()->get( 'WandaSkipESQuery' ) ?? false;
+		self::$vectorSearchMinScore = $this->getConfig()->get( 'WandaVectorSearchMinScore' ) ?? 1.7;
 	}
 
 	public function execute() {
@@ -377,7 +383,137 @@ class APIChat extends ApiBase {
 	}
 
 	private function queryElasticsearch( $queryText ) {
+		$vectorResult = $this->vectorSearch( $queryText );
+		if ( $vectorResult !== null ) {
+			wfDebugLog( 'Wanda', "Using vector search results" );
+			return $vectorResult;
+		}
+
+		// Fallback to text search
+		wfDebugLog( 'Wanda', "Falling back to text search" );
 		return $this->textSearch( $queryText );
+	}
+
+	/**
+	 * Vector-based semantic search using embeddings
+	 */
+	private function vectorSearch( $queryText ) {
+		if ( empty( self::$indexName ) ) {
+			return null;
+		}
+
+		$embedding = $this->generateEmbedding( $queryText );
+		if ( $embedding === null ) {
+			wfDebugLog( 'Wanda', "Failed to generate embedding for query" );
+			return null;
+		}
+
+		// Perform kNN search across all chunks using nested query
+		$queryData = [
+			"size" => 5,
+			"query" => [
+				"nested" => [
+					"path" => "content_vectors",
+					"score_mode" => "max",
+					"query" => [
+						"script_score" => [
+							"query" => [ "match_all" => new \stdClass() ],
+							"script" => [
+								"source" => "cosineSimilarity(params.query_vector, 'content_vectors.vector') + 1.0",
+								"params" => [
+									"query_vector" => $embedding
+								]
+							]
+						]
+					],
+					"inner_hits" => [
+						"size" => 1,
+						"_source" => [ "chunk_index" ]
+					]
+				]
+			],
+			"_source" => [ "title", "content", "content_chunks" ],
+			"min_score" => self::$vectorSearchMinScore
+		];
+
+		$searchUrl = self::$esHost . "/" . self::$indexName . "/_search";
+		wfDebugLog( 'Wanda', "Vector searching Elasticsearch at: " . $searchUrl );
+
+		$ch = curl_init( $searchUrl );
+		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
+		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $queryData ) );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
+
+		$response = curl_exec( $ch );
+		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		$curlError = curl_error( $ch );
+		curl_close( $ch );
+
+		if ( $curlError ) {
+			wfDebugLog( 'Wanda', "Vector search cURL error: " . $curlError );
+			return null;
+		}
+
+		if ( $httpCode !== 200 ) {
+			wfDebugLog( 'Wanda', "Vector search failed with HTTP " . $httpCode . ": " . $response );
+			return null;
+		}
+
+		$data = json_decode( $response, true );
+
+		if ( empty( $data['hits']['hits'] ) ) {
+			wfDebugLog( 'Wanda', "Vector search returned no results" );
+			return null;
+		}
+
+		// Get top 3 results and combine them
+		$topHits = array_slice( $data['hits']['hits'], 0, 3 );
+		$combinedContent = [];
+		$sources = [];
+
+		foreach ( $topHits as $hit ) {
+			$source = $hit['_source'];
+			$title = $source['title'] ?? 'Unknown';
+			$content = $source['content'] ?? $source['text'] ?? '';
+
+			if ( !empty( $content ) && !empty( $title ) ) {
+				$combinedContent[] = "--- From page: " . $title .
+					" (Similarity: " . round( $hit['_score'], 2 ) .
+					") ---\n" . trim( $content );
+				$sources[] = $title;
+			}
+		}
+
+		if ( empty( $combinedContent ) ) {
+			return null;
+		}
+
+		wfDebugLog(
+			'Wanda',
+			"Vector search found " . count( $sources ) . " relevant pages: " . implode( ', ', $sources )
+		);
+
+		return [
+			"content" => implode( "\n\n", $combinedContent ),
+			"source" => implode( ', ', array_unique( $sources ) ),
+			"num_results" => count( $sources )
+		];
+	}
+
+	/**
+	 * Generate embedding vector for text using configured provider
+	 */
+	private function generateEmbedding( $text ) {
+		return EmbeddingGenerator::generate(
+			$text,
+			self::$llmProvider,
+			self::$llmApiKey,
+			self::$llmApiEndpoint,
+			self::$llmEmbeddingModel,
+			self::$timeout
+		);
 	}
 
 	/**
@@ -537,7 +673,11 @@ class APIChat extends ApiBase {
 			'contents' => [ [ 'role' => 'user', 'parts' => $parts ] ],
 			'generationConfig' => [
 				'temperature' => self::$temperature,
-				'maxOutputTokens' => self::$maxTokens
+				'maxOutputTokens' => self::$maxTokens,
+				'thinkingConfig' => [
+					// Conservative budget to avoid MAX_TOKENS errors
+					'thinkingBudget' => 2048
+				]
 			]
 		];
 
@@ -609,6 +749,18 @@ class APIChat extends ApiBase {
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			wfDebugLog( 'Wanda', "Gemini JSON decode error: " . json_last_error_msg() );
 			return "Invalid JSON response from Gemini: " . json_last_error_msg();
+		}
+
+		// Check for MAX_TOKENS finish reason (response was truncated)
+		if ( isset( $json['candidates'][0]['finishReason'] )
+			&& $json['candidates'][0]['finishReason'] === 'MAX_TOKENS'
+		) {
+			if ( isset( $json['candidates'][0]['content']['parts'][0]['text'] ) ) {
+				return $json['candidates'][0]['content']['parts'][0]['text'] .
+					"\n\n[Response truncated due to token limit. " .
+					"Current limit: " . self::$maxTokens . " tokens]";
+			}
+			return $this->msg( 'wanda-api-error-token-limit', self::$maxTokens )->text();
 		}
 
 		if ( !isset( $json['candidates'][0]['content']['parts'][0]['text'] ) ) {

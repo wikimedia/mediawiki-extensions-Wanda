@@ -37,6 +37,7 @@
 	"wanda-api-error-anthropic-key": "Error message when Anthropic API key is not configured",
 	"wanda-api-error-azure-key": "Error message when Azure API key is not configured",
 	"wanda-api-error-gemini-key": "Error message when Gemini (Google Generative Language) API key is not configured",
+	"wanda-api-error-token-limit": "Error message when the LLM response was truncated because it exceeded the maximum token limit.\nParameters: $1 - The maximum token limit value",
 	"wanda-api-error-fallback": "Default fallback message when LLM cannot provide a response",
 	"wanda-llm-response-nocontext": "Default response for questions which cannot be answered using wiki context",
 	"wanda-toggle-public-knowledge-label": "Label for the toggle that lets the user allow using public LLM knowledge in addition to wiki context",
@@ -51,7 +52,7 @@
 	"wanda-image-no-results": "Message displayed when the image search returns no results",
 	"wanda-image-search-error": "Error message displayed when there is a problem searching for images",
 	"wanda-image-too-large": "Error message displayed when user tries to attach an image that exceeds the size limit.\nParameters: $1 - Maximum allowed file size (e.g., '5 MB')",
-	"wanda-image-limit-reached": "Error message displayed when user tries to attach more than the maximum allowed number of images.\nParameters: $1 - Maximum number of images allowed (used in PLURAL)",
+	"wanda-image-limit-reached": "Error message displayed when user tries to attach more than the maximum allowed number of images.\nParameters: $1 - Maximum number of images allowed",
 	"wanda-close": "Label for the close button in dialogs and modal windows",
 	"apihelp-wandachat-param-images": "{{doc-apihelp-param|wandachat|images}}"
 }
