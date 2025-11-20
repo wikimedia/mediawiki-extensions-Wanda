@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Sakblue"
+		]
+	},
+	"apihelp-wandachat-param-skipesquery": "Elasticsearch sorgulaması atlatılmalı mı"
+}
