@@ -11,6 +11,6 @@
 	"wanda-remove-image-aria": "Rimuovi l'immagine allegata",
 	"wanda-image-no-results": "Nessuna immagine trovata",
 	"wanda-image-too-large": "Questa immagine è troppo grande. La dimensione massima del file è $1.",
-	"wanda-image-limit-reached": "È possibile allegare un massimo di $1 immagini.",
+	"wanda-image-limit-reached": "È possibile allegare al massimo $1 {{PLURAL:$1|immagine|immagini}}.",
 	"wanda-close": "Chiudi"
 }
