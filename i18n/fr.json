@@ -49,7 +49,7 @@
 	"wanda-image-no-results": "Aucune image trouvée !",
 	"wanda-image-search-error": "Erreur lors de la recherche d'images. Veuillez réessayer.",
 	"wanda-image-too-large": "Cette image est trop volumineuse. La taille maximale du fichier est $1 .",
-	"wanda-image-limit-reached": "Un maximum de $1 d'images peut être joint.",
+	"wanda-image-limit-reached": "Un maximum de {{PLURAL:$1| $1 image| $1 images}} peut être joint.",
 	"wanda-close": "Fermer",
 	"apihelp-wandachat-param-images": "Liste de titres d'images à joindre, séparés par des barres verticales (ex. : « Fichier:Example.jpg|Fichier:Image2.png »)."
 }
