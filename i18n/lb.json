@@ -22,5 +22,6 @@
 	"wanda-floating-chat-header": "Wanda KI-Assistent",
 	"wanda-image-search-placeholder": "No Biller sichen ...",
 	"wanda-image-no-results": "Keng Biller fonnt",
+	"wanda-image-too-large": "Dëst Bild ass ze grouss. Déi maximal Dateigréisst ass $1.",
 	"wanda-close": "Zoumaachen"
 }
