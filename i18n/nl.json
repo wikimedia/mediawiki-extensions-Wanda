@@ -52,5 +52,5 @@
 	"wanda-image-too-large": "Deze afbeelding is te groot. De maximale bestandsgrootte is $1.",
 	"wanda-image-limit-reached": "Er kunnen maximaal $1 afbeeldingen worden bijgevoegd.",
 	"wanda-close": "Sluiten",
-	"apihelp-wandachat-param-images": "Door pijpteken (|) gescheiden lijst met bij te voegen afbeeldingtitels (bijvoorbeeld \"Bestand:Example.jpg|Bestand:Image2.png\")"
+	"apihelp-wandachat-param-images": "Door sluistekens (|) gescheiden lijst met de titels van de bij te voegen afbeeldingen (bijvoorbeeld \"Bestand:Voorbeeld.jpg|Bestand:Afbeelding2.png\")"
 }

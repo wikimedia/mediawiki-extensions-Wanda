@@ -40,5 +40,16 @@
 	"wanda-toggle-public-knowledge-label": "Usar cognoscentia public in addition",
 	"wanda-toggle-public-knowledge-help": "Si iste option es activate, le assistente pote usar su cognoscentia general in addition al contexto del wiki.",
 	"wanda-toggle-public-knowledge-aria": "Commutar le uso de cognoscentia public",
-	"wanda-floating-chat-header": "Assistente de IA Wanda"
+	"wanda-floating-chat-header": "Assistente de IA Wanda",
+	"wanda-attach-image-title": "Annexar imagines del wiki",
+	"wanda-remove-image-aria": "Remover imagine annexate",
+	"wanda-image-picker-title": "Selige un imagine de tu wiki",
+	"wanda-image-search-placeholder": "Cerca imagines…",
+	"wanda-image-search-placeholder-text": "Le resultatos de tu recerca apparera hic",
+	"wanda-image-no-results": "Necun imagine trovate",
+	"wanda-image-search-error": "Error durante le recerca de imagines. Per favor tenta lo de novo.",
+	"wanda-image-too-large": "Iste imagine es troppo grande. Le dimension maxime del file es $1.",
+	"wanda-image-limit-reached": "Es possibile annexar al maximo $1 imagine{{PLURAL:$1||s}}.",
+	"wanda-close": "Clauder",
+	"apihelp-wandachat-param-images": "Lista de titulos del imagines a annexar, separate per barras vertical (p.ex. ‘File\n:Exemplo.jpg|File:Imagine2.png’)"
 }
