@@ -1,0 +1,23 @@
+{
+	"@metadata": {
+		"authors": [
+			"Toliño"
+		]
+	},
+	"wanda-desc": "Bot de conversa para MediaWiki",
+	"wanda-chat-welcometext": "Ola! Son Wanda, a túa asistente de IA.",
+	"wanda-chat-welcomedesc": "Pregúntame calquera cousa no teu wiki e intentarei axudar!",
+	"wanda-chat-instruction1": "Obtén respostas ás túas preguntas",
+	"wanda-chat-instruction2": "Respostas xeradas por IA",
+	"wanda-chat-pdftotext-error": "Asegúrate de que a utilidade «pdftotext» estea instalada e lista para usala.",
+	"wanda-floating-chat-title": "Conversa con Wanda",
+	"wanda-api-error-empty-question": "Indica unha pregunta válida.",
+	"wanda-api-error-config-invalid": "O servizo de conversa non está configurado correctamente. Ponte en contacto coa administración.",
+	"wanda-api-error-no-index": "Non atopei información relevante no wiki porque non se atopou ningún índice. Asegúrate de que o contido estea indexado.",
+	"wanda-api-error-no-results": "Non atopei información relevante sobre ese tema no wiki.",
+	"wanda-api-error-generation-failed": "Nestes intres estou a ter problemas para xerar unha resposta. Inténtao de novo nun anaco.",
+	"wanda-api-error-openai-key": "A clave da API de OpenAI non está configurada.",
+	"wanda-api-error-anthropic-key": "A clave da API de Anthropic non está configurada.",
+	"wanda-api-error-azure-key": "A clave da API de Azure non está configurada.",
+	"wanda-api-error-fallback": "Non sei con certeza."
+}

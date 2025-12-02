@@ -1,6 +1,8 @@
 {
 	"@metadata": {
-		"authors": []
+		"authors": [
+			"Brettchenweber"
+		]
 	},
 	"wanda-desc": "Chatbot für MediaWiki",
 	"wanda-chat-welcometext": "Hallo! Ich bin Wanda, deine KI-Assistentin.",
