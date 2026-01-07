@@ -37,6 +37,8 @@ class APIChat extends ApiBase {
 	private static $usePublicKnowledge = false;
 	/** @var bool */
 	private static $skipESQuery = false;
+	/** @var bool */
+	private static $useContentLang = false;
 	/** @var float */
 	private static $vectorSearchMinScore;
 
@@ -64,6 +66,7 @@ class APIChat extends ApiBase {
 		self::$customPromptTitle = $this->getConfig()->get( 'WandaCustomPromptTitle' ) ?? "";
 		self::$customPrompt = $this->getConfig()->get( 'WandaCustomPrompt' ) ?? "";
 		self::$skipESQuery = $this->getConfig()->get( 'WandaSkipESQuery' ) ?? false;
+		self::$useContentLang = $this->getConfig()->get( 'WandaUseContentLang' ) ?? false;
 		self::$vectorSearchMinScore = $this->getConfig()->get( 'WandaVectorSearchMinScore' ) ?? 1.7;
 	}
 
@@ -73,6 +76,8 @@ class APIChat extends ApiBase {
 		$allowPublicKnowledge = !empty( $params['usepublicknowledge'] );
 		$imagesList = !empty( $params['images'] ) ? $params['images'] : '';
 		$this->overrideLlmParameters( $params );
+		$userLang = $this->getContext()->getLanguage()->getCode();
+		$contentLang = MediaWikiServices::getInstance()->getContentLanguage()->getCode();
 
 		// Validate input parameters
 		if ( empty( $userQuery ) ) {
@@ -127,7 +132,9 @@ class APIChat extends ApiBase {
 			$contextStr = ( $contextStr ? $contextStr . "\n\n" : "" ) . $imageContext;
 		}
 
-		$response = $this->generateLLMResponse( $userQuery, $contextStr, $allowPublicKnowledge, $imageData );
+		$response = $this->generateLLMResponse(
+			$userQuery, $contextStr, $allowPublicKnowledge, $imageData, $userLang, $contentLang
+		);
 		if ( !$response ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-generation-failed' )->text() );
 			return;
@@ -1188,9 +1195,20 @@ class APIChat extends ApiBase {
 	 *
 	 * @param string $userQuery The original user question
 	 * @param string|null $context Retrieved wiki content used as grounding context
+	 * @param bool $allowPublicKnowledge Whether to allow LLM to use public knowledge
+	 * @param array $imageData Array of image data
+	 * @param string $userLang User's interface language code
+	 * @param string $contentLang Wiki's content language code
 	 * @return string|false LLM answer text or false on complete failure
 	 */
-	private function generateLLMResponse( $userQuery, $context, $allowPublicKnowledge = false, $imageData = [] ) {
+	private function generateLLMResponse(
+		$userQuery,
+		$context,
+		$allowPublicKnowledge = false,
+		$imageData = [],
+		$userLang = 'en',
+		$contentLang = 'en'
+	) {
 		if ( !$userQuery ) {
 			return false;
 		}
@@ -1206,10 +1224,21 @@ class APIChat extends ApiBase {
 			$contextBlock = $context;
 		}
 
+		$languageInstruction = '';
+		if ( $userLang && $userLang !== 'en' ) {
+			$languageInstruction = "\nIMPORTANT: Please provide your answer in the language with code '{$userLang}'.";
+
+			// If user language differs from content language, add translation note
+			if ( $contentLang && $userLang !== $contentLang ) {
+				$languageInstruction .= " The wiki content is in '{$contentLang}', " .
+					"but your response must be in '{$userLang}'.";
+			}
+		}
+
 		if ( self::$customPrompt !== '' ) {
 			$prompt = self::$customPrompt .
 				"\n\nContext:\n" . $contextBlock . "\n\n" .
-				"User Question: " . $userQuery . "\n\n" .
+				"User Question: " . $userQuery . $languageInstruction . "\n\n" .
 				"Answer:";
 		} elseif ( self::$customPromptTitle !== '' ) {
 			$title = Title::newFromText( self::$customPromptTitle );
@@ -1218,21 +1247,21 @@ class APIChat extends ApiBase {
 
 			$prompt = $content .
 				"\n\nContext:\n" . $contextBlock . "\n\n" .
-				"User Question: " . $userQuery . "\n\n" .
+				"User Question: " . $userQuery . $languageInstruction . "\n\n" .
 				"Answer:";
 		} else {
 			if ( $allowPublicKnowledge ) {
 				$prompt = "You are a helpful assistant. 
 					Answer the user's question based on the information provided below.\n\n" .
 					"Wiki Content:\n" . $contextBlock . "\n\n" .
-					"Question: " . $userQuery . "\n\n" .
+					"Question: " . $userQuery . $languageInstruction . "\n\n" .
 					"Instructions: Use the wiki content above to answer the question. 
 						If the information is there, use it. If not, use your knowledge.\n\n" .
 					"Answer:";
 			} else {
 				$prompt = "Answer the following question using the information provided.\n\n" .
 					"Information from wiki pages:\n" . $contextBlock . "\n\n" .
-					"Question: " . $userQuery . "\n\n" .
+					"Question: " . $userQuery . $languageInstruction . "\n\n" .
 					"Provide a helpful answer based on the information above:\n";
 			}
 		}
@@ -1240,6 +1269,15 @@ class APIChat extends ApiBase {
 		wfDebugLog( 'Wanda', "Prompt length: " . strlen( $prompt ) .
 			" characters, Context block length: " . strlen( $contextBlock ) . " characters" );
 		wfDebugLog( 'Wanda', "First 500 chars of prompt: " . substr( $prompt, 0, 500 ) );
+
+		// Prepend language instruction if configured
+		if ( self::$useContentLang ) {
+			$contentLangCode = MediaWikiServices::getInstance()->getContentLanguage()->getCode();
+			$prompt = "IMPORTANT: Please provide your answer in the language with code '" .
+				$contentLangCode . "'. Your entire response should be written in this language. " .
+				"However, if you do not have sufficient knowledge to answer accurately in the '" .
+				$contentLangCode . "' language, you may respond in English as a fallback.\n\n" . $prompt;
+		}
 
 		$response = null;
 		switch ( self::$llmProvider ) {
