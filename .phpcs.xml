@@ -5,6 +5,7 @@
 		<exclude name="MediaWiki.Commenting.FunctionComment.MissingDocumentationPublic" />
 		<exclude name="MediaWiki.Commenting.FunctionComment.MissingParamTag" />
 		<exclude name="MediaWiki.Commenting.FunctionComment.MissingReturn" />
+		<exclude name="MediaWiki.Usage.ForbiddenFunctions.curl_close" />
 		<exclude name="MediaWiki.Usage.ForbiddenFunctions.escapeshellarg" />
 		<exclude name="MediaWiki.Usage.ForbiddenFunctions.exec" />
 	</rule>
