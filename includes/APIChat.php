@@ -140,16 +140,10 @@ class APIChat extends ApiBase {
 			return;
 		}
 
-		// Prepare source data only when we used wiki context
-		$sourceData = [];
-		if ( $searchResults && isset( $searchResults['source'] ) ) {
-			$sourceData[] = $searchResults['source'];
-		}
-
 		// Return response along with source attribution
 		$this->getResult()->addValue( null, "response", $response );
-		if ( !empty( $sourceData ) ) {
-			$this->getResult()->addValue( null, "source", implode( ', ', array_unique( $sourceData ) ) );
+		if ( $searchResults && !empty( $searchResults['sources'] ) ) {
+			$this->getResult()->addValue( null, "sources", $searchResults['sources'] );
 		}
 	}
 
@@ -475,10 +469,22 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
-		// Get top 3 results and combine them
-		$topHits = array_slice( $data['hits']['hits'], 0, 3 );
+		// Primarily use the top result; only include additional results
+		// if their scores are very close to the top result's score
+		$allHits = $data['hits']['hits'];
+		$topScore = $allHits[0]['_score'];
+		$scoreProximityThreshold = 0.1;
+
+		$topHits = [];
+		foreach ( $allHits as $hit ) {
+			if ( empty( $topHits ) || ( $topScore - $hit['_score'] ) <= $scoreProximityThreshold ) {
+				$topHits[] = $hit;
+			}
+		}
+
 		$combinedContent = [];
 		$sources = [];
+		$seenTitles = [];
 
 		foreach ( $topHits as $hit ) {
 			$source = $hit['_source'];
@@ -489,7 +495,13 @@ class APIChat extends ApiBase {
 				$combinedContent[] = "--- From page: " . $title .
 					" (Similarity: " . round( $hit['_score'], 2 ) .
 					") ---\n" . trim( $content );
-				$sources[] = $title;
+				if ( !isset( $seenTitles[$title] ) ) {
+					$seenTitles[$title] = true;
+					$sources[] = [
+						'title' => $title,
+						'score' => round( $hit['_score'], 2 )
+					];
+				}
 			}
 		}
 
@@ -499,12 +511,13 @@ class APIChat extends ApiBase {
 
 		wfDebugLog(
 			'Wanda',
-			"Vector search found " . count( $sources ) . " relevant pages: " . implode( ', ', $sources )
+			"Vector search found " . count( $sources ) . " relevant pages: " .
+				implode( ', ', array_column( $sources, 'title' ) )
 		);
 
 		return [
 			"content" => implode( "\n\n", $combinedContent ),
-			"source" => implode( ', ', array_unique( $sources ) ),
+			"sources" => $sources,
 			"num_results" => count( $sources )
 		];
 	}
@@ -579,10 +592,22 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
-		// Get top 3 results and combine them
-		$topHits = array_slice( $data['hits']['hits'], 0, 3 );
+		// Primarily use the top result; only include additional results
+		// if their scores are very close to the top result's score
+		$allHits = $data['hits']['hits'];
+		$topScore = $allHits[0]['_score'];
+		$scoreProximityThreshold = 2.0;
+
+		$topHits = [];
+		foreach ( $allHits as $hit ) {
+			if ( empty( $topHits ) || ( $topScore - $hit['_score'] ) <= $scoreProximityThreshold ) {
+				$topHits[] = $hit;
+			}
+		}
+
 		$combinedContent = [];
 		$sources = [];
+		$seenTitles = [];
 
 		foreach ( $topHits as $hit ) {
 			$source = $hit['_source'];
@@ -593,7 +618,13 @@ class APIChat extends ApiBase {
 				$combinedContent[] = "--- From page: " . $title .
 					" (Score: " . round( $hit['_score'], 2 )
 						. ") ---\n" . trim( $content );
-				$sources[] = $title;
+				if ( !isset( $seenTitles[$title] ) ) {
+					$seenTitles[$title] = true;
+					$sources[] = [
+						'title' => $title,
+						'score' => round( $hit['_score'], 2 )
+					];
+				}
 			}
 		}
 
@@ -601,11 +632,12 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
-		wfDebugLog( 'Wanda', "Found " . count( $sources ) . " relevant pages: " . implode( ', ', $sources ) );
+		wfDebugLog( 'Wanda', "Found " . count( $sources ) . " relevant pages: " .
+			implode( ', ', array_column( $sources, 'title' ) ) );
 
 		return [
 			"content" => implode( "\n\n", $combinedContent ),
-			"source" => implode( ', ', array_unique( $sources ) ),
+			"sources" => $sources,
 			"num_results" => count( $sources )
 		];
 	}

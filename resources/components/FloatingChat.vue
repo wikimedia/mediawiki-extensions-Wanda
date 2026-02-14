@@ -174,6 +174,7 @@ module.exports = exports = {
       searchAbortController: null,
       maxImageSize: mw.config.get( 'WandaMaxImageSize' ) || 5242880,
       maxImageCount: mw.config.get( 'WandaMaxImageCount' ) || 10,
+      showConfidenceScore: !!mw.config.get( 'WandaShowConfidenceScore' ),
       cdxIconImage: cdxIconImage
     };
   },
@@ -417,11 +418,24 @@ module.exports = exports = {
           response = this.msg( 'wanda-llm-response-nocontext' );
         } else if ( response.includes( '<PUBLIC_KNOWLEDGE>' ) ) {
           response = response.replace( '<PUBLIC_KNOWLEDGE>', '' );
-          response += '<br><b>Source</b>: Public';
-        } else if ( data && data.source ) {
-          const href = mw.util.getUrl( data.source );
-          const safeTitle = this.escapeHtml( data.source );
-          response += '<br><b>Source</b>: <a target="_blank" href="' + href + '">' + safeTitle + '</a>';
+          response += '<br><br><b>Source</b>: Public';
+        } else if ( data && data.sources && data.sources.length > 0 ) {
+          const label = data.sources.length === 1 ? 'Source' : 'Sources';
+          const sourceLinks = data.sources.map( ( s ) => {
+            const title = s.title || s;
+            const href = mw.util.getUrl( title );
+            const safeTitle = this.escapeHtml( title );
+            let link = '<a target="_blank" href="' + href + '">' + safeTitle + '</a>';
+            if ( this.showConfidenceScore && s.score !== undefined ) {
+              link += ' <small>(' + s.score + ')</small>';
+            }
+            return link;
+          } );
+          response += '<br><br><b>' + label + '</b>:<ul class="wanda-sources-list">';
+          sourceLinks.forEach( ( link ) => {
+            response += '<li>' + link + '</li>';
+          } );
+          response += '</ul>';
         }
         this.addMessage( 'bot', response );
       } catch ( e ) {

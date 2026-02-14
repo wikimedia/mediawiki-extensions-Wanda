@@ -180,7 +180,8 @@
 		"WandaSkipESQuery": false,
 		"WandaUseContentLang": false,
 		"WandaMaxImageSize": 5242880,
-		"WandaMaxImageCount": 10
+		"WandaMaxImageCount": 10,
+		"WandaShowConfidenceScore": false
 	},
 	"manifest_version": 1
 }

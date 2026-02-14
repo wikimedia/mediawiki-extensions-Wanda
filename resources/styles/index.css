@@ -382,6 +382,17 @@ body > .cdx-dialog-backdrop:has(.wanda-image-picker-dialog) + .cdx-dialog {
     padding: 20px;
 }
 
+/* Sources list */
+.wanda-sources-list {
+    margin: 4px 0 0;
+    padding-left: 20px;
+    list-style: disc;
+}
+
+.wanda-sources-list li {
+    margin: 2px 0;
+}
+
 @media (max-width: 600px) {
     .chat-container {
         height: 400px;
