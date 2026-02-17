@@ -54,5 +54,11 @@
 	"wanda-image-too-large": "Error message displayed when user tries to attach an image that exceeds the size limit.\nParameters: $1 - Maximum allowed file size (e.g., '5 MB')",
 	"wanda-image-limit-reached": "Error message displayed when user tries to attach more than the maximum allowed number of images.\nParameters: $1 - Maximum number of images allowed",
 	"wanda-close": "Label for the close button in dialogs and modal windows",
-	"apihelp-wandachat-param-images": "{{doc-apihelp-param|wandachat|images}}"
+	"wanda-clear-conversation": "Label for the button that clears the current conversation history",
+	"wanda-clear-conversation-aria": "ARIA label for the button that clears the conversation history",
+	"wanda-toggle-memory-label": "Label for the toggle that enables or disables conversation memory",
+	"wanda-toggle-memory-aria": "ARIA label for the conversation memory toggle checkbox",
+	"apihelp-wandachat-param-images": "{{doc-apihelp-param|wandachat|images}}",
+	"apihelp-wandachat-param-conversationhistory": "{{doc-apihelp-param|wandachat|conversationhistory}}",
+	"apihelp-wandachat-param-memorydisabled": "{{doc-apihelp-param|wandachat|memorydisabled}}"
 }

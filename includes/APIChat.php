@@ -41,6 +41,10 @@ class APIChat extends ApiBase {
 	private static $useContentLang = false;
 	/** @var float */
 	private static $vectorSearchMinScore;
+	/** @var bool */
+	private static $enableConversationMemory = true;
+	/** @var int */
+	private static $conversationMaxChars = 6000;
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName );
@@ -68,6 +72,8 @@ class APIChat extends ApiBase {
 		self::$skipESQuery = $this->getConfig()->get( 'WandaSkipESQuery' ) ?? false;
 		self::$useContentLang = $this->getConfig()->get( 'WandaUseContentLang' ) ?? false;
 		self::$vectorSearchMinScore = $this->getConfig()->get( 'WandaVectorSearchMinScore' ) ?? 1.7;
+		self::$enableConversationMemory = $this->getConfig()->get( 'WandaEnableConversationMemory' ) ?? true;
+		self::$conversationMaxChars = $this->getConfig()->get( 'WandaConversationMaxChars' ) ?? 6000;
 	}
 
 	public function execute() {
@@ -76,6 +82,15 @@ class APIChat extends ApiBase {
 		$allowPublicKnowledge = !empty( $params['usepublicknowledge'] );
 		$imagesList = !empty( $params['images'] ) ? $params['images'] : '';
 		$this->overrideLlmParameters( $params );
+
+		// Parse conversation history if provided and enabled
+		$conversationHistory = [];
+		if ( self::$enableConversationMemory && !empty( $params['conversationhistory'] ) ) {
+			$decoded = json_decode( $params['conversationhistory'], true );
+			if ( is_array( $decoded ) ) {
+				$conversationHistory = $this->truncateConversationHistory( $decoded );
+			}
+		}
 		$userLang = $this->getContext()->getLanguage()->getCode();
 		$contentLang = MediaWikiServices::getInstance()->getContentLanguage()->getCode();
 
@@ -132,18 +147,33 @@ class APIChat extends ApiBase {
 			$contextStr = ( $contextStr ? $contextStr . "\n\n" : "" ) . $imageContext;
 		}
 
+		$memoryDisabled = !empty( $params['memorydisabled'] );
+
 		$response = $this->generateLLMResponse(
-			$userQuery, $contextStr, $allowPublicKnowledge, $imageData, $userLang, $contentLang
+			$userQuery,
+			$contextStr,
+			$allowPublicKnowledge,
+			$imageData,
+			$userLang,
+			$contentLang,
+			$conversationHistory,
+			$memoryDisabled
 		);
 		if ( !$response ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-generation-failed' )->text() );
 			return;
 		}
 
+		// Prepare source data only when we used wiki context
+		$sourceData = [];
+		if ( $searchResults && isset( $searchResults['source'] ) ) {
+			$sourceData[] = $searchResults['source'];
+		}
+
 		// Return response along with source attribution
 		$this->getResult()->addValue( null, "response", $response );
-		if ( $searchResults && !empty( $searchResults['sources'] ) ) {
-			$this->getResult()->addValue( null, "sources", $searchResults['sources'] );
+		if ( !empty( $sourceData ) ) {
+			$this->getResult()->addValue( null, "source", implode( ', ', array_unique( $sourceData ) ) );
 		}
 	}
 
@@ -366,9 +396,11 @@ class APIChat extends ApiBase {
 		} );
 
 		if ( empty( $validIndices ) ) {
-			wfDebugLog( 'Wanda',
+			wfDebugLog(
+				'Wanda',
 				"No mediawiki_content_* indices found. Available indices: " .
-					implode( ', ', array_column( $indices, 'index' ) ) );
+				implode( ', ', array_column( $indices, 'index' ) )
+			);
 			return null;
 		}
 
@@ -469,19 +501,8 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
-		// Primarily use the top result; only include additional results
-		// if their scores are very close to the top result's score
-		$allHits = $data['hits']['hits'];
-		$topScore = $allHits[0]['_score'];
-		$scoreProximityThreshold = 0.1;
-
-		$topHits = [];
-		foreach ( $allHits as $hit ) {
-			if ( empty( $topHits ) || ( $topScore - $hit['_score'] ) <= $scoreProximityThreshold ) {
-				$topHits[] = $hit;
-			}
-		}
-
+		// Get top 3 results and combine them
+		$topHits = array_slice( $data['hits']['hits'], 0, 3 );
 		$combinedContent = [];
 		$sources = [];
 		$seenTitles = [];
@@ -495,13 +516,7 @@ class APIChat extends ApiBase {
 				$combinedContent[] = "--- From page: " . $title .
 					" (Similarity: " . round( $hit['_score'], 2 ) .
 					") ---\n" . trim( $content );
-				if ( !isset( $seenTitles[$title] ) ) {
-					$seenTitles[$title] = true;
-					$sources[] = [
-						'title' => $title,
-						'score' => round( $hit['_score'], 2 )
-					];
-				}
+				$sources[] = $title;
 			}
 		}
 
@@ -511,13 +526,12 @@ class APIChat extends ApiBase {
 
 		wfDebugLog(
 			'Wanda',
-			"Vector search found " . count( $sources ) . " relevant pages: " .
-				implode( ', ', array_column( $sources, 'title' ) )
+			"Vector search found " . count( $sources ) . " relevant pages: " . implode( ', ', $sources )
 		);
 
 		return [
 			"content" => implode( "\n\n", $combinedContent ),
-			"sources" => $sources,
+			"source" => implode( ', ', array_unique( $sources ) ),
 			"num_results" => count( $sources )
 		];
 	}
@@ -592,19 +606,8 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
-		// Primarily use the top result; only include additional results
-		// if their scores are very close to the top result's score
-		$allHits = $data['hits']['hits'];
-		$topScore = $allHits[0]['_score'];
-		$scoreProximityThreshold = 2.0;
-
-		$topHits = [];
-		foreach ( $allHits as $hit ) {
-			if ( empty( $topHits ) || ( $topScore - $hit['_score'] ) <= $scoreProximityThreshold ) {
-				$topHits[] = $hit;
-			}
-		}
-
+		// Get top 3 results and combine them
+		$topHits = array_slice( $data['hits']['hits'], 0, 3 );
 		$combinedContent = [];
 		$sources = [];
 		$seenTitles = [];
@@ -617,14 +620,8 @@ class APIChat extends ApiBase {
 			if ( !empty( $content ) && !empty( $title ) ) {
 				$combinedContent[] = "--- From page: " . $title .
 					" (Score: " . round( $hit['_score'], 2 )
-						. ") ---\n" . trim( $content );
-				if ( !isset( $seenTitles[$title] ) ) {
-					$seenTitles[$title] = true;
-					$sources[] = [
-						'title' => $title,
-						'score' => round( $hit['_score'], 2 )
-					];
-				}
+					. ") ---\n" . trim( $content );
+				$sources[] = $title;
 			}
 		}
 
@@ -632,12 +629,11 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
-		wfDebugLog( 'Wanda', "Found " . count( $sources ) . " relevant pages: " .
-			implode( ', ', array_column( $sources, 'title' ) ) );
+		wfDebugLog( 'Wanda', "Found " . count( $sources ) . " relevant pages: " . implode( ', ', $sources ) );
 
 		return [
 			"content" => implode( "\n\n", $combinedContent ),
-			"sources" => $sources,
+			"source" => implode( ', ', array_unique( $sources ) ),
 			"num_results" => count( $sources )
 		];
 	}
@@ -645,7 +641,7 @@ class APIChat extends ApiBase {
 	/**
 	 * Generate response using Google Gemini (Generative Language API)
 	 */
-	private function generateGeminiResponse( $prompt, $imageData = [] ) {
+	private function generateGeminiResponse( $prompt, $imageData = [], $chatMessages = null ) {
 		if ( empty( self::$llmApiKey ) ) {
 			return $this->msg( 'wanda-api-error-gemini-key' )->text();
 		}
@@ -708,8 +704,29 @@ class APIChat extends ApiBase {
 			}
 		}
 
+		// Build contents: use multi-turn if chatMessages provided, otherwise single turn
+		$contents = [];
+		if ( $chatMessages !== null && empty( $imageData ) ) {
+			// Convert chat messages to Gemini format
+			foreach ( $chatMessages as $msg ) {
+				$role = $msg['role'];
+				// Gemini uses 'user' and 'model' roles; map 'system' and 'assistant'
+				if ( $role === 'system' ) {
+					$role = 'user';
+				} elseif ( $role === 'assistant' ) {
+					$role = 'model';
+				}
+				$contents[] = [
+					'role' => $role,
+					'parts' => [ [ 'text' => $msg['content'] ] ]
+				];
+			}
+		} else {
+			$contents = [ [ 'role' => 'user', 'parts' => $parts ] ];
+		}
+
 		$payload = [
-			'contents' => [ [ 'role' => 'user', 'parts' => $parts ] ],
+			'contents' => $contents,
 			'generationConfig' => [
 				'temperature' => self::$temperature,
 				'maxOutputTokens' => self::$maxTokens,
@@ -791,7 +808,8 @@ class APIChat extends ApiBase {
 		}
 
 		// Check for MAX_TOKENS finish reason (response was truncated)
-		if ( isset( $json['candidates'][0]['finishReason'] )
+		if (
+			isset( $json['candidates'][0]['finishReason'] )
 			&& $json['candidates'][0]['finishReason'] === 'MAX_TOKENS'
 		) {
 			if ( isset( $json['candidates'][0]['content']['parts'][0]['text'] ) ) {
@@ -895,9 +913,11 @@ class APIChat extends ApiBase {
 		}
 
 		if ( !isset( $jsonResponse['response'] ) ) {
-			wfDebugLog( 'Wanda',
+			wfDebugLog(
+				'Wanda',
 				"Ollama response missing 'response' field. Full response: "
-				. print_r( $jsonResponse, true ) );
+				. print_r( $jsonResponse, true )
+			);
 			return "Unexpected response format from Ollama. Response: "
 				. ( isset( $jsonResponse['error'] ) ? $jsonResponse['error'] : 'Unknown error' );
 		}
@@ -908,57 +928,64 @@ class APIChat extends ApiBase {
 	/**
 	 * Generate response using OpenAI
 	 */
-	private function generateOpenAIResponse( $prompt, $imageData = [] ) {
+	private function generateOpenAIResponse( $prompt, $imageData = [], $chatMessages = null ) {
 		if ( empty( self::$llmApiKey ) ) {
 			return $this->msg( 'wanda-api-error-openai-key' )->text();
 		}
 
-		$messageContent = [];
-
-		if ( !empty( $imageData ) ) {
-			$messageContent[] = [
-				"type" => "text",
-				"text" => $prompt
-			];
-
-			foreach ( $imageData as $img ) {
-				$imageContent = false;
-
-				if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
-					$imageContent = file_get_contents( $img['localPath'] );
-				}
-
-				if ( $imageContent === false && !empty( $img['url'] ) ) {
-					$imageContent = file_get_contents( $img['url'] );
-				}
-
-				if ( $imageContent !== false ) {
-					$base64 = base64_encode( $imageContent );
-					$mimeType = $img['mime'] ?? 'image/jpeg';
-					$dataUrl = "data:" . $mimeType . ";base64," . $base64;
-
-					$messageContent[] = [
-						"type" => "image_url",
-						"image_url" => [
-							"url" => $dataUrl
-						]
-					];
-				} else {
-					throw new \MediaWiki\Rest\HttpException(
-						$lastError['message'],
-						400
-					);
-				}
-			}
+		// Use multi-turn messages if available and no images
+		if ( $chatMessages !== null && empty( $imageData ) ) {
+			$messages = $chatMessages;
 		} else {
-			$messageContent = $prompt;
+			$messageContent = [];
+
+			if ( !empty( $imageData ) ) {
+				$messageContent[] = [
+					"type" => "text",
+					"text" => $prompt
+				];
+
+				foreach ( $imageData as $img ) {
+					$imageContent = false;
+
+					if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
+						$imageContent = file_get_contents( $img['localPath'] );
+					}
+
+					if ( $imageContent === false && !empty( $img['url'] ) ) {
+						$imageContent = file_get_contents( $img['url'] );
+					}
+
+					if ( $imageContent !== false ) {
+						$base64 = base64_encode( $imageContent );
+						$mimeType = $img['mime'] ?? 'image/jpeg';
+						$dataUrl = "data:" . $mimeType . ";base64," . $base64;
+
+						$messageContent[] = [
+							"type" => "image_url",
+							"image_url" => [
+								"url" => $dataUrl
+							]
+						];
+					} else {
+						throw new \MediaWiki\Rest\HttpException(
+							$lastError['message'],
+							400
+						);
+					}
+				}
+			} else {
+				$messageContent = $prompt;
+			}
+
+			$messages = [
+				[ "role" => "user", "content" => $messageContent ]
+			];
 		}
 
 		$data = json_encode( [
 			"model" => self::$llmModel ?: "gpt-4-turbo",
-			"messages" => [
-				[ "role" => "user", "content" => $messageContent ]
-			],
+			"messages" => $messages,
 			"max_tokens" => self::$maxTokens,
 			"temperature" => self::$temperature
 		] );
@@ -1014,59 +1041,79 @@ class APIChat extends ApiBase {
 	/**
 	 * Generate response using Anthropic Claude
 	 */
-	private function generateAnthropicResponse( $prompt, $imageData = [] ) {
+	private function generateAnthropicResponse( $prompt, $imageData = [], $chatMessages = null ) {
 		if ( empty( self::$llmApiKey ) ) {
 			return $this->msg( 'wanda-api-error-anthropic-key' )->text();
 		}
 
-		$messageContent = [];
-
-		if ( !empty( $imageData ) ) {
-			foreach ( $imageData as $img ) {
-				$imageContent = false;
-
-				if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
-					$imageContent = file_get_contents( $img['localPath'] );
-				}
-
-				if ( $imageContent === false && !empty( $img['url'] ) ) {
-					$imageContent = file_get_contents( $img['url'] );
-				}
-
-				if ( $imageContent !== false ) {
-					$mediaType = $img['mime'] ?? 'image/jpeg';
-					$messageContent[] = [
-						"type" => "image",
-						"source" => [
-							"type" => "base64",
-							"media_type" => $mediaType,
-							"data" => base64_encode( $imageContent )
-						]
-					];
+		// Use multi-turn messages if available and no images
+		$systemPrompt = '';
+		if ( $chatMessages !== null && empty( $imageData ) ) {
+			// Anthropic uses a separate 'system' field; extract from chatMessages
+			$messages = [];
+			foreach ( $chatMessages as $msg ) {
+				if ( $msg['role'] === 'system' ) {
+					$systemPrompt = $msg['content'];
 				} else {
-					throw new \MediaWiki\Rest\HttpException(
-						$lastError['message'],
-						400
-					);
+					$messages[] = $msg;
 				}
 			}
-
-			$messageContent[] = [
-				"type" => "text",
-				"text" => $prompt
-			];
 		} else {
-			$messageContent = $prompt;
+			$messageContent = [];
+
+			if ( !empty( $imageData ) ) {
+				foreach ( $imageData as $img ) {
+					$imageContent = false;
+
+					if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
+						$imageContent = file_get_contents( $img['localPath'] );
+					}
+
+					if ( $imageContent === false && !empty( $img['url'] ) ) {
+						$imageContent = file_get_contents( $img['url'] );
+					}
+
+					if ( $imageContent !== false ) {
+						$mediaType = $img['mime'] ?? 'image/jpeg';
+						$messageContent[] = [
+							"type" => "image",
+							"source" => [
+								"type" => "base64",
+								"media_type" => $mediaType,
+								"data" => base64_encode( $imageContent )
+							]
+						];
+					} else {
+						throw new \MediaWiki\Rest\HttpException(
+							$lastError['message'],
+							400
+						);
+					}
+				}
+
+				$messageContent[] = [
+					"type" => "text",
+					"text" => $prompt
+				];
+			} else {
+				$messageContent = $prompt;
+			}
+
+			$messages = [
+				[ "role" => "user", "content" => $messageContent ]
+			];
 		}
 
-		$data = json_encode( [
+		$payloadData = [
 			"model" => self::$llmModel ?: "claude-3-haiku-20240307",
-			"messages" => [
-				[ "role" => "user", "content" => $messageContent ]
-			],
+			"messages" => $messages,
 			"max_tokens" => self::$maxTokens,
 			"temperature" => self::$temperature
-		] );
+		];
+		if ( !empty( $systemPrompt ) ) {
+			$payloadData['system'] = $systemPrompt;
+		}
+		$data = json_encode( $payloadData );
 
 		$ch = curl_init( "https://api.anthropic.com/v1/messages" );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
@@ -1120,55 +1167,63 @@ class APIChat extends ApiBase {
 	/**
 	 * Generate response using Azure OpenAI
 	 */
-	private function generateAzureResponse( $prompt, $imageData = [] ) {
+	private function generateAzureResponse( $prompt, $imageData = [], $chatMessages = null ) {
 		if ( empty( self::$llmApiKey ) ) {
 			return $this->msg( 'wanda-api-error-azure-key' )->text();
 		}
-		$messageContent = [];
 
-		if ( !empty( $imageData ) ) {
-			$messageContent[] = [
-				"type" => "text",
-				"text" => $prompt
-			];
-
-			foreach ( $imageData as $img ) {
-				$imageContent = false;
-
-				if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
-					$imageContent = file_get_contents( $img['localPath'] );
-				}
-
-				if ( $imageContent === false && !empty( $img['url'] ) ) {
-					$imageContent = file_get_contents( $img['url'] );
-				}
-
-				if ( $imageContent !== false ) {
-					$base64 = base64_encode( $imageContent );
-					$mimeType = $img['mime'] ?? 'image/jpeg';
-					$dataUrl = "data:" . $mimeType . ";base64," . $base64;
-
-					$messageContent[] = [
-						"type" => "image_url",
-						"image_url" => [
-							"url" => $dataUrl
-						]
-					];
-				} else {
-					throw new \MediaWiki\Rest\HttpException(
-						$lastError['message'],
-						400
-					);
-				}
-			}
+		// Use multi-turn messages if available and no images
+		if ( $chatMessages !== null && empty( $imageData ) ) {
+			$messages = $chatMessages;
 		} else {
-			$messageContent = $prompt;
+			$messageContent = [];
+
+			if ( !empty( $imageData ) ) {
+				$messageContent[] = [
+					"type" => "text",
+					"text" => $prompt
+				];
+
+				foreach ( $imageData as $img ) {
+					$imageContent = false;
+
+					if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
+						$imageContent = file_get_contents( $img['localPath'] );
+					}
+
+					if ( $imageContent === false && !empty( $img['url'] ) ) {
+						$imageContent = file_get_contents( $img['url'] );
+					}
+
+					if ( $imageContent !== false ) {
+						$base64 = base64_encode( $imageContent );
+						$mimeType = $img['mime'] ?? 'image/jpeg';
+						$dataUrl = "data:" . $mimeType . ";base64," . $base64;
+
+						$messageContent[] = [
+							"type" => "image_url",
+							"image_url" => [
+								"url" => $dataUrl
+							]
+						];
+					} else {
+						throw new \MediaWiki\Rest\HttpException(
+							$lastError['message'],
+							400
+						);
+					}
+				}
+			} else {
+				$messageContent = $prompt;
+			}
+
+			$messages = [
+				[ "role" => "user", "content" => $messageContent ]
+			];
 		}
 
 		$data = json_encode( [
-			"messages" => [
-				[ "role" => "user", "content" => $messageContent ]
-			],
+			"messages" => $messages,
 			"max_tokens" => self::$maxTokens,
 			"temperature" => self::$temperature
 		] );
@@ -1223,6 +1278,185 @@ class APIChat extends ApiBase {
 	}
 
 	/**
+	 * Manage conversation history to stay within character budget.
+	 * When history exceeds the limit, older messages are summarized via the LLM
+	 * and replaced with a single summary message. Falls back to simple truncation
+	 * if the summarization call fails.
+	 *
+	 * @param array $history Array of {role, content} message objects
+	 * @return array Managed history array
+	 */
+	private function truncateConversationHistory( array $history ) {
+		$maxChars = self::$conversationMaxChars;
+		$totalChars = 0;
+
+		// Calculate total character count
+		foreach ( $history as $msg ) {
+			$totalChars += strlen( $msg['content'] ?? '' );
+		}
+
+		// If within budget, return as-is
+		if ( $totalChars <= $maxChars ) {
+			return $history;
+		}
+
+		wfDebugLog( 'Wanda', "Conversation history ({$totalChars} chars) 
+			exceeds budget ({$maxChars}). Summarizing older messages." );
+
+		// Split history: keep roughly the newest half, summarize the oldest half
+		$splitPoint = max( 1, intdiv( count( $history ), 2 ) );
+		// Ensure split is on a pair boundary (user+assistant)
+		if ( $splitPoint % 2 !== 0 ) {
+			$splitPoint = min( $splitPoint + 1, count( $history ) - 1 );
+		}
+		$oldMessages = array_slice( $history, 0, $splitPoint );
+		$recentMessages = array_slice( $history, $splitPoint );
+
+		// Try to summarize old messages via LLM
+		$summary = $this->summarizeConversation( $oldMessages );
+
+		if ( $summary !== false ) {
+			// Prepend the summary as a context message
+			$summaryMsg = [
+				'role' => 'user',
+				'content' => '[Summary of earlier conversation]: ' . $summary
+			];
+			$result = array_merge( [ $summaryMsg ], $recentMessages );
+
+			wfDebugLog( 'Wanda', "Summarized " . count( $oldMessages ) .
+				" old messages into " . strlen( $summary ) . " chars. Keeping " .
+				count( $recentMessages ) . " recent messages." );
+
+			return $result;
+		}
+
+		// Fallback: simple truncation if summarization fails
+		wfDebugLog( 'Wanda', "Summarization failed, falling back to simple truncation." );
+		while ( $totalChars > $maxChars && count( $history ) > 0 ) {
+			$removed = array_shift( $history );
+			$totalChars -= strlen( $removed['content'] ?? '' );
+		}
+
+		return $history;
+	}
+
+	/**
+	 * Summarize a set of conversation messages using the configured LLM.
+	 *
+	 * @param array $messages Array of conversation messages to summarize
+	 * @return string|false Summary text, or false on failure
+	 */
+	private function summarizeConversation( array $messages ) {
+		if ( empty( $messages ) ) {
+			return false;
+		}
+
+		// Build a prompt for summarization
+		$conversationText = '';
+		foreach ( $messages as $msg ) {
+			$role = ( $msg['role'] === 'assistant' ) ? 'Assistant' : 'User';
+			$conversationText .= $role . ": " . ( $msg['content'] ?? '' ) . "\n";
+		}
+
+		$summaryPrompt = "Summarize the following conversation concisely, preserving the key topics discussed, " .
+			"important facts mentioned, and any decisions or conclusions reached. " .
+			"Keep the summary brief (2-4 sentences).\n\n" .
+			"Conversation:\n" . $conversationText . "\n\nSummary:";
+
+		try {
+			// Use a lower max_tokens for the summary to keep it compact
+			$originalMaxTokens = self::$maxTokens;
+			self::$maxTokens = 256;
+
+			switch ( self::$llmProvider ) {
+				case 'ollama':
+					$result = $this->generateOllamaResponse( $summaryPrompt, [] );
+					break;
+				case 'openai':
+					$result = $this->generateOpenAIResponse( $summaryPrompt, [] );
+					break;
+				case 'anthropic':
+					$result = $this->generateAnthropicResponse( $summaryPrompt, [] );
+					break;
+				case 'azure':
+					$result = $this->generateAzureResponse( $summaryPrompt, [] );
+					break;
+				case 'gemini':
+				default:
+					$result = $this->generateGeminiResponse( $summaryPrompt, [] );
+					break;
+			}
+
+			self::$maxTokens = $originalMaxTokens;
+
+			if ( $result && is_string( $result ) && strlen( $result ) > 10 ) {
+				return trim( $result );
+			}
+
+			return false;
+		} catch ( \Exception $e ) {
+			self::$maxTokens = $originalMaxTokens ?? 2048;
+			wfDebugLog( 'Wanda', "Conversation summarization failed: " . $e->getMessage() );
+			return false;
+		}
+	}
+
+	/**
+	 * Build conversation history formatted for chat-based providers.
+	 * Returns array of {role, content} messages suitable for OpenAI/Anthropic/Azure APIs.
+	 *
+	 * @param array $conversationHistory Raw conversation history
+	 * @param string $systemPrompt System/context prompt to prepend
+	 * @param string $userQuery Current user query
+	 * @param array $imageData Image data for the current message
+	 * @return array Messages array for chat APIs
+	 */
+	private function buildChatMessages( $conversationHistory, $systemPrompt, $userQuery, $imageData = [] ) {
+		$messages = [];
+
+		// Add system prompt as the first message
+		$messages[] = [ 'role' => 'system', 'content' => $systemPrompt ];
+
+		// Add conversation history
+		foreach ( $conversationHistory as $msg ) {
+			$role = ( $msg['role'] === 'assistant' ) ? 'assistant' : 'user';
+			$messages[] = [ 'role' => $role, 'content' => $msg['content'] ?? '' ];
+		}
+
+		// Add current user query
+		if ( !empty( $imageData ) ) {
+			// Image handling is done by the provider-specific method
+			$messages[] = [ 'role' => 'user', 'content' => $userQuery ];
+		} else {
+			$messages[] = [ 'role' => 'user', 'content' => $userQuery ];
+		}
+
+		return $messages;
+	}
+
+	/**
+	 * Build a flat prompt string with conversation history for non-chat providers (e.g. Ollama).
+	 *
+	 * @param array $conversationHistory Raw conversation history
+	 * @param string $basePrompt The base prompt including context
+	 * @return string Combined prompt string
+	 */
+	private function buildFlatPromptWithHistory( $conversationHistory, $basePrompt ) {
+		if ( empty( $conversationHistory ) ) {
+			return $basePrompt;
+		}
+
+		$historyText = "Previous conversation:\n";
+		foreach ( $conversationHistory as $msg ) {
+			$role = ( $msg['role'] === 'assistant' ) ? 'Assistant' : 'User';
+			$historyText .= $role . ": " . ( $msg['content'] ?? '' ) . "\n";
+		}
+		$historyText .= "\n";
+
+		return $historyText . $basePrompt;
+	}
+
+	/**
 	 * Driver function to generate an LLM response given a user query and retrieved context.
 	 *
 	 * @param string $userQuery The original user question
@@ -1231,6 +1465,7 @@ class APIChat extends ApiBase {
 	 * @param array $imageData Array of image data
 	 * @param string $userLang User's interface language code
 	 * @param string $contentLang Wiki's content language code
+	 * @param array $conversationHistory Previous conversation messages
 	 * @return string|false LLM answer text or false on complete failure
 	 */
 	private function generateLLMResponse(
@@ -1239,7 +1474,9 @@ class APIChat extends ApiBase {
 		$allowPublicKnowledge = false,
 		$imageData = [],
 		$userLang = 'en',
-		$contentLang = 'en'
+		$contentLang = 'en',
+		$conversationHistory = [],
+		$memoryDisabled = false
 	) {
 		if ( !$userQuery ) {
 			return false;
@@ -1267,66 +1504,92 @@ class APIChat extends ApiBase {
 			}
 		}
 
+		// Build the system prompt (context + instructions) and the user question separately
+		$systemPrompt = '';
 		if ( self::$customPrompt !== '' ) {
-			$prompt = self::$customPrompt .
-				"\n\nContext:\n" . $contextBlock . "\n\n" .
-				"User Question: " . $userQuery . $languageInstruction . "\n\n" .
-				"Answer:";
+			$systemPrompt = self::$customPrompt .
+				"\n\nContext:\n" . $contextBlock . $languageInstruction;
 		} elseif ( self::$customPromptTitle !== '' ) {
 			$title = Title::newFromText( self::$customPromptTitle );
 			$wikipage = new WikiPage( $title );
 			$content = $wikipage->getContent()->getText();
 
-			$prompt = $content .
-				"\n\nContext:\n" . $contextBlock . "\n\n" .
-				"User Question: " . $userQuery . $languageInstruction . "\n\n" .
-				"Answer:";
+			$systemPrompt = $content .
+				"\n\nContext:\n" . $contextBlock . $languageInstruction;
 		} else {
 			if ( $allowPublicKnowledge ) {
-				$prompt = "You are a helpful assistant. 
-					Answer the user's question based on the information provided below.\n\n" .
+				$systemPrompt = "You are a helpful assistant. " .
+					"Answer the user's question based on the information provided below.\n\n" .
 					"Wiki Content:\n" . $contextBlock . "\n\n" .
-					"Question: " . $userQuery . $languageInstruction . "\n\n" .
-					"Instructions: Use the wiki content above to answer the question. 
-						If the information is there, use it. If not, use your knowledge.\n\n" .
-					"Answer:";
+					"Instructions: Use the wiki content above to answer the question. " .
+					"If the information is there, use it. If not, use your knowledge." .
+					$languageInstruction;
 			} else {
-				$prompt = "Answer the following question using the information provided.\n\n" .
+				$systemPrompt = "Answer the following question using the information provided.\n\n" .
 					"Information from wiki pages:\n" . $contextBlock . "\n\n" .
-					"Question: " . $userQuery . $languageInstruction . "\n\n" .
-					"Provide a helpful answer based on the information above:\n";
+					"Provide a helpful answer based on the information above." .
+					$languageInstruction;
 			}
 		}
-
-		wfDebugLog( 'Wanda', "Prompt length: " . strlen( $prompt ) .
-			" characters, Context block length: " . strlen( $contextBlock ) . " characters" );
-		wfDebugLog( 'Wanda', "First 500 chars of prompt: " . substr( $prompt, 0, 500 ) );
 
 		// Prepend language instruction if configured
 		if ( self::$useContentLang ) {
 			$contentLangCode = MediaWikiServices::getInstance()->getContentLanguage()->getCode();
-			$prompt = "IMPORTANT: Please provide your answer in the language with code '" .
+			$systemPrompt = "IMPORTANT: Please provide your answer in the language with code '" .
 				$contentLangCode . "'. Your entire response should be written in this language. " .
 				"However, if you do not have sufficient knowledge to answer accurately in the '" .
-				$contentLangCode . "' language, you may respond in English as a fallback.\n\n" . $prompt;
+				$contentLangCode . "' language, you may respond in English as a fallback.\n\n" . $systemPrompt;
 		}
+
+		// If user explicitly disabled memory, add instruction to system prompt
+		if ( $memoryDisabled ) {
+			$systemPrompt .= "\n\nIMPORTANT: Conversation memory has been disabled by the user. " .
+				"You have NO access to any previous conversation history. " .
+				"If the user asks about previous messages, earlier discussions, 
+					or anything from a prior conversation, " .
+				"you must clearly state that there is no previous conversation history available " .
+				"because conversation memory is currently turned off.";
+		}
+
+		// For chat-based providers, build multi-turn messages;
+		// for completion-based providers, build a flat prompt string
+		$hasHistory = !empty( $conversationHistory );
+
+		if ( $hasHistory ) {
+			wfDebugLog( 'Wanda', "Conversation history: " . count( $conversationHistory ) . " messages" );
+		}
+
+		// Build the flat prompt (used by Ollama and as fallback)
+		$flatPrompt = $systemPrompt . "\n\nQuestion: " . $userQuery . "\n\nAnswer:";
+		if ( $hasHistory ) {
+			$flatPrompt = $this->buildFlatPromptWithHistory( $conversationHistory, $flatPrompt );
+		}
+
+		wfDebugLog( 'Wanda', "Prompt length: " . strlen( $flatPrompt ) .
+			" characters, Context block length: " . strlen( $contextBlock ) . " characters" );
+		wfDebugLog( 'Wanda', "First 500 chars of prompt: " . substr( $flatPrompt, 0, 500 ) );
+
+		// Build chat messages for multi-turn providers
+		$chatMessages = $hasHistory
+			? $this->buildChatMessages( $conversationHistory, $systemPrompt, $userQuery, $imageData )
+			: null;
 
 		$response = null;
 		switch ( self::$llmProvider ) {
 			case 'ollama':
-				$response = $this->generateOllamaResponse( $prompt, $imageData );
+				$response = $this->generateOllamaResponse( $flatPrompt, $imageData );
 				break;
 			case 'openai':
-				$response = $this->generateOpenAIResponse( $prompt, $imageData );
+				$response = $this->generateOpenAIResponse( $flatPrompt, $imageData, $chatMessages );
 				break;
 			case 'anthropic':
-				$response = $this->generateAnthropicResponse( $prompt, $imageData );
+				$response = $this->generateAnthropicResponse( $flatPrompt, $imageData, $chatMessages );
 				break;
 			case 'azure':
-				$response = $this->generateAzureResponse( $prompt, $imageData );
+				$response = $this->generateAzureResponse( $flatPrompt, $imageData, $chatMessages );
 				break;
 			case 'gemini':
-				$response = $this->generateGeminiResponse( $prompt, $imageData );
+				$response = $this->generateGeminiResponse( $flatPrompt, $imageData, $chatMessages );
 				break;
 			default:
 				return false;
@@ -1407,6 +1670,16 @@ class APIChat extends ApiBase {
 			"images" => [
 				ParamValidator::PARAM_TYPE => 'string',
 				ParamValidator::PARAM_DEFAULT => '',
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"conversationhistory" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => '',
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"memorydisabled" => [
+				ParamValidator::PARAM_TYPE => 'boolean',
+				ParamValidator::PARAM_DEFAULT => false,
 				ParamValidator::PARAM_REQUIRED => false
 			]
 		];

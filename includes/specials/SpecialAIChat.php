@@ -35,7 +35,8 @@ class SpecialAIChat extends SpecialPage {
 			'WandaEnableAttachments' => $config->get( 'WandaEnableAttachments' ),
 			'WandaMaxImageSize' => $config->get( 'WandaMaxImageSize' ),
 			'WandaMaxImageCount' => $config->get( 'WandaMaxImageCount' ),
-			'WandaShowConfidenceScore' => $config->get( 'WandaShowConfidenceScore' )
+			'WandaShowConfidenceScore' => $config->get( 'WandaShowConfidenceScore' ),
+			'WandaEnableConversationMemory' => $config->get( 'WandaEnableConversationMemory' )
 		] );
 
 		$out->addModules( 'ext.wanda.main' );

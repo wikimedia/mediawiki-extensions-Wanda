@@ -12,7 +12,16 @@
     <div class="wanda-floating-window" :class="{ show: open }" v-show="open && showPopup">
       <div class="wanda-chat-header">
         <span v-text="msg( 'wanda-floating-chat-header' )"></span>
-        <button class="wanda-close-btn" @click="closeWindow">×</button>
+        <div class="wanda-header-actions">
+          <button
+            v-if="conversationMemoryEnabled && messages.length > 0"
+            class="wanda-clear-btn"
+            @click="clearConversation"
+            :aria-label="msg('wanda-clear-conversation-aria')"
+            :title="msg('wanda-clear-conversation')"
+          ><cdx-icon :icon="cdxIconTrash" size="small"></cdx-icon></button>
+          <button class="wanda-close-btn" @click="closeWindow">×</button>
+        </div>
       </div>
       <div class="chat-container wanda-floating-chat">
         <div class="chat-box" ref="chatBox" v-show="messages.length > 0">
@@ -54,6 +63,15 @@
             :aria-label="msg('wanda-toggle-public-knowledge-aria')"
           >
             {{ msg('wanda-toggle-public-knowledge-label') }}
+          </cdx-checkbox>
+          <cdx-checkbox
+            v-if="conversationMemoryAvailable"
+            v-model="conversationMemoryEnabled"
+            id="wanda-floating-toggle-conversation-memory"
+            :aria-label="msg('wanda-toggle-memory-aria')"
+            @change="onMemoryToggleChange"
+          >
+            {{ msg('wanda-toggle-memory-label') }}
           </cdx-checkbox>
 
           <div class="wanda-attached-images" v-if="attachedImages.length > 0">
@@ -151,7 +169,7 @@
 
 <script>
 const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon } = require( '../../codex.js' );
-const { cdxIconImage } = require( '../../icons.json' );
+const { cdxIconImage, cdxIconTrash } = require( '../../icons.json' );
 
 module.exports = exports = {
   name: 'FloatingChat',
@@ -175,7 +193,12 @@ module.exports = exports = {
       maxImageSize: mw.config.get( 'WandaMaxImageSize' ) || 5242880,
       maxImageCount: mw.config.get( 'WandaMaxImageCount' ) || 10,
       showConfidenceScore: !!mw.config.get( 'WandaShowConfidenceScore' ),
-      cdxIconImage: cdxIconImage
+      cdxIconImage: cdxIconImage,
+      cdxIconTrash: cdxIconTrash,
+      conversationMemoryAvailable: !!mw.config.get( 'WandaEnableConversationMemory' ),
+      conversationMemoryEnabled: !!mw.config.get( 'WandaEnableConversationMemory' ),
+      conversationHistory: [],
+      conversationImages: []
     };
   },
   computed: {
@@ -185,6 +208,29 @@ module.exports = exports = {
   },
   mounted() {
     document.addEventListener( 'click', this.onDocumentClick );
+    // Restore conversation state from sessionStorage
+    if ( this.conversationMemoryAvailable ) {
+      try {
+        const savedToggle = sessionStorage.getItem( 'wanda-floating-memory-enabled' );
+        if ( savedToggle !== null ) {
+          this.conversationMemoryEnabled = savedToggle === 'true';
+        }
+        const saved = sessionStorage.getItem( 'wanda-floating-conversation-history' );
+        const savedMessages = sessionStorage.getItem( 'wanda-floating-conversation-messages' );
+        if ( saved ) {
+          this.conversationHistory = JSON.parse( saved );
+        }
+        if ( savedMessages ) {
+          this.messages = JSON.parse( savedMessages );
+        }
+        const savedImages = sessionStorage.getItem( 'wanda-floating-conversation-images' );
+        if ( savedImages ) {
+          this.conversationImages = JSON.parse( savedImages );
+        }
+      } catch ( e ) {
+        // Ignore parse errors
+      }
+    }
   },
   beforeUnmount() {
     document.removeEventListener( 'click', this.onDocumentClick );
@@ -409,16 +455,32 @@ module.exports = exports = {
           postData.images = imagesToSend.map( img => img.title ).join( '|' );
           postData.customprompt = 'Answer only based on the attached ' + ( imagesToSend.length > 1 ? 'images.' : 'image.' );
           postData.skipesquery = true;
+        } else if ( this.conversationMemoryEnabled && this.conversationImages.length > 0 ) {
+          // Re-include images from earlier in the conversation
+          postData.images = this.conversationImages.join( '|' );
+        }
+
+        // Send conversation history if memory is enabled
+        if ( this.conversationMemoryEnabled && this.conversationHistory.length > 0 ) {
+          postData.conversationhistory = JSON.stringify( this.conversationHistory );
+        }
+
+        // Tell backend memory is disabled so LLM can respond appropriately
+        if ( this.conversationMemoryAvailable && !this.conversationMemoryEnabled ) {
+          postData.memorydisabled = true;
         }
 
         const data = await api.post( postData );
 
         let response = data && data.response ? data.response : 'Error fetching response';
+        let rawResponse = response;
         if ( response === 'NO_MATCHING_CONTEXT' ) {
           response = this.msg( 'wanda-llm-response-nocontext' );
+          rawResponse = response;
         } else if ( response.includes( '<PUBLIC_KNOWLEDGE>' ) ) {
-          response = response.replace( '<PUBLIC_KNOWLEDGE>', '' );
-          response += '<br><br><b>Source</b>: Public';
+          rawResponse = response.replace( '<PUBLIC_KNOWLEDGE>', '' );
+          response = rawResponse;
+          response += '<br><b>Source</b>: Public';
         } else if ( data && data.sources && data.sources.length > 0 ) {
           const label = data.sources.length === 1 ? 'Source' : 'Sources';
           const sourceLinks = data.sources.map( ( s ) => {
@@ -436,12 +498,65 @@ module.exports = exports = {
             response += '<li>' + link + '</li>';
           } );
           response += '</ul>';
+        } else if ( data && data.source ) {
+          const sources = data.source.split( ', ' ).filter( ( s ) => s.trim() );
+          const label = sources.length === 1 ? 'Source' : 'Sources';
+          const sourceLinks = sources.map( ( title ) => {
+            const href = mw.util.getUrl( title.trim() );
+            const safeTitle = this.escapeHtml( title.trim() );
+            return '<a target="_blank" href="' + href + '">' + safeTitle + '</a>';
+          } );
+          response += '<br><br><b>' + label + '</b>:<ul class="wanda-sources-list">';
+          sourceLinks.forEach( ( link ) => {
+            response += '<li>' + link + '</li>';
+          } );
+          response += '</ul>';
         }
         this.addMessage( 'bot', response );
+
+        // Update conversation history
+        if ( this.conversationMemoryEnabled ) {
+          let historyContent = userText;
+          if ( imagesToSend.length > 0 ) {
+            historyContent += '\n[Attached images: ' + imagesToSend.map( img => img.title ).join( ', ' ) + ']';
+          }
+          this.conversationHistory.push( { role: 'user', content: historyContent } );
+          this.conversationHistory.push( { role: 'assistant', content: rawResponse } );
+          if ( imagesToSend.length > 0 ) {
+            this.conversationImages = imagesToSend.map( img => img.title );
+          }
+          this.saveConversationState();
+        }
       } catch ( e ) {
         this.addMessage( 'bot', 'Error connecting to Wanda chatbot API.' );
       } finally {
         this.loading = false;
+      }
+    },
+    clearConversation() {
+      this.messages = [];
+      this.conversationHistory = [];
+      this.conversationImages = [];
+      this.saveConversationState();
+    },
+    saveConversationState() {
+      try {
+        sessionStorage.setItem( 'wanda-floating-conversation-history', JSON.stringify( this.conversationHistory ) );
+        sessionStorage.setItem( 'wanda-floating-conversation-messages', JSON.stringify( this.messages ) );
+        sessionStorage.setItem( 'wanda-floating-conversation-images', JSON.stringify( this.conversationImages ) );
+      } catch ( e ) {
+        // Ignore storage errors
+      }
+    },
+    onMemoryToggleChange() {
+      try {
+        sessionStorage.setItem( 'wanda-floating-memory-enabled', String( this.conversationMemoryEnabled ) );
+      } catch ( e ) {
+        // Ignore storage errors
+      }
+      if ( !this.conversationMemoryEnabled ) {
+        this.conversationHistory = [];
+        this.saveConversationState();
       }
     }
   }

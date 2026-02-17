@@ -1,5 +1,5 @@
 {
-    "@metadata": {
+	"@metadata": {
 		"authors": [
 			"Sanjay Thiyagarajan"
 		]
@@ -54,5 +54,11 @@
 	"wanda-image-too-large": "This image is too large. Maximum file size is $1.",
 	"wanda-image-limit-reached": "Maximum of $1 images can be attached.",
 	"wanda-close": "Close",
-	"apihelp-wandachat-param-images": "Pipe-separated list of image titles to attach (e.g., 'File:Example.jpg|File:Image2.png')"
+	"wanda-clear-conversation": "Clear conversation",
+	"wanda-clear-conversation-aria": "Clear conversation history",
+	"wanda-toggle-memory-label": "Remember conversation",
+	"wanda-toggle-memory-aria": "Toggle conversation memory",
+	"apihelp-wandachat-param-images": "Pipe-separated list of image titles to attach (e.g., 'File:Example.jpg|File:Image2.png')",
+	"apihelp-wandachat-param-conversationhistory": "JSON-encoded array of previous conversation messages, each with 'role' and 'content' fields.",
+	"apihelp-wandachat-param-memorydisabled": "Whether to disable conversation memory for this request"
 }

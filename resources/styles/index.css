@@ -429,3 +429,14 @@ body > .cdx-dialog-backdrop:has(.wanda-image-picker-dialog) + .cdx-dialog {
         height: 45vh;
     }
 }
+
+/* Clear Conversation */
+.wanda-clear-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 10px 0;
+}
+
+.wanda-clear-conversation-btn {
+    font-size: 12px;
+}
