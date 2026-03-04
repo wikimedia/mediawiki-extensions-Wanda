@@ -92,6 +92,29 @@
     border-bottom-left-radius: 5px;
 }
 
+/* Rendered Markdown tables inside bot messages */
+.wanda-table-wrap {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.wanda-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.wanda-table th,
+.wanda-table td {
+    border: 1px solid #ddd;
+    padding: 4px 6px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.wanda-table th {
+    font-weight: 600;
+}
+
 .chat-input-container {
     display: flex;
     flex-direction: column;
@@ -391,6 +414,73 @@ body > .cdx-dialog-backdrop:has(.wanda-image-picker-dialog) + .cdx-dialog {
 
 .wanda-sources-list li {
     margin: 2px 0;
+}
+
+/* Thinking accordion — override CdxAccordion defaults to fit inside chat bubble */
+.wanda-thinking {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: none;
+}
+
+.wanda-thinking > summary {
+    padding: 4px 0;
+    font-size: 0.85em;
+    color: #666;
+    border: none;
+    background: none;
+}
+
+.wanda-thinking > summary:hover {
+    background: none;
+}
+
+.wanda-thinking > summary::before {
+    min-width: 12px;
+    min-height: 12px;
+    width: 12px;
+}
+
+.wanda-thinking .cdx-accordion__header {
+    font-size: 0.75em !important;
+    line-height: 1.2;
+}
+
+.wanda-thinking .cdx-accordion__content {
+    padding: 6px 0 0;
+    font-size: 0.75em !important;
+}
+
+.wanda-thinking-steps {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.wanda-thinking-steps li {
+    margin: 3px 0;
+}
+
+.wanda-step--info {
+    color: #555;
+}
+
+.wanda-step--info::marker {
+    content: 'ℹ  ';
+}
+
+.wanda-step--error {
+    color: #a05000;
+}
+
+.wanda-step--error::marker {
+    content: '⚠  ';
+}
+
+.wanda-step--query {
+    color: #333;
 }
 
 @media (max-width: 600px) {

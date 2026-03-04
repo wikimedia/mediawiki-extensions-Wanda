@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\Wanda;
 
 use ApiBase;
+use MediaWiki\Extension\Wanda\Prompts\PromptTemplate;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
 use Wikimedia\ParamValidator\ParamValidator;
@@ -45,6 +46,12 @@ class APIChat extends ApiBase {
 	private static $enableConversationMemory = true;
 	/** @var int */
 	private static $conversationMaxChars = 6000;
+	/** @var bool */
+	private static $enableCargoQueries = false;
+	/** @var array */
+	private static $cargoExcludedTables = [];
+	/** @var int */
+	private static $cargoMaxQuerySteps = 3;
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName );
@@ -74,6 +81,9 @@ class APIChat extends ApiBase {
 		self::$vectorSearchMinScore = $this->getConfig()->get( 'WandaVectorSearchMinScore' ) ?? 1.7;
 		self::$enableConversationMemory = $this->getConfig()->get( 'WandaEnableConversationMemory' ) ?? true;
 		self::$conversationMaxChars = $this->getConfig()->get( 'WandaConversationMaxChars' ) ?? 6000;
+		self::$enableCargoQueries = $this->getConfig()->get( 'WandaEnableCargoQueries' ) ?? false;
+		self::$cargoExcludedTables = $this->getConfig()->get( 'WandaCargoExcludedTables' ) ?? [];
+		self::$cargoMaxQuerySteps = $this->getConfig()->get( 'WandaCargoMaxQuerySteps' ) ?? 3;
 	}
 
 	public function execute() {
@@ -149,6 +159,30 @@ class APIChat extends ApiBase {
 
 		$memoryDisabled = !empty( $params['memorydisabled'] );
 
+		// Cargo structured data retrieval
+		$cargoSources = [];
+		$cargoSteps = [];
+		$cargoContext = '';
+		if ( self::$enableCargoQueries ) {
+			$cargoHandler = new CargoQueryHandler(
+				self::$llmProvider,
+				self::$llmModel,
+				self::$llmApiKey,
+				self::$llmApiEndpoint,
+				self::$timeout,
+				self::$cargoExcludedTables,
+				self::$cargoMaxQuerySteps
+			);
+			$cargoResult = $cargoHandler->query( $userQuery );
+			$cargoSteps = $cargoResult['steps'] ?? [];
+			if ( !empty( $cargoResult['content'] ) ) {
+				$cargoContext = $cargoResult['content'];
+				$cargoSources = $cargoResult['sources'] ?? [];
+				wfDebugLog( 'Wanda', "Cargo query returned " .
+					$cargoResult['num_results'] . " results" );
+			}
+		}
+
 		$response = $this->generateLLMResponse(
 			$userQuery,
 			$contextStr,
@@ -157,7 +191,8 @@ class APIChat extends ApiBase {
 			$userLang,
 			$contentLang,
 			$conversationHistory,
-			$memoryDisabled
+			$memoryDisabled,
+			$cargoContext
 		);
 		if ( !$response ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-generation-failed' )->text() );
@@ -172,8 +207,25 @@ class APIChat extends ApiBase {
 
 		// Return response along with source attribution
 		$this->getResult()->addValue( null, "response", $response );
-		if ( !empty( $sourceData ) ) {
-			$this->getResult()->addValue( null, "source", implode( ', ', array_unique( $sourceData ) ) );
+		// Backwards-compatible single string of wiki sources
+		if ( $searchResults && isset( $searchResults['source'] ) && $searchResults['source'] !== '' ) {
+			$this->getResult()->addValue( null, "source", $searchResults['source'] );
+		}
+
+		$allSources = [];
+		if ( $searchResults && isset( $searchResults['source'] ) && $searchResults['source'] !== '' ) {
+			$wikiTitles = array_map( 'trim', explode( ',', $searchResults['source'] ) );
+			$wikiTitles = array_values( array_filter( $wikiTitles ) );
+			$allSources = $wikiTitles;
+		}
+		if ( !empty( $cargoSources ) ) {
+			$allSources = array_merge( $allSources, $cargoSources );
+		}
+		if ( !empty( $allSources ) ) {
+			$this->getResult()->addValue( null, "sources", $allSources );
+		}
+		if ( !empty( $cargoSteps ) ) {
+			$this->getResult()->addValue( null, "cargoSteps", $cargoSteps );
 		}
 	}
 
@@ -923,6 +975,21 @@ class APIChat extends ApiBase {
 	/**
 	 * Generate response using OpenAI
 	 */
+	public static function getOpenAITokenKeyForModel( $model ): string {
+		$model = trim( (string)$model );
+		if ( $model === '' ) {
+			return 'max_tokens';
+		}
+
+		// Newer OpenAI models (o-series + GPT-5 family) use max_completion_tokens.
+		// We match conservatively but allow prefixes like "openai/gpt-5.4-nano".
+		if ( preg_match( '/(^|\\/)(o1|o3)/i', $model ) || stripos( $model, 'gpt-5' ) !== false ) {
+			return 'max_completion_tokens';
+		}
+
+		return 'max_tokens';
+	}
+
 	private function generateOpenAIResponse( $prompt, $imageData = [], $chatMessages = null ) {
 		if ( empty( self::$llmApiKey ) ) {
 			return $this->msg( 'wanda-api-error-openai-key' )->text();
@@ -978,26 +1045,65 @@ class APIChat extends ApiBase {
 			];
 		}
 
-		$data = json_encode( [
-			"model" => self::$llmModel ?: "gpt-4-turbo",
+		$model = trim( self::$llmModel ?: "gpt-4-turbo" );
+		$basePayload = [
+			"model" => $model,
 			"messages" => $messages,
-			"max_tokens" => self::$maxTokens,
 			"temperature" => self::$temperature
-		] );
+		];
 
-		$ch = curl_init( "https://api.openai.com/v1/chat/completions" );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [
-			"Content-Type: application/json",
-			"Authorization: Bearer " . self::$llmApiKey
-		] );
+		// Some newer OpenAI models expect max_completion_tokens instead of max_tokens.
+		// Choose a sensible default based on model name, but also retry automatically
+		// if OpenAI rejects the parameter.
+		$tokenKey = self::getOpenAITokenKeyForModel( $model );
+		$payload = $basePayload;
+		$payload[$tokenKey] = self::$maxTokens;
 
-		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		$curlError = curl_error( $ch );
+		$sendRequest = static function ( $payloadData ) {
+			$data = json_encode( $payloadData );
+
+			$ch = curl_init( "https://api.openai.com/v1/chat/completions" );
+			curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
+			curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
+			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+			curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
+			curl_setopt( $ch, CURLOPT_HTTPHEADER, [
+				"Content-Type: application/json",
+				"Authorization: Bearer " . self::$llmApiKey
+			] );
+
+			$response = curl_exec( $ch );
+			$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+			$curlError = curl_error( $ch );
+
+			return [ $response, $httpCode, $curlError ];
+		};
+
+		[ $response, $httpCode, $curlError ] = $sendRequest( $payload );
+
+		// Retry once if OpenAI complains about the token parameter.
+		if ( $httpCode !== 200 && is_string( $response ) && $response !== '' ) {
+			$errorData = json_decode( $response, true );
+			$apiMessage = $errorData['error']['message'] ?? '';
+			if ( is_string( $apiMessage ) && $apiMessage !== '' ) {
+				$mentionsMaxTokens = stripos( $apiMessage, 'max_tokens' ) !== false;
+				$mentionsMaxCompletion = stripos( $apiMessage, 'max_completion_tokens' ) !== false;
+
+				$retryKey = null;
+				if ( $tokenKey === 'max_tokens' && $mentionsMaxCompletion ) {
+					$retryKey = 'max_completion_tokens';
+				} elseif ( $tokenKey === 'max_completion_tokens' && $mentionsMaxTokens ) {
+					$retryKey = 'max_tokens';
+				}
+
+				if ( $retryKey !== null ) {
+					wfDebugLog( 'Wanda', 'OpenAI retrying with ' . $retryKey . ' for model ' . $model );
+					$retryPayload = $basePayload;
+					$retryPayload[$retryKey] = self::$maxTokens;
+					[ $response, $httpCode, $curlError ] = $sendRequest( $retryPayload );
+				}
+			}
+		}
 
 		if ( $curlError ) {
 			wfDebugLog( 'Wanda', "OpenAI cURL error: " . $curlError );
@@ -1215,9 +1321,10 @@ class APIChat extends ApiBase {
 			];
 		}
 
+		$tokenKey = $this->getOpenAITokenKeyForModel( self::$llmModel );
 		$data = json_encode( [
 			"messages" => $messages,
-			"max_tokens" => self::$maxTokens,
+			$tokenKey => self::$maxTokens,
 			"temperature" => self::$temperature
 		] );
 
@@ -1468,22 +1575,57 @@ class APIChat extends ApiBase {
 		$userLang = 'en',
 		$contentLang = 'en',
 		$conversationHistory = [],
-		$memoryDisabled = false
+		$memoryDisabled = false,
+		$cargoContext = ''
 	) {
 		if ( !$userQuery ) {
 			return false;
 		}
 
-		$context = trim( (string)$context );
-		if ( $context === '' ) {
-			$contextBlock = "(No additional context from the knowledge base was found.)";
-		} else {
-			$maxContextChars = 8000;
-			if ( strlen( $context ) > $maxContextChars ) {
-				$context = substr( $context, 0, $maxContextChars ) . "\n[...truncated...]";
-			}
-			$contextBlock = $context;
+		if ( $memoryDisabled ) {
+			$conversationHistory = [];
 		}
+
+		$context = trim( (string)$context );
+		$cargoContext = trim( (string)$cargoContext );
+		$maxContextChars = 8000;
+
+		// Build labeled context block with separate sections for wiki and cargo data.
+		// Reserve space for structured data so it isn't dropped when wiki context is large.
+		$cargoBudget = 0;
+		if ( $cargoContext !== '' ) {
+			$cargoBudget = min( 3000, $maxContextChars );
+			if ( strlen( $cargoContext ) > $cargoBudget ) {
+				$cargoContext = substr( $cargoContext, 0, $cargoBudget ) . "\n[...truncated...]";
+			}
+		}
+
+		$wikiBudget = $maxContextChars;
+		if ( $cargoContext !== '' ) {
+			$wikiBudget = max( 0, $maxContextChars - strlen( $cargoContext ) );
+		}
+		if ( $context !== '' && strlen( $context ) > $wikiBudget ) {
+			$context = substr( $context, 0, $wikiBudget ) . "\n[...truncated...]";
+		}
+
+		$contextBlock = '';
+		if ( $cargoContext !== '' ) {
+			$contextBlock .= "Structured data from database:\n" . $cargoContext;
+		}
+		if ( $context !== '' ) {
+			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )
+				. "Information from wiki pages:\n" . $context;
+		}
+		if ( $contextBlock === '' ) {
+			$contextBlock = "(No additional context from the knowledge base was found.)";
+		}
+
+		$dataInstructions = "IMPORTANT: Never output raw wikitext or suggest the user run database queries. " .
+			"If structured data from the database is provided and relevant to the question, " .
+			"treat it as authoritative and answer directly from it. " .
+			"Present any structured data directly in a clear, readable format " .
+			"(use lists or tables as appropriate). " .
+			"If no data is available to answer the question, say so.\n\n";
 
 		$languageInstruction = '';
 		if ( $userLang && $userLang !== 'en' ) {
@@ -1499,29 +1641,21 @@ class APIChat extends ApiBase {
 		// Build the system prompt (context + instructions) and the user question separately
 		$systemPrompt = '';
 		if ( self::$customPrompt !== '' ) {
-			$systemPrompt = self::$customPrompt .
-				"\n\nContext:\n" . $contextBlock . $languageInstruction;
+			$systemPrompt = self::$customPrompt . "\n\n" .
+				$dataInstructions .
+				"Context:\n" . $contextBlock . $languageInstruction;
 		} elseif ( self::$customPromptTitle !== '' ) {
 			$title = Title::newFromText( self::$customPromptTitle );
 			$wikipage = new WikiPage( $title );
 			$content = $wikipage->getContent()->getText();
 
-			$systemPrompt = $content .
-				"\n\nContext:\n" . $contextBlock . $languageInstruction;
+			$systemPrompt = $content . "\n\n" .
+				$dataInstructions .
+				"Context:\n" . $contextBlock . $languageInstruction;
 		} else {
-			if ( $allowPublicKnowledge ) {
-				$systemPrompt = "You are a helpful assistant. " .
-					"Answer the user's question based on the information provided below.\n\n" .
-					"Wiki Content:\n" . $contextBlock . "\n\n" .
-					"Instructions: Use the wiki content above to answer the question. " .
-					"If the information is there, use it. If not, use your knowledge." .
-					$languageInstruction;
-			} else {
-				$systemPrompt = "Answer the following question using the information provided.\n\n" .
-					"Information from wiki pages:\n" . $contextBlock . "\n\n" .
-					"Provide a helpful answer based on the information above." .
-					$languageInstruction;
-			}
+			$template = $allowPublicKnowledge ? 'system-with-knowledge' : 'system-without-knowledge';
+			$systemPrompt = PromptTemplate::render( $template, [ 'context' => $contextBlock ] )
+				. $languageInstruction;
 		}
 
 		// Prepend language instruction if configured

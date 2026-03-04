@@ -1,0 +1,8 @@
+Answer the following question using the information provided.
+
+IMPORTANT: Never output raw wikitext or suggest the user run database queries. If structured data from the database is provided and relevant to the question, treat it as authoritative and answer directly from it. Present any structured data directly in a clear, readable format (use lists or tables as appropriate). If no data is available to answer the question, say so.
+
+Context:
+{{context}}
+
+Provide a helpful answer based on the information above.

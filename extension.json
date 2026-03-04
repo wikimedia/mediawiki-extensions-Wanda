@@ -25,7 +25,8 @@
 		"MediaWiki\\Extension\\Wanda\\": "includes/",
 		"MediaWiki\\Extension\\Wanda\\Specials\\": "includes/specials/",
 		"MediaWiki\\Extension\\Wanda\\Maintenance\\": "maintenance/",
-		"MediaWiki\\Extension\\Wanda\\Hooks\\": "includes/Hooks/"
+		"MediaWiki\\Extension\\Wanda\\Hooks\\": "includes/Hooks/",
+		"MediaWiki\\Extension\\Wanda\\Prompts\\": "includes/Prompts/"
 	},
 	"SpecialPages": {
 		"Wanda": "MediaWiki\\Extension\\Wanda\\Specials\\SpecialAIChat"
@@ -63,7 +64,8 @@
 				"CdxCheckbox",
 				"CdxDialog",
 				"CdxTextInput",
-				"CdxIcon"
+				"CdxIcon",
+				"CdxAccordion"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -90,7 +92,8 @@
 				"wanda-clear-conversation-aria",
 				"wanda-toggle-memory-label",
 				"wanda-toggle-memory-aria",
-				"apihelp-wandachat-param-images"
+				"apihelp-wandachat-param-images",
+				"wanda-thinking-label"
 			],
 			"targets": [
 				"desktop",
@@ -126,7 +129,8 @@
 				"CdxCheckbox",
 				"CdxDialog",
 				"CdxTextInput",
-				"CdxIcon"
+				"CdxIcon",
+				"CdxAccordion"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -153,7 +157,8 @@
 				"wanda-clear-conversation-aria",
 				"wanda-toggle-memory-label",
 				"wanda-toggle-memory-aria",
-				"apihelp-wandachat-param-images"
+				"apihelp-wandachat-param-images",
+				"wanda-thinking-label"
 			],
 			"targets": [
 				"desktop",
@@ -193,7 +198,10 @@
 		"WandaMaxImageCount": 10,
 		"WandaShowConfidenceScore": false,
 		"WandaEnableConversationMemory": true,
-		"WandaConversationMaxChars": 6000
+		"WandaConversationMaxChars": 6000,
+		"WandaEnableCargoQueries": false,
+		"WandaCargoExcludedTables": [],
+		"WandaCargoMaxQuerySteps": 3
 	},
 	"manifest_version": 1
 }

@@ -2,15 +2,32 @@
   <div class="chat-container">
     <div class="chat-box" ref="chatBox" v-show="messages.length > 0">
       <div
-        v-for="(msg, idx) in messages"
+        v-for="(m, idx) in messages"
         :key="idx"
-        :class="['chat-message-wrapper', msg.role + '-wrapper']"
+        :class="['chat-message-wrapper', m.role + '-wrapper']"
       >
         <div class="chat-message-container">
-          <div class="chat-message" :class="[ msg.role + '-message' ]" v-html="msg.content"></div>
-          <div v-if="msg.role === 'user' && msg.images && msg.images.length > 0" class="wanda-message-images">
+          <div class="chat-message" :class="[ m.role + '-message' ]">
+            <div v-html="m.content"></div>
+            <cdx-accordion
+              v-if="m.role === 'bot' && m.steps && m.steps.length > 0"
+              class="wanda-thinking"
+            >
+              <template #title>{{ msg( 'wanda-thinking-label' ) }}</template>
+              <ol class="wanda-thinking-steps">
+                <li
+                  v-for="(s, sIdx) in m.steps"
+                  :key="sIdx"
+                  :class="'wanda-step wanda-step--' + ( s.type || 'query' )"
+                >
+                  {{ formatStepDesc( s ) }}
+                </li>
+              </ol>
+            </cdx-accordion>
+          </div>
+          <div v-if="m.role === 'user' && m.images && m.images.length > 0" class="wanda-message-images">
             <img
-              v-for="(image, imgIdx) in msg.images"
+              v-for="(image, imgIdx) in m.images"
               :key="imgIdx"
               :src="image.url"
               :alt="image.title"
@@ -158,12 +175,12 @@
 </template>
 
 <script>
-const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon } = require( '../../codex.js' );
+const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion } = require( '../../codex.js' );
 const { cdxIconImage } = require( '../../icons.json' );
 
 module.exports = exports = {
   name: 'ChatApp',
-  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon },
+  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion },
   data() {
     return {
       inputText: '',
@@ -234,8 +251,12 @@ module.exports = exports = {
         }
       } );
     },
-    addMessage( role, content ) {
-      this.messages.push( { role, content } );
+    addMessage( role, content, steps ) {
+      const message = { role, content };
+      if ( steps && steps.length > 0 ) {
+        message.steps = steps;
+      }
+      this.messages.push( message );
       this.scrollToBottom();
     },
     escapeHtml( str ) {
@@ -245,6 +266,212 @@ module.exports = exports = {
         .replace( />/g, '&gt;' )
         .replace( /"/g, '&quot;' )
         .replace( /'/g, '&#39;' );
+    },
+
+  applyInlineMarkdown( safeHtmlText ) {
+    let s = String( safeHtmlText );
+    // Bold: **text**
+    s = s.replace( /\*\*([^*]+)\*\*/g, '<b>$1</b>' );
+    // Italic: *text* (avoid matching **)
+    s = s.replace( /(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<i>$2</i>' );
+    return s;
+  },
+
+  isMarkdownTableSeparator( line ) {
+    const s = String( line || '' ).trim();
+    // Typical: |---|---:|:---|
+    return /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/.test( s );
+  },
+
+  splitMarkdownTableRow( line ) {
+    let s = String( line || '' ).trim();
+    // Allow quoted table blocks like "| a | b |"
+    if ( s.startsWith( '"' ) && s.endsWith( '"' ) && s.length >= 2 ) {
+      s = s.slice( 1, -1 ).trim();
+    }
+    if ( s.startsWith( '|' ) ) {
+      s = s.slice( 1 );
+    }
+    if ( s.endsWith( '|' ) ) {
+      s = s.slice( 0, -1 );
+    }
+    return s.split( '|' ).map( ( c ) => c.trim() );
+  },
+
+  renderMarkdownTableFromLines( lines, startIndex ) {
+    const headerCells = this.splitMarkdownTableRow( lines[ startIndex ] );
+    let i = startIndex + 2; // skip separator
+    const bodyRows = [];
+
+    while ( i < lines.length ) {
+      const raw = String( lines[ i ] || '' );
+      const trimmed = raw.trim();
+      if ( trimmed === '' ) {
+        break;
+      }
+      // Stop if line doesn't look like a table row.
+      if ( trimmed.indexOf( '|' ) === -1 ) {
+        break;
+      }
+      if ( this.isMarkdownTableSeparator( trimmed ) ) {
+        break;
+      }
+      bodyRows.push( this.splitMarkdownTableRow( raw ) );
+      i++;
+    }
+
+    const formatCell = ( cell ) => this.applyInlineMarkdown( this.escapeHtml( cell ) );
+
+    let tableHtml = '<div class="wanda-table-wrap"><table class="wanda-table">';
+    tableHtml += '<thead><tr>';
+    headerCells.forEach( ( h ) => {
+      tableHtml += '<th>' + formatCell( h ) + '</th>';
+    } );
+    tableHtml += '</tr></thead>';
+    tableHtml += '<tbody>';
+    bodyRows.forEach( ( row ) => {
+      tableHtml += '<tr>';
+      for ( let c = 0; c < headerCells.length; c++ ) {
+        const v = row[ c ] !== undefined ? row[ c ] : '';
+        tableHtml += '<td>' + formatCell( v ) + '</td>';
+      }
+      tableHtml += '</tr>';
+    } );
+    tableHtml += '</tbody></table></div>';
+
+    return { html: tableHtml, endIndex: i - 1 };
+  },
+
+  formatBotResponse( rawText ) {
+    let text = String( rawText || '' ).replace( /\r\n/g, '\n' );
+    const newlineCount = ( text.match( /\n/g ) || [] ).length;
+
+    // Heuristic: if model returned Markdown-ish structure but without newlines,
+    // insert breaks before headings and list items.
+    if ( newlineCount < 2 && text.includes( '###' ) ) {
+      text = text.replace( /\s*###\s+/g, '\n\n### ' );
+      const dashCount = ( text.match( /\s-\s/g ) || [] ).length;
+      if ( dashCount >= 2 ) {
+        text = text.replace( /\s-\s+/g, '\n- ' );
+      }
+    }
+
+    text = text.trim();
+    if ( !text ) {
+      return '';
+    }
+
+    const lines = text.split( '\n' );
+    let html = '';
+    let inList = false;
+    let pendingBreak = false;
+
+    for ( let i = 0; i < lines.length; i++ ) {
+      const rawLine = lines[ i ];
+      const line = rawLine.trim();
+
+      // Markdown table: header row + separator row
+      if ( i + 1 < lines.length && line.indexOf( '|' ) !== -1 && this.isMarkdownTableSeparator( lines[ i + 1 ] ) ) {
+        if ( inList ) {
+          html += '</ul>';
+          inList = false;
+        }
+        if ( pendingBreak && html !== '' ) {
+          html += '<br><br>';
+        }
+
+        const rendered = this.renderMarkdownTableFromLines( lines, i );
+        html += rendered.html;
+        i = rendered.endIndex;
+        pendingBreak = false;
+        continue;
+      }
+
+      if ( line === '' ) {
+        if ( inList ) {
+          html += '</ul>';
+          inList = false;
+        }
+        pendingBreak = true;
+        continue;
+      }
+
+      if ( line.startsWith( '### ' ) ) {
+        if ( inList ) {
+          html += '</ul>';
+          inList = false;
+        }
+        if ( pendingBreak && html !== '' ) {
+          html += '<br><br>';
+        }
+        const title = this.applyInlineMarkdown( this.escapeHtml( line.slice( 4 ).trim() ) );
+        html += '<b>' + title + '</b><br>';
+        pendingBreak = false;
+        continue;
+      }
+
+      if ( line.startsWith( '- ' ) ) {
+        if ( pendingBreak && html !== '' ) {
+          html += '<br><br>';
+        }
+        if ( !inList ) {
+          html += '<ul>';
+          inList = true;
+        }
+        const item = this.applyInlineMarkdown( this.escapeHtml( line.slice( 2 ).trim() ) );
+        html += '<li>' + item + '</li>';
+        pendingBreak = false;
+        continue;
+      }
+
+      if ( inList ) {
+        html += '</ul>';
+        inList = false;
+      }
+      if ( pendingBreak && html !== '' ) {
+        html += '<br><br>';
+      } else if ( html !== '' ) {
+        html += '<br>';
+      }
+
+      html += this.applyInlineMarkdown( this.escapeHtml( rawLine ) );
+      pendingBreak = false;
+    }
+
+    if ( inList ) {
+      html += '</ul>';
+    }
+
+    return html;
+  },
+    formatStepDesc( s ) {
+      const stepLabel = s.step ? 'Step ' + s.step + ': ' : '';
+      const tables = s.tables || s.table || 'unknown';
+      if ( s.type === 'error' ) {
+        let desc = stepLabel + 'Failed querying ' + tables;
+        if ( s.where ) {
+          desc += ' where ' + s.where;
+        }
+        if ( s.join_on ) {
+          desc += ' [join: ' + s.join_on + ']';
+        }
+        if ( s.message ) {
+          desc += ' \u2014 ' + s.message;
+        }
+        return desc;
+      }
+      const rowWord = s.rows === 1 ? 'row' : 'rows';
+      let desc = stepLabel + 'Queried ' + tables + ' (' + s.rows + ' ' + rowWord + ')';
+      if ( s.where ) {
+        desc += ' where ' + s.where;
+      }
+      if ( s.join_on ) {
+        desc += ' [join: ' + s.join_on + ']';
+      }
+      if ( s.reasoning ) {
+        desc += ' \u2014 ' + s.reasoning;
+      }
+      return desc;
     },
     openImagePicker() {
       this.imagePickerOpen = true;
@@ -432,22 +659,32 @@ module.exports = exports = {
 
         const data = await api.post( postData );
 
-        let response = data && data.response ? data.response : 'Error fetching response';
-        let rawResponse = response;
-        if ( response === 'NO_MATCHING_CONTEXT' ) {
-          response = this.msg( 'wanda-llm-response-nocontext' );
-          rawResponse = response;
-        } else if ( response.includes( '<PUBLIC_KNOWLEDGE>' ) ) {
-          rawResponse = response.replace( '<PUBLIC_KNOWLEDGE>', '' );
-          response = rawResponse;
+        let responseText = data && data.response ? data.response : 'Error fetching response';
+        let rawResponse = responseText;
+        if ( responseText === 'NO_MATCHING_CONTEXT' ) {
+          rawResponse = this.msg( 'wanda-llm-response-nocontext' );
+        } else if ( responseText.includes( '<PUBLIC_KNOWLEDGE>' ) ) {
+          rawResponse = responseText.replace( '<PUBLIC_KNOWLEDGE>', '' );
+        }
+
+        let response = this.formatBotResponse( rawResponse );
+
+        if ( responseText.includes( '<PUBLIC_KNOWLEDGE>' ) ) {
           response += '<br><b>Source</b>: Public';
         } else if ( data && data.sources && data.sources.length > 0 ) {
           const label = data.sources.length === 1 ? 'Source' : 'Sources';
           const sourceLinks = data.sources.map( ( s ) => {
             const title = s.title || s;
-            const href = mw.util.getUrl( title );
+            const href = s.href ? s.href : mw.util.getUrl( title );
             const safeTitle = this.escapeHtml( title );
-            let link = '<a target="_blank" href="' + href + '">' + safeTitle + '</a>';
+            let link;
+            if ( s.type === 'cargo' && s.cargoTable && s.tableHref ) {
+              const safeTable = this.escapeHtml( s.cargoTable );
+              link = '<a target="_blank" href="' + href + '">' + safeTitle + '</a>' +
+                ' (<a target="_blank" href="' + s.tableHref + '">' + safeTable + '</a>)';
+            } else {
+              link = '<a target="_blank" href="' + href + '">' + safeTitle + '</a>';
+            }
             if ( this.showConfidenceScore && s.score !== undefined ) {
               link += ' <small>(' + s.score + ')</small>';
             }
@@ -472,7 +709,10 @@ module.exports = exports = {
           } );
           response += '</ul>';
         }
-        this.addMessage( 'bot', response );
+        const cargoSteps = data && data.cargoSteps && data.cargoSteps.length > 0
+          ? data.cargoSteps
+          : null;
+        this.addMessage( 'bot', response, cargoSteps );
 
         // Update conversation history
         if ( this.conversationMemoryEnabled ) {

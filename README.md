@@ -10,6 +10,7 @@ Wanda is a MediaWiki extension that provides an AI-powered chatbot interface for
 - **Floating Chat Widget**: Always-accessible chat button on all pages
 - **Special Page**: Dedicated chat interface at Special:Wanda
 - **Responsive Design**: Works on desktop and mobile devices
+- **Cargo Table Queries**: Query structured data from Cargo tables using LLM-generated queries
 - **Secure Configuration**: API key management and timeout controls
 
 ## Installation
@@ -73,6 +74,10 @@ $wgWandaLLMTimeout = 30; // Request timeout in seconds for LLM calls
 $wgWandaAutoReindex = true; // Automatically reindex content after update.php
 
 $wgWandaSkipESQuery = false; //Skip Elastic Search
+
+// Cargo structured data integration
+$wgWandaEnableCargoQueries = false; // Enable querying Cargo tables for structured data
+$wgWandaCargoExcludedTables = []; // Array of Cargo table names to exclude from queries
 ```
 
 ## API Actions
@@ -198,6 +203,41 @@ When set to `false`, the hook will skip scheduling the maintenance script; you c
 php extensions/Wanda/maintenance/ReindexAllPages.php
 ```
 
+## Cargo Integration
+
+Wanda can query structured data stored in [Cargo](https://www.mediawiki.org/wiki/Extension:Cargo) tables alongside its Elasticsearch-based search. When enabled, Wanda uses the LLM to generate structured queries against Cargo tables based on the user's natural language question.
+
+### Setup
+
+1. Install and configure the Cargo extension
+2. Enable Cargo queries in `LocalSettings.php`:
+
+```php
+$wgWandaEnableCargoQueries = true;
+
+// Optionally exclude specific tables
+$wgWandaCargoExcludedTables = ['InternalTable', 'TempData'];
+```
+
+### How It Works
+
+1. Wanda auto-discovers all Cargo tables and their schemas
+2. When a user asks a question, the LLM receives the table schemas and generates a structured Cargo query (or determines no query is relevant)
+3. The query is validated and executed against the Cargo database
+4. Results are combined with Elasticsearch results and fed to the LLM for the final answer
+
+### Source Citations
+
+Cargo results include source links:
+- **Row-level**: Links to `PageName?action=pagevalues` showing the page's stored Cargo data
+- **Table-level**: Links to `Special:CargoTables/TableName` showing the full table
+
+### Requirements
+
+- The Cargo extension must be installed and loaded
+- At least one Cargo table must be declared and populated
+- If Cargo is not installed, the feature is silently skipped
+
 ## Requirements
 
 - MediaWiki 1.36.0 or later
@@ -209,6 +249,7 @@ php extensions/Wanda/maintenance/ReindexAllPages.php
   - Anthropic Claude API access
   - Azure OpenAI service
   - Google Gemini (Generative Language API)
+- [Cargo extension](https://www.mediawiki.org/wiki/Extension:Cargo) (optional, for structured data queries)
 
 ## Architecture
 
@@ -219,8 +260,9 @@ php extensions/Wanda/maintenance/ReindexAllPages.php
    - **Default Threshold**: 1.7 (cosine similarity ≥ 0.7)
    - **Configuration**: Adjustable via `$wgWandaVectorSearchMinScore`
 4. **Fallback Strategy**: If vector search fails or returns no results, falls back to text-based BM25 search
-5. **Response Generation**: The LLM generates answers based on the top 3 most relevant content chunks
-6. **Incremental Updates**: Page save and file upload hooks automatically regenerate embeddings and update the index
+5. **Cargo Queries**: If enabled, the LLM generates structured queries against Cargo tables in parallel; results are merged with Elasticsearch context
+6. **Response Generation**: The LLM generates answers based on the combined context from Elasticsearch and Cargo
+7. **Incremental Updates**: Page save and file upload hooks automatically regenerate embeddings and update the index
 
 ## Security Considerations
 
