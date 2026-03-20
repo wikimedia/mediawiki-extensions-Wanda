@@ -233,10 +233,8 @@ class EmbeddingGenerator {
 
 		if ( curl_errno( $ch ) ) {
 			wfDebugLog( 'Wanda', 'OpenAI embedding error: ' . curl_error( $ch ) );
-			curl_close( $ch );
 			return null;
 		}
-		curl_close( $ch );
 
 		if ( $httpCode !== 200 ) {
 			wfDebugLog( 'Wanda', "OpenAI embedding HTTP error: $httpCode - $response" );
@@ -274,10 +272,8 @@ class EmbeddingGenerator {
 
 		if ( curl_errno( $ch ) ) {
 			wfDebugLog( 'Wanda', 'Ollama embedding error: ' . curl_error( $ch ) );
-			curl_close( $ch );
 			return null;
 		}
-		curl_close( $ch );
 
 		if ( $httpCode !== 200 ) {
 			wfDebugLog( 'Wanda', "Ollama embedding HTTP error: $httpCode - $response" );
@@ -318,10 +314,8 @@ class EmbeddingGenerator {
 
 		if ( curl_errno( $ch ) ) {
 			wfDebugLog( 'Wanda', 'Gemini embedding error: ' . curl_error( $ch ) );
-			curl_close( $ch );
 			return null;
 		}
-		curl_close( $ch );
 
 		if ( $httpCode !== 200 ) {
 			wfDebugLog( 'Wanda', "Gemini embedding HTTP error: $httpCode - $response" );
@@ -370,10 +364,8 @@ class EmbeddingGenerator {
 
 		if ( curl_errno( $ch ) ) {
 			wfDebugLog( 'Wanda', 'Azure embedding error: ' . curl_error( $ch ) );
-			curl_close( $ch );
 			return null;
 		}
-		curl_close( $ch );
 
 		if ( $httpCode !== 200 ) {
 			wfDebugLog( 'Wanda', "Azure embedding HTTP error: $httpCode - $response" );

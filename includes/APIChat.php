@@ -377,7 +377,6 @@ class APIChat extends ApiBase {
 		curl_setopt( $ch, CURLOPT_TIMEOUT, 5 );
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		curl_close( $ch );
 
 		if ( $httpCode !== 200 ) {
 			wfDebugLog( 'Wanda', "Failed to get Elasticsearch indices. HTTP code: " . $httpCode );
@@ -482,7 +481,6 @@ class APIChat extends ApiBase {
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 		$curlError = curl_error( $ch );
-		curl_close( $ch );
 
 		if ( $curlError ) {
 			wfDebugLog( 'Wanda', "Vector search cURL error: " . $curlError );
@@ -587,7 +585,6 @@ class APIChat extends ApiBase {
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 		$curlError = curl_error( $ch );
-		curl_close( $ch );
 
 		if ( $curlError ) {
 			wfDebugLog( 'Wanda', "Elasticsearch cURL error: " . $curlError );
@@ -758,7 +755,6 @@ class APIChat extends ApiBase {
 			$response = curl_exec( $ch );
 			$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 			$curlError = curl_error( $ch );
-			curl_close( $ch );
 
 			if ( $curlError ) {
 				wfDebugLog( 'Wanda', "Gemini cURL error: " . $curlError );
@@ -884,7 +880,6 @@ class APIChat extends ApiBase {
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 		$curlError = curl_error( $ch );
-		curl_close( $ch );
 
 		// Log error details for debugging
 		if ( $curlError ) {
@@ -1003,7 +998,6 @@ class APIChat extends ApiBase {
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 		$curlError = curl_error( $ch );
-		curl_close( $ch );
 
 		if ( $curlError ) {
 			wfDebugLog( 'Wanda', "OpenAI cURL error: " . $curlError );
@@ -1129,7 +1123,6 @@ class APIChat extends ApiBase {
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 		$curlError = curl_error( $ch );
-		curl_close( $ch );
 
 		if ( $curlError ) {
 			wfDebugLog( 'Wanda', "Anthropic cURL error: " . $curlError );
@@ -1242,7 +1235,6 @@ class APIChat extends ApiBase {
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 		$curlError = curl_error( $ch );
-		curl_close( $ch );
 
 		if ( $curlError ) {
 			wfDebugLog( 'Wanda', "Azure cURL error: " . $curlError );

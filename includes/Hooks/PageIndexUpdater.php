@@ -54,7 +54,6 @@ class PageIndexUpdater {
 		$ch = curl_init( self::$esHost . "/_cat/indices?v&format=json" );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		$response = curl_exec( $ch );
-		curl_close( $ch );
 
 		$indices = json_decode( $response, true );
 		if ( !$indices || !is_array( $indices ) ) {
@@ -123,7 +122,6 @@ class PageIndexUpdater {
 		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
 
 		$response = curl_exec( $ch );
-		curl_close( $ch );
 
 		wfDebugLog(
 			'Wanda',
@@ -139,7 +137,6 @@ class PageIndexUpdater {
 		$ch = curl_init( self::$esHost . "/$indexName/_mapping" );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		$response = curl_exec( $ch );
-		curl_close( $ch );
 
 		$mapping = json_decode( $response, true );
 	}
@@ -213,7 +210,6 @@ class PageIndexUpdater {
 		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
 
 		$response = curl_exec( $ch );
-		curl_close( $ch );
 
 		wfDebugLog( 'Wanda', "Indexed page: " . $title->getPrefixedText() . " Response: " . $response );
 	}
