@@ -32,6 +32,7 @@
 	"wanda-api-error-anthropic-key": "Anthropischer API-Schlüssel nicht konfiguriert.",
 	"wanda-api-error-azure-key": "Azure-API-Schlüssel nicht konfiguriert.",
 	"wanda-api-error-gemini-key": "Gemini-API-Schlüssel nicht konfiguriert.",
+	"wanda-api-error-token-limit": "Die Antwort wurde aufgrund der Token-Begrenzung ($1 Token) gekürzt. Bitte formuliere deine Frage genauer oder erhöhe den Wert für „WandaLLMMaxTokens“ in der Konfiguration.",
 	"wanda-api-error-fallback": "Da bin ich mir nicht sicher.",
 	"wanda-llm-response-nocontext": "Ich habe nicht genügend Informationen im Wiki-Kontext, um das zu beantworten.",
 	"wanda-toggle-public-knowledge-label": "Öffentliches Wissen zusätzlich nutzen",
@@ -48,5 +49,14 @@
 	"wanda-image-too-large": "Dieses Bild ist zu groß. Die maximale Dateigröße beträgt $1.",
 	"wanda-image-limit-reached": "Es {{PLURAL:$1|kann maximal $1 Bild|können maximal $1 Bilder angehängt}} werden.",
 	"wanda-close": "Schließen",
-	"apihelp-wandachat-param-images": "Durch Pipes getrennte Liste der anzuhängenden Bildtitel (z. B. „File:Example.jpg|File:Image2.png“)"
+	"wanda-clear-conversation": "Gespräch löschen",
+	"wanda-clear-conversation-aria": "Gesprächsverlauf löschen",
+	"wanda-toggle-memory-label": "Gespräch merken",
+	"apihelp-wandachat-param-images": "Durch Pipes getrennte Liste der anzuhängenden Bildtitel (z. B. „File:Example.jpg|File:Image2.png“)",
+	"apihelp-wandachat-param-conversationhistory": "Ein JSON-kodiertes Array mit den bisherigen Nachrichten der Unterhaltung, die jeweils die Felder „role“ und „content“ enthalten.",
+	"wanda-cargo-query-error": "Es konnten keine strukturierten Daten zu dieser Frage abgerufen werden.",
+	"wanda-cargo-no-tables": "Es sind keine Cargo-Tabellen für Abfragen verfügbar.",
+	"wanda-cargo-query-failed": "Die Abfrage der strukturierten Daten hat keine Ergebnisse geliefert.",
+	"wanda-cargo-multistep-max-reached": "Die maximale Anzahl an Abfrageschritten für Cargo wurde erreicht ($1).",
+	"wanda-thinking-label": "Denkprozess darstellen"
 }
