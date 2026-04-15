@@ -35,6 +35,7 @@
 	"wanda-api-error-anthropic-key": "A clave da API de Anthropic non está configurada.",
 	"wanda-api-error-azure-key": "A clave da API de Azure non está configurada.",
 	"wanda-api-error-gemini-key": "A clave da API de Gemini non está configurada.",
+	"wanda-api-error-token-limit": "A resposta truncouse debido ao límite de tokens ($1 tokens). Intenta facer unha pregunta máis específica ou aumenta o valor de «WandaLLMMaxTokens» na configuración.",
 	"wanda-api-error-fallback": "Non sei con certeza.",
 	"wanda-llm-response-nocontext": "Non teño información suficiente no contexto do wiki para responder a iso.",
 	"wanda-toggle-public-knowledge-label": "Utilizar tamén o coñecemento público",
@@ -49,7 +50,18 @@
 	"wanda-image-no-results": "Non se atopou ningunha imaxe",
 	"wanda-image-search-error": "Produciuse un erro ao buscar imaxes. Inténtao de novo.",
 	"wanda-image-too-large": "Esta imaxe é demasiado grande. O tamaño máximo dos ficheiros é de $1.",
-	"wanda-image-limit-reached": "Pódese anexar un máximo {{PLURAL:$1|dunha imaxe|de $1 imaxes}}.",
+	"wanda-image-limit-reached": "Pódese anexar un máximo de $1 imaxes.",
 	"wanda-close": "Pechar",
-	"apihelp-wandachat-param-images": "Lista de títulos de imaxes a anexar, separadas por barras verticais (por exemplo, «Ficheiro:Exemplo.jpg|Ficheiro:Imaxe2.png»)"
+	"wanda-clear-conversation": "Limpar a conversa",
+	"wanda-clear-conversation-aria": "Limpar o historial da conversa",
+	"wanda-toggle-memory-label": "Lembrar a conversa",
+	"wanda-toggle-memory-aria": "Activar/Desactivar a memoria de conversa",
+	"apihelp-wandachat-param-images": "Lista de títulos de imaxes a anexar, separadas por barras verticais (por exemplo, «Ficheiro:Exemplo.jpg|Ficheiro:Imaxe2.png»)",
+	"apihelp-wandachat-param-conversationhistory": "Matriz codificada en JSON coas mensaxes de conversas anteriores, cada unha cos campos «role» e «content».",
+	"apihelp-wandachat-param-memorydisabled": "Indica se se debe desactivar a memoria de conversa para esta solicitude",
+	"wanda-cargo-query-error": "Non se puideron recuperar os datos estruturados para esta pregunta.",
+	"wanda-cargo-no-tables": "Non hai táboas de Cargo dispoñibles para as consultas.",
+	"wanda-cargo-query-failed": "A consulta de datos estruturados non devolveu ningún resultado.",
+	"wanda-cargo-multistep-max-reached": "Alcanzouse o número máximo de pasos da consulta de Cargo ($1).",
+	"wanda-thinking-label": "Mostrar o razonamento"
 }
