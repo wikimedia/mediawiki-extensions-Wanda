@@ -52,6 +52,16 @@ class APIChat extends ApiBase {
 	private static $cargoExcludedTables = [];
 	/** @var int */
 	private static $cargoMaxQuerySteps = 3;
+	/** @var bool */
+	private static $enableWikidataQueries = false;
+	/** @var string */
+	private static $sparqlEndpoint = 'https://query.wikidata.org/sparql';
+	/** @var string */
+	private static $wikidataApiEndpoint = 'https://www.wikidata.org/w/api.php';
+	/** @var string */
+	private static $wikidataLang = 'en';
+	/** @var int */
+	private static $wikidataMaxQuerySteps = 3;
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName );
@@ -84,6 +94,12 @@ class APIChat extends ApiBase {
 		self::$enableCargoQueries = $this->getConfig()->get( 'WandaEnableCargoQueries' ) ?? false;
 		self::$cargoExcludedTables = $this->getConfig()->get( 'WandaCargoExcludedTables' ) ?? [];
 		self::$cargoMaxQuerySteps = $this->getConfig()->get( 'WandaCargoMaxQuerySteps' ) ?? 3;
+		self::$sparqlEndpoint = $this->getConfig()->get( 'WandaSparqlEndpoint' ) ??
+			'https://query.wikidata.org/sparql';
+		self::$wikidataApiEndpoint = $this->getConfig()->get( 'WandaWikidataApiEndpoint' ) ??
+			'https://www.wikidata.org/w/api.php';
+		self::$wikidataLang = $this->getConfig()->get( 'WandaWikidataLang' ) ?? 'en';
+		self::$wikidataMaxQuerySteps = $this->getConfig()->get( 'WandaWikidataMaxQuerySteps' ) ?? 3;
 	}
 
 	public function execute() {
@@ -91,7 +107,28 @@ class APIChat extends ApiBase {
 		$userQuery = trim( $params['message'] );
 		$allowPublicKnowledge = !empty( $params['usepublicknowledge'] );
 		$imagesList = !empty( $params['images'] ) ? $params['images'] : '';
+		$wikidataOnly = !empty( $params['wikidataonly'] );
+		if ( !empty( $params['wikidatalang'] ) ) {
+			self::$wikidataLang = trim( $params['wikidatalang'] );
+		}
 		$this->overrideLlmParameters( $params );
+
+		// Parse per-request source selection
+		$requestedSources = !empty( $params['sources'] )
+			? array_filter( array_map( 'trim', explode( '|', $params['sources'] ) ) )
+			: [ 'wiki' ];
+		if ( in_array( 'publicknowledge', $requestedSources ) ) {
+			$allowPublicKnowledge = true;
+		}
+		if ( !in_array( 'wiki', $requestedSources ) ) {
+			self::$skipESQuery = true;
+		}
+		self::$enableWikidataQueries = in_array( 'wikidata', $requestedSources );
+		if ( in_array( 'cargo', $requestedSources ) ) {
+			self::$enableCargoQueries = true;
+		} elseif ( !empty( $params['sources'] ) ) {
+			self::$enableCargoQueries = false;
+		}
 
 		// Parse conversation history if provided and enabled
 		$conversationHistory = [];
@@ -125,8 +162,8 @@ class APIChat extends ApiBase {
 			return;
 		}
 
-		// If skipESQuery is enabled, use the context parameter (or empty string)
-		if ( self::$skipESQuery ) {
+		// If skipESQuery or wikidataonly is enabled, bypass Elasticsearch entirely
+		if ( self::$skipESQuery || $wikidataOnly ) {
 			$contextStr = '';
 			$searchResults = null;
 		} else {
@@ -183,6 +220,34 @@ class APIChat extends ApiBase {
 			}
 		}
 
+		// Wikidata knowledge graph retrieval
+		$wikidataSources = [];
+		$wikidataSteps = [];
+		$wikidataEntities = [];
+		$wikidataContext = '';
+		if ( self::$enableWikidataQueries ) {
+			$wikidataHandler = new WikidataQueryHandler(
+				self::$llmProvider,
+				self::$llmModel,
+				self::$llmApiKey,
+				self::$llmApiEndpoint,
+				self::$timeout,
+				self::$wikidataLang,
+				self::$wikidataMaxQuerySteps,
+				self::$sparqlEndpoint,
+				self::$wikidataApiEndpoint
+			);
+			$wikidataResult = $wikidataHandler->query( $userQuery );
+			$wikidataSteps = $wikidataResult['steps'] ?? [];
+			$wikidataEntities = $wikidataResult['entities'] ?? [];
+			if ( !empty( $wikidataResult['content'] ) ) {
+				$wikidataContext = $wikidataResult['content'];
+				$wikidataSources = $wikidataResult['sources'] ?? [];
+				wfDebugLog( 'Wanda', "Wikidata query returned " .
+					$wikidataResult['num_results'] . " results" );
+			}
+		}
+
 		$response = $this->generateLLMResponse(
 			$userQuery,
 			$contextStr,
@@ -192,7 +257,8 @@ class APIChat extends ApiBase {
 			$contentLang,
 			$conversationHistory,
 			$memoryDisabled,
-			$cargoContext
+			$cargoContext,
+			$wikidataContext
 		);
 		if ( !$response ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-generation-failed' )->text() );
@@ -221,11 +287,21 @@ class APIChat extends ApiBase {
 		if ( !empty( $cargoSources ) ) {
 			$allSources = array_merge( $allSources, $cargoSources );
 		}
+		if ( !empty( $wikidataSources ) ) {
+			$allSources = array_merge( $allSources, $wikidataSources );
+		}
 		if ( !empty( $allSources ) ) {
 			$this->getResult()->addValue( null, "sources", $allSources );
 		}
 		if ( !empty( $cargoSteps ) ) {
 			$this->getResult()->addValue( null, "cargoSteps", $cargoSteps );
+		}
+		if ( !empty( $wikidataSteps ) ) {
+			$this->getResult()->addValue( null, "wikidataSteps", $wikidataSteps );
+		}
+		$this->getResult()->addValue( null, "requestedSources", array_values( $requestedSources ) );
+		if ( !empty( $wikidataEntities ) ) {
+			$this->getResult()->addValue( null, "wikidataEntities", $wikidataEntities );
 		}
 	}
 
@@ -1576,7 +1652,8 @@ class APIChat extends ApiBase {
 		$contentLang = 'en',
 		$conversationHistory = [],
 		$memoryDisabled = false,
-		$cargoContext = ''
+		$cargoContext = '',
+		$wikidataContext = ''
 	) {
 		if ( !$userQuery ) {
 			return false;
@@ -1588,29 +1665,38 @@ class APIChat extends ApiBase {
 
 		$context = trim( (string)$context );
 		$cargoContext = trim( (string)$cargoContext );
-		$maxContextChars = 8000;
+		$wikidataContext = trim( (string)$wikidataContext );
+		$maxContextChars = 10000;
 
-		// Build labeled context block with separate sections for wiki and cargo data.
-		// Reserve space for structured data so it isn't dropped when wiki context is large.
+		// Allocate budget across the three context sources so none is dropped silently.
+		$wikidataBudget = 0;
+		if ( $wikidataContext !== '' ) {
+			$wikidataBudget = min( 3000, $maxContextChars );
+			if ( strlen( $wikidataContext ) > $wikidataBudget ) {
+				$wikidataContext = substr( $wikidataContext, 0, $wikidataBudget ) . "\n[...truncated...]";
+			}
+		}
+
 		$cargoBudget = 0;
 		if ( $cargoContext !== '' ) {
-			$cargoBudget = min( 3000, $maxContextChars );
+			$cargoBudget = min( 3000, $maxContextChars - strlen( $wikidataContext ) );
 			if ( strlen( $cargoContext ) > $cargoBudget ) {
 				$cargoContext = substr( $cargoContext, 0, $cargoBudget ) . "\n[...truncated...]";
 			}
 		}
 
-		$wikiBudget = $maxContextChars;
-		if ( $cargoContext !== '' ) {
-			$wikiBudget = max( 0, $maxContextChars - strlen( $cargoContext ) );
-		}
+		$wikiBudget = max( 0, $maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) );
 		if ( $context !== '' && strlen( $context ) > $wikiBudget ) {
 			$context = substr( $context, 0, $wikiBudget ) . "\n[...truncated...]";
 		}
 
 		$contextBlock = '';
+		if ( $wikidataContext !== '' ) {
+			$contextBlock .= "Structured data from Wikidata:\n" . $wikidataContext;
+		}
 		if ( $cargoContext !== '' ) {
-			$contextBlock .= "Structured data from database:\n" . $cargoContext;
+			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )
+				. "Structured data from database:\n" . $cargoContext;
 		}
 		if ( $context !== '' ) {
 			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )
@@ -1806,6 +1892,21 @@ class APIChat extends ApiBase {
 			"memorydisabled" => [
 				ParamValidator::PARAM_TYPE => 'boolean',
 				ParamValidator::PARAM_DEFAULT => false,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"wikidataonly" => [
+				ParamValidator::PARAM_TYPE => 'boolean',
+				ParamValidator::PARAM_DEFAULT => false,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"wikidatalang" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => self::$wikidataLang,
+				ParamValidator::PARAM_REQUIRED => false
+			],
+			"sources" => [
+				ParamValidator::PARAM_TYPE => 'string',
+				ParamValidator::PARAM_DEFAULT => 'wiki',
 				ParamValidator::PARAM_REQUIRED => false
 			]
 		];

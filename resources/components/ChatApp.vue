@@ -9,9 +9,17 @@
         <div class="chat-message-container">
           <div class="chat-message" :class="[ m.role + '-message' ]">
             <div v-html="m.content"></div>
+            <div v-if="m.role === 'user' && m.sources && m.sources.length > 0" class="wanda-message-sources">
+              <span
+                v-for="src in m.sources"
+                :key="src"
+                class="wanda-source-chip"
+              >{{ sourceLabel( src ) }}</span>
+            </div>
             <cdx-accordion
               v-if="m.role === 'bot' && m.steps && m.steps.length > 0"
               class="wanda-thinking"
+              :open="true"
             >
               <template #title>{{ msg( 'wanda-thinking-label' ) }}</template>
               <ol class="wanda-thinking-steps">
@@ -21,6 +29,7 @@
                   :class="'wanda-step wanda-step--' + ( s.type || 'query' )"
                 >
                   {{ formatStepDesc( s ) }}
+                  <pre v-if="s.source === 'wikidata' && s.sparql" class="wanda-sparql-query"><code>{{ s.sparql }}</code></pre>
                 </li>
               </ol>
             </cdx-accordion>
@@ -66,13 +75,6 @@
 
     <div class="chat-input-container">
       <cdx-checkbox
-        v-model="usepublicknowledge"
-        id="wanda-toggle-public-knowledge"
-        :aria-label="msg('wanda-toggle-public-knowledge-aria')"
-      >
-        {{ msg('wanda-toggle-public-knowledge-label') }}
-      </cdx-checkbox>
-      <cdx-checkbox
         v-if="conversationMemoryAvailable"
         v-model="conversationMemoryEnabled"
         id="wanda-toggle-conversation-memory"
@@ -82,44 +84,58 @@
         {{ msg('wanda-toggle-memory-label') }}
       </cdx-checkbox>
 
-      <div class="wanda-attached-images" v-if="attachedImages.length > 0">
-        <div
-          v-for="(image, idx) in attachedImages"
-          :key="idx"
-          class="wanda-image-thumbnail"
-        >
-          <img :src="image.url" :alt="image.title" />
-          <div class="wanda-image-info">
-            <span class="wanda-image-title">{{ image.title }}</span>
-            <span class="wanda-image-size">{{ formatFileSize(image.size) }}</span>
-          </div>
-          <button
-            class="wanda-remove-image"
-            @click.stop="removeImage(idx)"
-            :aria-label="msg('wanda-remove-image-aria')"
-          >×</button>
+      <div class="wanda-question-card">
+        <div class="wanda-sources-row">
+          <span class="wanda-sources-label">Sources:</span>
+          <cdx-multiselect-lookup
+            id="wanda-source-selector"
+            v-model:input-chips="chips"
+            v-model:selected="selectedValues"
+            :menu-items="menuItems"
+            class="wanda-source-selector"
+            @input="onInput"
+          ></cdx-multiselect-lookup>
         </div>
-      </div>
 
-      <div class="wanda-floating-input-row">
-        <cdx-button v-if="enableAttachments"
-          class="wanda-attach-button"
-          action="default"
-          weight="quiet"
-          @click="openImagePicker"
-          :title="msg('wanda-attach-image-title')"
-        >
-          <cdx-icon :icon="cdxIconImage"></cdx-icon>
-        </cdx-button>
-        <cdx-text-area
-          id="wanda-floating-chat-input"
-          v-model="inputText"
-          class="chat-input-box"
-          :rows="2"
-          placeholder="Type your message..."
-          @keydown.enter.exact.prevent="sendMessage"
-        ></cdx-text-area>
-        <cdx-button action="progressive" weight="primary" @click="sendMessage">Send</cdx-button>
+        <div class="wanda-attached-images" v-if="attachedImages.length > 0">
+          <div
+            v-for="(image, idx) in attachedImages"
+            :key="idx"
+            class="wanda-image-thumbnail"
+          >
+            <img :src="image.url" :alt="image.title" />
+            <div class="wanda-image-info">
+              <span class="wanda-image-title">{{ image.title }}</span>
+              <span class="wanda-image-size">{{ formatFileSize(image.size) }}</span>
+            </div>
+            <button
+              class="wanda-remove-image"
+              @click.stop="removeImage(idx)"
+              :aria-label="msg('wanda-remove-image-aria')"
+            >×</button>
+          </div>
+        </div>
+
+        <div class="wanda-floating-input-row">
+          <cdx-button v-if="enableAttachments"
+            class="wanda-attach-button"
+            action="default"
+            weight="quiet"
+            @click="openImagePicker"
+            :title="msg('wanda-attach-image-title')"
+          >
+            <cdx-icon :icon="cdxIconImage"></cdx-icon>
+          </cdx-button>
+          <cdx-text-area
+            id="wanda-floating-chat-input"
+            v-model="inputText"
+            class="chat-input-box"
+            :rows="2"
+            placeholder="Type your message..."
+            @keydown.enter.exact.prevent="sendMessage"
+          ></cdx-text-area>
+          <cdx-button action="progressive" weight="primary" @click="sendMessage">Send</cdx-button>
+        </div>
       </div>
     </div>
 
@@ -175,18 +191,45 @@
 </template>
 
 <script>
-const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion } = require( '../../codex.js' );
+const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxMultiselectLookup } = require( '../../codex.js' );
 const { cdxIconImage } = require( '../../icons.json' );
+const { ref } = require( 'vue' );
+
+const ALL_SOURCE_OPTIONS = [
+  { value: 'wiki', label: 'Wiki' },
+  { value: 'wikidata', label: 'Wikidata' },
+  { value: 'publicknowledge', label: 'Public knowledge' },
+  { value: 'cargo', label: 'Cargo' }
+];
 
 module.exports = exports = {
   name: 'ChatApp',
-  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion },
+  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxMultiselectLookup },
+  setup() {
+    const chips = ref( [ { value: 'wiki', label: 'Wiki' } ] );
+    const selectedValues = ref( [ 'wiki' ] );
+    const menuItems = ref( [] );
+
+    function onInput( value ) {
+      const q = value ? value.toLowerCase() : '';
+      menuItems.value = ALL_SOURCE_OPTIONS.filter(
+        ( opt ) => !selectedValues.value.includes( opt.value ) &&
+          ( !q || opt.label.toLowerCase().includes( q ) )
+      );
+    }
+
+    return {
+      chips,
+      selectedValues,
+      menuItems,
+      onInput
+    };
+  },
   data() {
     return {
       inputText: '',
       messages: [],
       loading: false,
-      usepublicknowledge: false,
       enableAttachments: !!mw.config.get( 'WandaEnableAttachments' ),
       attachedImages: [],
       imagePickerOpen: false,
@@ -444,8 +487,24 @@ module.exports = exports = {
 
     return html;
   },
+    sourceLabel( value ) {
+      const labels = { wiki: 'Wiki', wikidata: 'Wikidata', publicknowledge: 'Public knowledge', cargo: 'Cargo' };
+      return labels[ value ] || value;
+    },
     formatStepDesc( s ) {
       const stepLabel = s.step ? 'Step ' + s.step + ': ' : '';
+      if ( s.source === 'wikidata' ) {
+        if ( s.type === 'error' ) {
+          let desc = stepLabel + 'Wikidata: ' + ( s.message || 'query failed' );
+          return desc;
+        }
+        const rowWord = s.rows === 1 ? 'row' : 'rows';
+        let desc = stepLabel + 'Wikidata (' + s.rows + ' ' + rowWord + ')';
+        if ( s.reasoning ) {
+          desc += ' \u2014 ' + s.reasoning;
+        }
+        return desc;
+      }
       const tables = s.tables || s.table || 'unknown';
       if ( s.type === 'error' ) {
         let desc = stepLabel + 'Failed querying ' + tables;
@@ -618,11 +677,15 @@ module.exports = exports = {
       }
 
       const imagesToSend = [ ...this.attachedImages ];
+      const sourcesToSend = this.selectedValues.length > 0
+        ? [ ...this.selectedValues ]
+        : [ 'wiki' ];
 
       const message = {
         role: 'user',
         content: this.escapeHtml( userText ),
-        images: imagesToSend.map( img => ({ url: img.url, title: img.title }) )
+        images: imagesToSend.map( img => ({ url: img.url, title: img.title }) ),
+        sources: [ ...sourcesToSend ]
       };
       this.messages.push( message );
       this.scrollToBottom();
@@ -637,7 +700,7 @@ module.exports = exports = {
           action: 'wandachat',
           format: 'json',
           message: userText,
-          usepublicknowledge: this.usepublicknowledge ? true : false
+          sources: sourcesToSend.join( '|' )
         };
 
         if ( imagesToSend.length > 0 ) {
@@ -709,10 +772,11 @@ module.exports = exports = {
           } );
           response += '</ul>';
         }
-        const cargoSteps = data && data.cargoSteps && data.cargoSteps.length > 0
-          ? data.cargoSteps
-          : null;
-        this.addMessage( 'bot', response, cargoSteps );
+        const allSteps = [
+          ...( ( data && data.cargoSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'cargo' } ) ),
+          ...( ( data && data.wikidataSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'wikidata' } ) )
+        ];
+        this.addMessage( 'bot', response, allSteps.length > 0 ? allSteps : null );
 
         // Update conversation history
         if ( this.conversationMemoryEnabled ) {

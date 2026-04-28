@@ -131,6 +131,47 @@
     min-width: 0;
 }
 
+.wanda-sources-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+}
+
+.wanda-sources-label {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.wanda-sources-row .wanda-source-selector {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.wanda-question-card {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.wanda-question-card .wanda-attached-images {
+    margin-bottom: 0;
+}
+
+.wanda-question-outline {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 /* Button sizing */
 .chat-input-container .cdx-button {
     font-size: medium;
@@ -480,6 +521,41 @@ body > .cdx-dialog-backdrop:has(.wanda-image-picker-dialog) + .cdx-dialog {
 }
 
 .wanda-step--query {
+    color: #333;
+}
+
+.wanda-source-selector {
+    margin-bottom: 6px;
+}
+
+.wanda-message-sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.wanda-source-chip {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 12px;
+    background: #eaf3fb;
+    border: 1px solid #a2c4e0;
+    color: #2b4f7a;
+    font-size: 0.78em;
+    font-weight: 500;
+    line-height: 1.6;
+}
+
+.wanda-sparql-query {
+    margin: 4px 0 0;
+    padding: 6px 8px;
+    background: #f3f3f3;
+    border-left: 3px solid #a0a0a0;
+    border-radius: 3px;
+    font-size: 0.85em;
+    white-space: pre-wrap;
+    word-break: break-all;
     color: #333;
 }
 

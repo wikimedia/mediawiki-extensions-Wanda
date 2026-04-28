@@ -65,7 +65,8 @@
 				"CdxDialog",
 				"CdxTextInput",
 				"CdxIcon",
-				"CdxAccordion"
+				"CdxAccordion",
+				"CdxMultiselectLookup"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -93,6 +94,7 @@
 				"wanda-toggle-memory-label",
 				"wanda-toggle-memory-aria",
 				"apihelp-wandachat-param-images",
+				"apihelp-wandachat-param-sources",
 				"wanda-thinking-label"
 			],
 			"targets": [
@@ -130,7 +132,8 @@
 				"CdxDialog",
 				"CdxTextInput",
 				"CdxIcon",
-				"CdxAccordion"
+				"CdxAccordion",
+				"CdxMultiselectLookup"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -158,6 +161,7 @@
 				"wanda-toggle-memory-label",
 				"wanda-toggle-memory-aria",
 				"apihelp-wandachat-param-images",
+				"apihelp-wandachat-param-sources",
 				"wanda-thinking-label"
 			],
 			"targets": [
@@ -201,7 +205,11 @@
 		"WandaConversationMaxChars": 6000,
 		"WandaEnableCargoQueries": false,
 		"WandaCargoExcludedTables": [],
-		"WandaCargoMaxQuerySteps": 3
+		"WandaCargoMaxQuerySteps": 3,
+		"WandaSparqlEndpoint": "https://query.wikidata.org/sparql",
+		"WandaWikidataApiEndpoint": "https://www.wikidata.org/w/api.php",
+		"WandaWikidataLang": "en",
+		"WandaWikidataMaxQuerySteps": 3
 	},
 	"manifest_version": 1
 }

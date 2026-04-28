@@ -65,5 +65,12 @@
 	"wanda-cargo-no-tables": "No Cargo tables are available for querying.",
 	"wanda-cargo-query-failed": "The structured data query did not return any results.",
 	"wanda-cargo-multistep-max-reached": "Reached maximum number of Cargo query steps ($1).",
-	"wanda-thinking-label": "Show thinking"
+	"wanda-thinking-label": "Show thinking",
+	"wanda-wikidata-query-error": "Unable to retrieve Wikidata information for this question.",
+	"wanda-wikidata-no-results": "The Wikidata query returned no results.",
+	"wanda-wikidata-sparql-error": "The SPARQL query could not be executed.",
+	"wanda-wikidata-multistep-max-reached": "Reached maximum number of Wikidata query steps ($1).",
+	"apihelp-wandachat-param-wikidataonly": "Skip wiki and Elasticsearch context; answer using Wikidata data only",
+	"apihelp-wandachat-param-wikidatalang": "BCP-47 language code for Wikidata labels (e.g. 'en', 'de', 'fr'). Defaults to the configured WandaWikidataLang.",
+	"apihelp-wandachat-param-sources": "Pipe-separated list of sources to use for retrieval (e.g. 'wiki|wikidata|cargo'). Supported values: wiki, wikidata, cargo, publicknowledge. Defaults to 'wiki'."
 }

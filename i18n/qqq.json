@@ -65,5 +65,12 @@
 	"wanda-cargo-no-tables": "Message displayed when no Cargo tables are available for querying",
 	"wanda-cargo-query-failed": "Message displayed when a Cargo query returns no results",
 	"wanda-cargo-multistep-max-reached": "Log message when the maximum number of sequential Cargo query steps is reached.\nParameters: $1 - Maximum number of steps allowed",
-	"wanda-thinking-label": "Label for the collapsible section that shows the reasoning steps performed during Cargo data retrieval"
+	"wanda-thinking-label": "Label for the collapsible section that shows the reasoning steps performed during Cargo data retrieval",
+	"wanda-wikidata-query-error": "Error message when a Wikidata SPARQL query fails to execute",
+	"wanda-wikidata-no-results": "Message displayed when a Wikidata SPARQL query returns no results",
+	"wanda-wikidata-sparql-error": "Error message when the SPARQL query cannot be sent to the endpoint",
+	"wanda-wikidata-multistep-max-reached": "Log message when the maximum number of sequential Wikidata query steps is reached.\nParameters: $1 - Maximum number of steps allowed",
+	"apihelp-wandachat-param-wikidataonly": "{{doc-apihelp-param|wandachat|wikidataonly}}",
+	"apihelp-wandachat-param-wikidatalang": "{{doc-apihelp-param|wandachat|wikidatalang}}",
+	"apihelp-wandachat-param-sources": "{{doc-apihelp-param|wandachat|sources}}"
 }
