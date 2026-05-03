@@ -209,7 +209,8 @@
 		"WandaSparqlEndpoint": "https://query.wikidata.org/sparql",
 		"WandaWikidataApiEndpoint": "https://www.wikidata.org/w/api.php",
 		"WandaWikidataLang": "en",
-		"WandaWikidataMaxQuerySteps": 3
+		"WandaWikidataMaxQuerySteps": 3,
+		"WandaSparqlTimeout": 60
 	},
 	"manifest_version": 1
 }

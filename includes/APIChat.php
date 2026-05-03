@@ -62,6 +62,8 @@ class APIChat extends ApiBase {
 	private static $wikidataLang = 'en';
 	/** @var int */
 	private static $wikidataMaxQuerySteps = 3;
+	/** @var int Seconds — separate from LLM timeout because WDQS has its own 60s server cap */
+	private static $sparqlTimeout = 60;
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName );
@@ -99,6 +101,7 @@ class APIChat extends ApiBase {
 			'https://www.wikidata.org/w/api.php';
 		self::$wikidataLang = $this->getConfig()->get( 'WandaWikidataLang' ) ?? 'en';
 		self::$wikidataMaxQuerySteps = $this->getConfig()->get( 'WandaWikidataMaxQuerySteps' ) ?? 3;
+		self::$sparqlTimeout = $this->getConfig()->get( 'WandaSparqlTimeout' ) ?? 60;
 	}
 
 	public function execute() {
@@ -234,7 +237,8 @@ class APIChat extends ApiBase {
 				self::$wikidataLang,
 				self::$wikidataMaxQuerySteps,
 				self::$sparqlEndpoint,
-				self::$wikidataApiEndpoint
+				self::$wikidataApiEndpoint,
+				self::$sparqlTimeout
 			);
 			$wikidataResult = $wikidataHandler->query( $userQuery );
 			$wikidataSteps = $wikidataResult['steps'] ?? [];

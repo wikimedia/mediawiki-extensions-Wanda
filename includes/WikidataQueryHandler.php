@@ -5,6 +5,13 @@ namespace MediaWiki\Extension\Wanda;
 use MediaWiki\Extension\Wanda\Prompts\PromptTemplate;
 
 class WikidataQueryHandler {
+	private const USER_AGENT = 'Wanda-MediaWiki-Extension/2.0 (https://www.mediawiki.org/wiki/Extension:Wanda)';
+	private const MAX_USER_QUERY_LEN = 8192;
+	private const SPARQL_SERVER_TIMEOUT_MS = 60000;
+
+	/** @var array<string,array|null> Process-local cache: "lang|type|label" => hit|null */
+	private static $entityCache = [];
+
 	/** @var string */
 	private $llmProvider;
 	/** @var string */
@@ -15,6 +22,8 @@ class WikidataQueryHandler {
 	private $llmApiEndpoint;
 	/** @var int */
 	private $timeout;
+	/** @var int Seconds — applies to SPARQL HTTP calls only */
+	private $sparqlTimeout;
 	/** @var string BCP-47 language code for Wikidata labels */
 	private $lang;
 	/** @var int Maximum number of sequential query steps */
@@ -35,10 +44,13 @@ class WikidataQueryHandler {
 		'p'         => 'http://www.wikidata.org/prop/',
 		'ps'        => 'http://www.wikidata.org/prop/statement/',
 		'pq'        => 'http://www.wikidata.org/prop/qualifier/',
+		'psv'       => 'http://www.wikidata.org/prop/statement/value/',
+		'pqv'       => 'http://www.wikidata.org/prop/qualifier/value/',
 		'rdfs'      => 'http://www.w3.org/2000/01/rdf-schema#',
 		'bd'        => 'http://www.bigdata.com/rdf#',
 		'schema'    => 'http://schema.org/',
 		'skos'      => 'http://www.w3.org/2004/02/skos/core#',
+		'xsd'       => 'http://www.w3.org/2001/XMLSchema#',
 	];
 
 	/**
@@ -61,7 +73,8 @@ class WikidataQueryHandler {
 		string $lang = 'en',
 		int $maxQuerySteps = 3,
 		string $sparqlEndpoint = 'https://query.wikidata.org/sparql',
-		string $wikidataApiEndpoint = 'https://www.wikidata.org/w/api.php'
+		string $wikidataApiEndpoint = 'https://www.wikidata.org/w/api.php',
+		int $sparqlTimeout = 60
 	) {
 		$this->llmProvider = $llmProvider;
 		$this->llmModel = $llmModel;
@@ -72,6 +85,7 @@ class WikidataQueryHandler {
 		$this->maxQuerySteps = max( 1, min( $maxQuerySteps, 10 ) );
 		$this->sparqlEndpoint = $sparqlEndpoint ?: 'https://query.wikidata.org/sparql';
 		$this->wikidataApiEndpoint = $wikidataApiEndpoint ?: 'https://www.wikidata.org/w/api.php';
+		$this->sparqlTimeout = max( 1, $sparqlTimeout );
 	}
 
 	/**
@@ -83,6 +97,9 @@ class WikidataQueryHandler {
 	 * @return array {content: string, sources: array, num_results: int, steps: array, entities: array}
 	 */
 	public function query( string $userQuery ): array {
+		if ( strlen( $userQuery ) > self::MAX_USER_QUERY_LEN ) {
+			$userQuery = substr( $userQuery, 0, self::MAX_USER_QUERY_LEN );
+		}
 		$steps = [];
 		$empty = [
 			'content' => '',
@@ -231,24 +248,58 @@ class WikidataQueryHandler {
 
 	/**
 	 * Resolve entity mentions (from LLM output) to real Wikidata QIDs/PIDs.
+	 * Uses a process-local cache and runs un-cached lookups in parallel.
 	 *
 	 * @param array $entityMentions Array of {label, type, placeholder}
 	 * @return array Resolved entities with 'id', 'label', 'description', 'type', 'placeholder'
 	 */
 	private function resolveEntities( array $entityMentions ): array {
+		if ( empty( $entityMentions ) ) {
+			return [];
+		}
+
+		// Collect unique (label, type) pairs that aren't already cached
+		$needed = [];
+		foreach ( $entityMentions as $mention ) {
+			$label = trim( $mention['label'] ?? '' );
+			$type  = ( $mention['type'] ?? 'item' ) === 'property' ? 'property' : 'item';
+			if ( $label === '' ) {
+				continue;
+			}
+			$key = $this->cacheKey( $label, $type, $this->lang );
+			if ( !array_key_exists( $key, self::$entityCache ) && !isset( $needed[$key] ) ) {
+				$needed[$key] = [ 'label' => $label, 'type' => $type ];
+			}
+		}
+
+		if ( !empty( $needed ) ) {
+			$this->batchSearchWikidata( $needed );
+		}
+
+		// Build resolved list in original mention order, applying type-prefix validation
 		$resolved = [];
 		foreach ( $entityMentions as $mention ) {
 			$label = trim( $mention['label'] ?? '' );
-			$type = ( $mention['type'] ?? 'item' ) === 'property' ? 'property' : 'item';
+			$type  = ( $mention['type'] ?? 'item' ) === 'property' ? 'property' : 'item';
 			$placeholder = trim( $mention['placeholder'] ?? '' );
 
 			if ( $label === '' ) {
 				continue;
 			}
 
-			$hit = $this->searchWikidata( $label, $type );
+			$hit = self::$entityCache[$this->cacheKey( $label, $type, $this->lang )] ?? null;
 			if ( $hit === null ) {
 				wfDebugLog( 'Wanda', 'WikidataQueryHandler: could not resolve entity "' . $label . '"' );
+				continue;
+			}
+
+			$expected = $type === 'property' ? 'P' : 'Q';
+			if ( strncmp( $hit['id'], $expected, 1 ) !== 0 ) {
+				wfDebugLog(
+					'Wanda',
+					'WikidataQueryHandler: type mismatch for "' . $label . '" — expected ' .
+					$expected . '-id, got ' . $hit['id']
+				);
 				continue;
 			}
 
@@ -263,59 +314,117 @@ class WikidataQueryHandler {
 		return $resolved;
 	}
 
+	private function cacheKey( string $label, string $type, string $lang ): string {
+		return $lang . '|' . $type . '|' . $label;
+	}
+
 	/**
-	 * Search Wikidata for one entity by label, returning the top hit.
+	 * Run wbsearchentities for many (label, type) pairs in parallel and populate
+	 * self::$entityCache. Falls back to English for misses when the configured
+	 * language is not English.
 	 *
-	 * @param string $label
-	 * @param string $type 'item' or 'property'
-	 * @return array|null {id, label, description}
+	 * @param array $needed map of cacheKey => [label, type]
 	 */
-	private function searchWikidata( string $label, string $type ): ?array {
+	private function batchSearchWikidata( array $needed ): void {
+		$results = $this->multiSearch( $needed, $this->lang );
+
+		$missing = [];
+		foreach ( $needed as $key => $info ) {
+			$hit = $results[$key] ?? null;
+			if ( $hit !== null ) {
+				self::$entityCache[$key] = $hit;
+			} elseif ( $this->lang !== 'en' ) {
+				$missing[$key] = $info;
+			} else {
+				self::$entityCache[$key] = null;
+			}
+		}
+
+		if ( !empty( $missing ) ) {
+			$fallback = $this->multiSearch( $missing, 'en' );
+			foreach ( $missing as $key => $info ) {
+				self::$entityCache[$key] = $fallback[$key] ?? null;
+			}
+		}
+	}
+
+	/**
+	 * Issue parallel wbsearchentities requests for each pair.
+	 *
+	 * @param array $pairs map of key => [label, type]
+	 * @param string $searchLang language code to search in
+	 * @return array map of key => hit|null
+	 */
+	private function multiSearch( array $pairs, string $searchLang ): array {
+		$mh = curl_multi_init();
+		$handles = [];
+		foreach ( $pairs as $key => $info ) {
+			$ch = $this->buildSearchHandle( $info['label'], $info['type'], $searchLang );
+			curl_multi_add_handle( $mh, $ch );
+			$handles[$key] = [ 'ch' => $ch, 'label' => $info['label'] ];
+		}
+
+		$running = null;
+		do {
+			curl_multi_exec( $mh, $running );
+			if ( $running > 0 ) {
+				curl_multi_select( $mh, 1.0 );
+			}
+		} while ( $running > 0 );
+
+		$out = [];
+		foreach ( $handles as $key => $h ) {
+			$body = curl_multi_getcontent( $h['ch'] );
+			$code = (int)curl_getinfo( $h['ch'], CURLINFO_HTTP_CODE );
+			curl_multi_remove_handle( $mh, $h['ch'] );
+			$out[$key] = $this->parseSearchResponse( $body, $code, $h['label'] );
+		}
+		curl_multi_close( $mh );
+		return $out;
+	}
+
+	/**
+	 * Build (but do not execute) a cURL handle for one wbsearchentities request.
+	 *
+	 * @return \CurlHandle|resource
+	 */
+	private function buildSearchHandle( string $label, string $type, string $lang ) {
 		$params = http_build_query( [
 			'action'   => 'wbsearchentities',
 			'search'   => $label,
-			'language' => $this->lang,
+			'language' => $lang,
 			'format'   => 'json',
 			'limit'    => 5,
 			'type'     => $type,
 		] );
 		$url = rtrim( $this->wikidataApiEndpoint, '/' ) . '?' . $params;
 
-		$response = $this->curlGet( $url, [
-			'User-Agent: Wanda-MediaWiki-Extension/2.0 (https://www.mediawiki.org/wiki/Extension:Wanda)',
+		$ch = curl_init( $url );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt( $ch, CURLOPT_TIMEOUT, $this->sparqlTimeout );
+		curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
+		curl_setopt( $ch, CURLOPT_MAXREDIRS, 3 );
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, [
+			'User-Agent: ' . self::USER_AGENT,
 			'Accept: application/json',
 		] );
+		return $ch;
+	}
 
-		if ( $response === null ) {
+	/**
+	 * Parse a wbsearchentities response body into a hit, preferring exact label matches.
+	 *
+	 * @param string|false $body
+	 * @return array|null {id, label, description} or null on miss
+	 */
+	private function parseSearchResponse( $body, int $httpCode, string $label ): ?array {
+		if ( $body === false || $httpCode !== 200 || !is_string( $body ) ) {
 			return null;
 		}
-
-		$data = json_decode( $response, true );
+		$data = json_decode( $body, true );
 		$searchResults = $data['search'] ?? [];
-
 		if ( empty( $searchResults ) ) {
-			// Retry in English if the configured language returned nothing
-			if ( $this->lang !== 'en' ) {
-				$paramsEn = http_build_query( [
-					'action'   => 'wbsearchentities',
-					'search'   => $label,
-					'language' => 'en',
-					'format'   => 'json',
-					'limit'    => 5,
-					'type'     => $type,
-				] );
-				$responseEn = $this->curlGet(
-					rtrim( $this->wikidataApiEndpoint, '/' ) . '?' . $paramsEn,
-					[ 'User-Agent: Wanda-MediaWiki-Extension/2.0', 'Accept: application/json' ]
-				);
-				if ( $responseEn !== null ) {
-					$dataEn = json_decode( $responseEn, true );
-					$searchResults = $dataEn['search'] ?? [];
-				}
-			}
-			if ( empty( $searchResults ) ) {
-				return null;
-			}
+			return null;
 		}
 
 		// Prefer an exact label match over alias/description matches.
@@ -342,12 +451,22 @@ class WikidataQueryHandler {
 	 * @return string
 	 */
 	private function substituteEntities( string $sparql, array $entities ): string {
-		foreach ( $entities as $entity ) {
+		// Sort by placeholder length DESC so longer tokens are replaced first —
+		// otherwise replacing FRANCE before FRANCE_REGION corrupts the latter.
+		$sorted = $entities;
+		usort( $sorted, static function ( $a, $b ) {
+			return strlen( $b['placeholder'] ?? '' ) - strlen( $a['placeholder'] ?? '' );
+		} );
+		foreach ( $sorted as $entity ) {
 			$placeholder = $entity['placeholder'] ?? '';
 			$id = $entity['id'] ?? '';
 			if ( $placeholder !== '' && $id !== '' ) {
-				// Replace bare placeholder tokens (the handler writes wd:PLACEHOLDER / wdt:PLACEHOLDER)
-				$sparql = str_replace( $placeholder, $id, $sparql );
+				// Word-boundary match prevents partial-token collisions (FRANCE in FRANCE_REGION).
+				$sparql = preg_replace(
+					'/\b' . preg_quote( $placeholder, '/' ) . '\b/',
+					$id,
+					$sparql
+				);
 			}
 		}
 		return $sparql;
@@ -360,20 +479,25 @@ class WikidataQueryHandler {
 	 * @return bool
 	 */
 	private function validateSparql( string $sparql ): bool {
-		$upper = strtoupper( trim( $sparql ) );
+		// Strip string literals and IRIs before keyword scanning so a literal
+		// FILTER(STR(?x) = "INSERT") doesn't trip the forbidden-keyword check.
+		$stripped = preg_replace( '/"(?:\\\\.|[^"\\\\])*"/', '""', $sparql );
+		$stripped = preg_replace( "/'(?:\\\\.|[^'\\\\])*'/", "''", $stripped );
+		$stripped = preg_replace( '/<[^>]*>/', '<>', $stripped );
+		$upper = strtoupper( trim( $stripped ) );
 
 		$forbidden = [ 'INSERT', 'DELETE', 'DROP', 'CLEAR', 'LOAD', 'CREATE', 'ADD', 'MOVE', 'COPY' ];
 		foreach ( $forbidden as $keyword ) {
-			// Match whole-word to avoid false positives inside IRIs or string literals
 			if ( preg_match( '/\b' . $keyword . '\b/', $upper ) ) {
 				wfDebugLog( 'Wanda', 'WikidataQueryHandler: forbidden SPARQL keyword "' . $keyword . '"' );
 				return false;
 			}
 		}
 
-		// Must contain at least one read-form keyword
-		if ( !preg_match( '/\b(SELECT|CONSTRUCT|ASK|DESCRIBE)\b/i', $sparql ) ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler: SPARQL lacks SELECT/CONSTRUCT/ASK/DESCRIBE' );
+		// Must contain a read-form keyword. ASK/CONSTRUCT/DESCRIBE are intentionally
+		// excluded — the prompt promises SELECT and the rest of the pipeline assumes it.
+		if ( !preg_match( '/\bSELECT\b/i', $stripped ) ) {
+			wfDebugLog( 'Wanda', 'WikidataQueryHandler: SPARQL lacks SELECT' );
 			return false;
 		}
 
@@ -406,15 +530,31 @@ class WikidataQueryHandler {
 	private function executeSparqlQuery( string $sparql, ?string &$error = null ): ?array {
 		$sparql = $this->ensurePrefixes( $sparql );
 
-		$url = rtrim( $this->sparqlEndpoint, '/' ) . '?query=' . urlencode( $sparql ) . '&format=json';
-
-		$response = $this->curlGet( $url, [
-			'Accept: application/sparql-results+json',
-			'User-Agent: Wanda-MediaWiki-Extension/2.0 (https://www.mediawiki.org/wiki/Extension:Wanda)',
+		$url = rtrim( $this->sparqlEndpoint, '/' );
+		$body = http_build_query( [
+			'query'   => $sparql,
+			'format'  => 'json',
+			'timeout' => self::SPARQL_SERVER_TIMEOUT_MS,
 		] );
+		$headers = [
+			'Content-Type: application/x-www-form-urlencoded',
+			'Accept: application/sparql-results+json',
+			'User-Agent: ' . self::USER_AGENT,
+		];
+
+		$httpCode = 0;
+		$response = $this->curlPost( $url, $body, $headers, $httpCode, $this->sparqlTimeout );
+
+		// Retry once on transient endpoint errors (rate-limit / gateway issues)
+		if ( $response === null && in_array( $httpCode, [ 429, 502, 503, 504 ], true ) ) {
+			usleep( 1000000 );
+			$response = $this->curlPost( $url, $body, $headers, $httpCode, $this->sparqlTimeout );
+		}
 
 		if ( $response === null ) {
-			$error = 'Failed to reach SPARQL endpoint';
+			$error = $httpCode > 0
+				? 'SPARQL endpoint returned HTTP ' . $httpCode . ' (malformed query?)'
+				: 'Failed to reach SPARQL endpoint';
 			return null;
 		}
 
@@ -423,11 +563,6 @@ class WikidataQueryHandler {
 			$error = 'Invalid JSON from SPARQL endpoint: ' . json_last_error_msg();
 			wfDebugLog( 'Wanda', 'WikidataQueryHandler: ' . $error );
 			return null;
-		}
-
-		// Handle ASK query boolean result
-		if ( isset( $data['boolean'] ) ) {
-			return [ [ 'result' => $data['boolean'] ? 'true' : 'false' ] ];
 		}
 
 		$bindings = $data['results']['bindings'] ?? null;
@@ -449,8 +584,9 @@ class WikidataQueryHandler {
 				$type = $valueObj['type'] ?? '';
 
 				if ( $type === 'uri' ) {
-					// Shorten Wikidata entity URIs to just the Q/P identifier
-					if ( preg_match( '/(Q\d+|P\d+)$/', $value, $m ) ) {
+					// Shorten Wikidata URIs to just the Q/P identifier. Matches both
+					// entity IRIs (.../entity/Q42) and statement IRIs (.../statement/Q42-uuid).
+					if ( preg_match( '#/(Q\d+|P\d+)(?:[-#].*)?$#', $value, $m ) ) {
 						$value = $m[1];
 					}
 				}
@@ -494,8 +630,9 @@ class WikidataQueryHandler {
 	): ?array {
 		$maxPreviousChars = 4000;
 		if ( strlen( $previousResults ) > $maxPreviousChars ) {
-			$previousResults = substr( $previousResults, 0, $maxPreviousChars ) .
-				"\n[... earlier results truncated ...]";
+			// Keep the tail — the most recent step is most relevant for the next query.
+			$previousResults = "[... earlier results truncated ...]\n" .
+				substr( $previousResults, -$maxPreviousChars );
 		}
 
 		$prompt = PromptTemplate::render( 'wikidata-followup', [
@@ -713,9 +850,14 @@ class WikidataQueryHandler {
 			]
 		];
 
+		// Accept any of: ".../api", ".../api/", ".../api/generate" — normalize to /api/generate
+		$base = rtrim( $this->llmApiEndpoint, '/' );
+		if ( substr( $base, -strlen( '/generate' ) ) !== '/generate' ) {
+			$base .= '/generate';
+		}
 		$response = $this->curlPost(
-			rtrim( $this->llmApiEndpoint, '/' ) . '/generate',
-			json_encode( $payload ),
+			$base,
+			json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
 			[ 'Content-Type: application/json' ]
 		);
 
@@ -753,7 +895,7 @@ class WikidataQueryHandler {
 
 		$response = $this->curlPost(
 			'https://api.openai.com/v1/chat/completions',
-			json_encode( $payload ),
+			json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
 			$headers
 		);
 
@@ -777,7 +919,7 @@ class WikidataQueryHandler {
 				unset( $payload[$tokenKey] );
 				$response = $this->curlPost(
 					'https://api.openai.com/v1/chat/completions',
-					json_encode( $payload ),
+					json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
 					$headers
 				);
 				$json = $response !== null ? json_decode( $response, true ) : null;
@@ -799,7 +941,7 @@ class WikidataQueryHandler {
 		}
 
 		$payload = [
-			'model'       => $this->llmModel ?: 'claude-3-haiku-20240307',
+			'model'       => $this->llmModel ?: 'claude-haiku-4-5-20251001',
 			'messages'    => [ [ 'role' => 'user', 'content' => $prompt ] ],
 			'max_tokens'  => $maxTokens,
 			'temperature' => $temperature,
@@ -807,7 +949,7 @@ class WikidataQueryHandler {
 
 		$response = $this->curlPost(
 			'https://api.anthropic.com/v1/messages',
-			json_encode( $payload ),
+			json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
 			[
 				'Content-Type: application/json',
 				'x-api-key: ' . $this->llmApiKey,
@@ -847,7 +989,7 @@ class WikidataQueryHandler {
 
 		$response = $this->curlPost(
 			$this->llmApiEndpoint,
-			json_encode( $payload ),
+			json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
 			[
 				'Content-Type: application/json',
 				'api-key: ' . $this->llmApiKey,
@@ -891,7 +1033,11 @@ class WikidataQueryHandler {
 			],
 		];
 
-		$response = $this->curlPost( $url, json_encode( $payload ), [ 'Content-Type: application/json' ] );
+		$response = $this->curlPost(
+			$url,
+			json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+			[ 'Content-Type: application/json' ]
+		);
 		if ( $response === null ) {
 			return null;
 		}
@@ -905,18 +1051,25 @@ class WikidataQueryHandler {
 	 * @param string $url
 	 * @param string $data
 	 * @param array $headers
+	 * @param int &$outHttpCode Populated with the HTTP response code (0 on cURL error)
 	 * @return string|null Response body or null on failure
 	 */
-	private function curlPost( string $url, string $data, array $headers ): ?string {
+	private function curlPost(
+		string $url,
+		string $data,
+		array $headers,
+		int &$outHttpCode = 0,
+		?int $timeoutOverride = null
+	): ?string {
 		$ch = curl_init( $url );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, 'POST' );
 		curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, $this->timeout );
+		curl_setopt( $ch, CURLOPT_TIMEOUT, $timeoutOverride ?? $this->timeout );
 		curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
 
 		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		$outHttpCode = (int)curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 		$curlError = curl_error( $ch );
 		unset( $ch );
 
@@ -924,8 +1077,8 @@ class WikidataQueryHandler {
 			wfDebugLog( 'Wanda', 'WikidataQueryHandler cURL POST error: ' . $curlError );
 			return null;
 		}
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler POST HTTP ' . $httpCode . ': ' .
+		if ( $outHttpCode !== 200 ) {
+			wfDebugLog( 'Wanda', 'WikidataQueryHandler POST HTTP ' . $outHttpCode . ': ' .
 				substr( (string)$response, 0, 300 ) );
 			return null;
 		}
@@ -937,9 +1090,10 @@ class WikidataQueryHandler {
 	 *
 	 * @param string $url
 	 * @param array $headers
+	 * @param int &$outHttpCode Populated with the HTTP response code (0 on cURL error)
 	 * @return string|null Response body or null on failure
 	 */
-	private function curlGet( string $url, array $headers = [] ): ?string {
+	private function curlGet( string $url, array $headers = [], int &$outHttpCode = 0 ): ?string {
 		$ch = curl_init( $url );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		curl_setopt( $ch, CURLOPT_TIMEOUT, $this->timeout );
@@ -950,7 +1104,7 @@ class WikidataQueryHandler {
 		}
 
 		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		$outHttpCode = (int)curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 		$curlError = curl_error( $ch );
 		unset( $ch );
 
@@ -958,8 +1112,8 @@ class WikidataQueryHandler {
 			wfDebugLog( 'Wanda', 'WikidataQueryHandler cURL GET error: ' . $curlError );
 			return null;
 		}
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler GET HTTP ' . $httpCode . ' for: ' . $url );
+		if ( $outHttpCode !== 200 ) {
+			wfDebugLog( 'Wanda', 'WikidataQueryHandler GET HTTP ' . $outHttpCode . ' for: ' . $url );
 			return null;
 		}
 		return $response;
