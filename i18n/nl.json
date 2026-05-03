@@ -59,7 +59,6 @@
 	"wanda-toggle-memory-aria": "Gespreksgeheugen in-/uitschakelen",
 	"apihelp-wandachat-param-images": "Door sluistekens (|) gescheiden lijst met de titels van de bij te voegen afbeeldingen (bijvoorbeeld \"Bestand:Voorbeeld.jpg|Bestand:Afbeelding2.png\")",
 	"apihelp-wandachat-param-conversationhistory": "Een JSON-gecodeerde array van eerdere gespreksberichten, elk met de velden 'rol' en 'inhoud'.",
-	"apihelp-wandachat-param-memorydisabled": "Of het gespreksgeheugen voor dit verzoek moet worden uitgeschakeld",
 	"wanda-cargo-query-error": "Het lukte niet om gestructureerde gegevens voor deze vraag op te halen.",
 	"wanda-cargo-no-tables": "Er zijn geen Cargo-tabellen beschikbaar voor zoekopdrachten.",
 	"wanda-cargo-query-failed": "De zoekopdracht voor gestructureerde gegevens leverde geen resultaten op.",

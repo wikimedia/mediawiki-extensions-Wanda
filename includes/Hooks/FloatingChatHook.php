@@ -36,8 +36,7 @@ class FloatingChatHook {
 			'WandaEnableAttachments' => $config->get( 'WandaEnableAttachments' ),
 			'WandaMaxImageSize' => $config->get( 'WandaMaxImageSize' ),
 			'WandaMaxImageCount' => $config->get( 'WandaMaxImageCount' ),
-			'WandaShowConfidenceScore' => $config->get( 'WandaShowConfidenceScore' ),
-			'WandaEnableConversationMemory' => $config->get( 'WandaEnableConversationMemory' )
+			'WandaShowConfidenceScore' => $config->get( 'WandaShowConfidenceScore' )
 		] );
 
 		// Add the floating chat module to all other pages

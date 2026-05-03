@@ -89,7 +89,7 @@ class APIChat extends ApiBase {
 		self::$skipESQuery = $this->getConfig()->get( 'WandaSkipESQuery' ) ?? false;
 		self::$useContentLang = $this->getConfig()->get( 'WandaUseContentLang' ) ?? false;
 		self::$vectorSearchMinScore = $this->getConfig()->get( 'WandaVectorSearchMinScore' ) ?? 1.7;
-		self::$enableConversationMemory = $this->getConfig()->get( 'WandaEnableConversationMemory' ) ?? true;
+		self::$enableConversationMemory = true;
 		self::$conversationMaxChars = $this->getConfig()->get( 'WandaConversationMaxChars' ) ?? 6000;
 		self::$cargoExcludedTables = $this->getConfig()->get( 'WandaCargoExcludedTables' ) ?? [];
 		self::$cargoMaxQuerySteps = $this->getConfig()->get( 'WandaCargoMaxQuerySteps' ) ?? 3;
@@ -125,9 +125,15 @@ class APIChat extends ApiBase {
 		self::$enableWikidataQueries = in_array( 'wikidata', $requestedSources );
 		self::$enableCargoQueries = in_array( 'cargo', $requestedSources );
 
+		$conversationMemoryEnabled = $params['conversationmemoryenabled'] ?? true;
+
 		// Parse conversation history if provided and enabled
 		$conversationHistory = [];
-		if ( self::$enableConversationMemory && !empty( $params['conversationhistory'] ) ) {
+		if (
+			self::$enableConversationMemory &&
+			$conversationMemoryEnabled &&
+			!empty( $params['conversationhistory'] )
+		) {
 			$decoded = json_decode( $params['conversationhistory'], true );
 			if ( is_array( $decoded ) ) {
 				$conversationHistory = $this->truncateConversationHistory( $decoded );
@@ -189,8 +195,6 @@ class APIChat extends ApiBase {
 			$contextStr = ( $contextStr ? $contextStr . "\n\n" : "" ) . $imageContext;
 		}
 
-		$memoryDisabled = !empty( $params['memorydisabled'] );
-
 		// Cargo structured data retrieval
 		$cargoSources = [];
 		$cargoSteps = [];
@@ -251,7 +255,7 @@ class APIChat extends ApiBase {
 			$userLang,
 			$contentLang,
 			$conversationHistory,
-			$memoryDisabled,
+			$conversationMemoryEnabled,
 			$cargoContext,
 			$wikidataContext
 		);
@@ -1646,7 +1650,7 @@ class APIChat extends ApiBase {
 		$userLang = 'en',
 		$contentLang = 'en',
 		$conversationHistory = [],
-		$memoryDisabled = false,
+		$conversationMemoryEnabled = true,
 		$cargoContext = '',
 		$wikidataContext = ''
 	) {
@@ -1654,7 +1658,7 @@ class APIChat extends ApiBase {
 			return false;
 		}
 
-		if ( $memoryDisabled ) {
+		if ( !$conversationMemoryEnabled ) {
 			$conversationHistory = [];
 		}
 
@@ -1749,7 +1753,7 @@ class APIChat extends ApiBase {
 		}
 
 		// If user explicitly disabled memory, add instruction to system prompt
-		if ( $memoryDisabled ) {
+		if ( !$conversationMemoryEnabled ) {
 			$systemPrompt .= "\n\nIMPORTANT: Conversation memory has been disabled by the user. " .
 				"You have NO access to any previous conversation history. " .
 				"If the user asks about previous messages, earlier discussions, 
@@ -1884,7 +1888,7 @@ class APIChat extends ApiBase {
 				ParamValidator::PARAM_DEFAULT => '',
 				ParamValidator::PARAM_REQUIRED => false
 			],
-			"memorydisabled" => [
+			"conversationmemoryenabled" => [
 				ParamValidator::PARAM_TYPE => 'boolean',
 				ParamValidator::PARAM_DEFAULT => false,
 				ParamValidator::PARAM_REQUIRED => false

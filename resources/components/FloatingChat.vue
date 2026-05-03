@@ -84,7 +84,6 @@
 
         <div class="chat-input-container">
           <cdx-checkbox
-            v-if="conversationMemoryAvailable"
             v-model="conversationMemoryEnabled"
             id="wanda-floating-toggle-conversation-memory"
             :aria-label="msg('wanda-toggle-memory-aria')"
@@ -255,8 +254,7 @@ module.exports = exports = {
       showConfidenceScore: !!mw.config.get( 'WandaShowConfidenceScore' ),
       cdxIconImage: cdxIconImage,
       cdxIconTrash: cdxIconTrash,
-      conversationMemoryAvailable: !!mw.config.get( 'WandaEnableConversationMemory' ),
-      conversationMemoryEnabled: !!mw.config.get( 'WandaEnableConversationMemory' ),
+      conversationMemoryEnabled: true,
       conversationHistory: [],
       conversationImages: []
     };
@@ -269,27 +267,25 @@ module.exports = exports = {
   mounted() {
     document.addEventListener( 'click', this.onDocumentClick );
     // Restore conversation state from sessionStorage
-    if ( this.conversationMemoryAvailable ) {
-      try {
-        const savedToggle = sessionStorage.getItem( 'wanda-floating-memory-enabled' );
-        if ( savedToggle !== null ) {
-          this.conversationMemoryEnabled = savedToggle === 'true';
-        }
-        const saved = sessionStorage.getItem( 'wanda-floating-conversation-history' );
-        const savedMessages = sessionStorage.getItem( 'wanda-floating-conversation-messages' );
-        if ( saved ) {
-          this.conversationHistory = JSON.parse( saved );
-        }
-        if ( savedMessages ) {
-          this.messages = JSON.parse( savedMessages );
-        }
-        const savedImages = sessionStorage.getItem( 'wanda-floating-conversation-images' );
-        if ( savedImages ) {
-          this.conversationImages = JSON.parse( savedImages );
-        }
-      } catch ( e ) {
-        // Ignore parse errors
+    try {
+      const savedToggle = sessionStorage.getItem( 'wanda-floating-memory-enabled' );
+      if ( savedToggle !== null ) {
+        this.conversationMemoryEnabled = savedToggle === 'true';
       }
+      const saved = sessionStorage.getItem( 'wanda-floating-conversation-history' );
+      const savedMessages = sessionStorage.getItem( 'wanda-floating-conversation-messages' );
+      if ( saved ) {
+        this.conversationHistory = JSON.parse( saved );
+      }
+      if ( savedMessages ) {
+        this.messages = JSON.parse( savedMessages );
+      }
+      const savedImages = sessionStorage.getItem( 'wanda-floating-conversation-images' );
+      if ( savedImages ) {
+        this.conversationImages = JSON.parse( savedImages );
+      }
+    } catch ( e ) {
+      // Ignore parse errors
     }
   },
   beforeUnmount() {
@@ -748,7 +744,8 @@ module.exports = exports = {
           action: 'wandachat',
           format: 'json',
           message: userText,
-          sources: sourcesToSend.join( '|' )
+          sources: sourcesToSend.join( '|' ),
+          conversationmemoryenabled: !!this.conversationMemoryEnabled
         };
 
         if ( imagesToSend.length > 0 ) {
@@ -763,11 +760,6 @@ module.exports = exports = {
         // Send conversation history if memory is enabled
         if ( this.conversationMemoryEnabled && this.conversationHistory.length > 0 ) {
           postData.conversationhistory = JSON.stringify( this.conversationHistory );
-        }
-
-        // Tell backend memory is disabled so LLM can respond appropriately
-        if ( this.conversationMemoryAvailable && !this.conversationMemoryEnabled ) {
-          postData.memorydisabled = true;
         }
 
         const data = await api.post( postData );

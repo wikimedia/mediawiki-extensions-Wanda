@@ -60,7 +60,7 @@
 	"wanda-toggle-memory-aria": "Toggle conversation memory",
 	"apihelp-wandachat-param-images": "Pipe-separated list of image titles to attach (e.g., 'File:Example.jpg|File:Image2.png')",
 	"apihelp-wandachat-param-conversationhistory": "JSON-encoded array of previous conversation messages, each with 'role' and 'content' fields.",
-	"apihelp-wandachat-param-memorydisabled": "Whether to disable conversation memory for this request",
+	"apihelp-wandachat-param-conversationmemoryenabled": "Whether to remember this conversation",
 	"wanda-cargo-query-error": "Unable to retrieve structured data for this question.",
 	"wanda-cargo-no-tables": "No Cargo tables are available for querying.",
 	"wanda-cargo-query-failed": "The structured data query did not return any results.",

@@ -94,6 +94,7 @@
 				"wanda-toggle-memory-label",
 				"wanda-toggle-memory-aria",
 				"apihelp-wandachat-param-images",
+				"apihelp-wandachat-param-conversationmemoryenabled",
 				"apihelp-wandachat-param-sources",
 				"wanda-thinking-label"
 			],
@@ -161,6 +162,7 @@
 				"wanda-toggle-memory-label",
 				"wanda-toggle-memory-aria",
 				"apihelp-wandachat-param-images",
+				"apihelp-wandachat-param-conversationmemoryenabled",
 				"apihelp-wandachat-param-sources",
 				"wanda-thinking-label"
 			],
@@ -201,7 +203,6 @@
 		"WandaMaxImageSize": 5242880,
 		"WandaMaxImageCount": 10,
 		"WandaShowConfidenceScore": false,
-		"WandaEnableConversationMemory": true,
 		"WandaConversationMaxChars": 6000,
 		"WandaCargoExcludedTables": [],
 		"WandaCargoMaxQuerySteps": 3,

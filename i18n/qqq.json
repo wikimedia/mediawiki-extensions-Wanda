@@ -60,7 +60,7 @@
 	"wanda-toggle-memory-aria": "ARIA label for the conversation memory toggle checkbox",
 	"apihelp-wandachat-param-images": "{{doc-apihelp-param|wandachat|images}}",
 	"apihelp-wandachat-param-conversationhistory": "{{doc-apihelp-param|wandachat|conversationhistory}}",
-	"apihelp-wandachat-param-memorydisabled": "{{doc-apihelp-param|wandachat|memorydisabled}}",
+	"apihelp-wandachat-param-conversationmemoryenabled": "{{doc-apihelp-param|wandachat|conversationmemoryenabled}}",
 	"wanda-cargo-query-error": "Error message when a Cargo structured data query fails to execute",
 	"wanda-cargo-no-tables": "Message displayed when no Cargo tables are available for querying",
 	"wanda-cargo-query-failed": "Message displayed when a Cargo query returns no results",

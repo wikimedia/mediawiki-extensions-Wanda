@@ -58,7 +58,6 @@
 	"wanda-toggle-memory-aria": "Activar/Desactivar a memoria de conversa",
 	"apihelp-wandachat-param-images": "Lista de títulos de imaxes a anexar, separadas por barras verticais (por exemplo, «Ficheiro:Exemplo.jpg|Ficheiro:Imaxe2.png»)",
 	"apihelp-wandachat-param-conversationhistory": "Matriz codificada en JSON coas mensaxes de conversas anteriores, cada unha cos campos «role» e «content».",
-	"apihelp-wandachat-param-memorydisabled": "Indica se se debe desactivar a memoria de conversa para esta solicitude",
 	"wanda-cargo-query-error": "Non se puideron recuperar os datos estruturados para esta pregunta.",
 	"wanda-cargo-no-tables": "Non hai táboas de Cargo dispoñibles para as consultas.",
 	"wanda-cargo-query-failed": "A consulta de datos estruturados non devolveu ningún resultado.",
