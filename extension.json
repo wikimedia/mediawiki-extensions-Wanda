@@ -203,7 +203,6 @@
 		"WandaShowConfidenceScore": false,
 		"WandaEnableConversationMemory": true,
 		"WandaConversationMaxChars": 6000,
-		"WandaEnableCargoQueries": false,
 		"WandaCargoExcludedTables": [],
 		"WandaCargoMaxQuerySteps": 3,
 		"WandaSparqlEndpoint": "https://query.wikidata.org/sparql",

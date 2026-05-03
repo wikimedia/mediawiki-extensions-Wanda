@@ -76,7 +76,6 @@ $wgWandaAutoReindex = true; // Automatically reindex content after update.php
 $wgWandaSkipESQuery = false; //Skip Elastic Search
 
 // Cargo structured data integration
-$wgWandaEnableCargoQueries = false; // Enable querying Cargo tables for structured data
 $wgWandaCargoExcludedTables = []; // Array of Cargo table names to exclude from queries
 ```
 
@@ -210,11 +209,9 @@ Wanda can query structured data stored in [Cargo](https://www.mediawiki.org/wiki
 ### Setup
 
 1. Install and configure the Cargo extension
-2. Enable Cargo queries in `LocalSettings.php`:
+2. (Optional) Exclude specific tables in `LocalSettings.php`:
 
 ```php
-$wgWandaEnableCargoQueries = true;
-
 // Optionally exclude specific tables
 $wgWandaCargoExcludedTables = ['InternalTable', 'TempData'];
 ```

@@ -91,7 +91,6 @@ class APIChat extends ApiBase {
 		self::$vectorSearchMinScore = $this->getConfig()->get( 'WandaVectorSearchMinScore' ) ?? 1.7;
 		self::$enableConversationMemory = $this->getConfig()->get( 'WandaEnableConversationMemory' ) ?? true;
 		self::$conversationMaxChars = $this->getConfig()->get( 'WandaConversationMaxChars' ) ?? 6000;
-		self::$enableCargoQueries = $this->getConfig()->get( 'WandaEnableCargoQueries' ) ?? false;
 		self::$cargoExcludedTables = $this->getConfig()->get( 'WandaCargoExcludedTables' ) ?? [];
 		self::$cargoMaxQuerySteps = $this->getConfig()->get( 'WandaCargoMaxQuerySteps' ) ?? 3;
 		self::$sparqlEndpoint = $this->getConfig()->get( 'WandaSparqlEndpoint' ) ??
@@ -124,11 +123,7 @@ class APIChat extends ApiBase {
 			self::$skipESQuery = true;
 		}
 		self::$enableWikidataQueries = in_array( 'wikidata', $requestedSources );
-		if ( in_array( 'cargo', $requestedSources ) ) {
-			self::$enableCargoQueries = true;
-		} elseif ( !empty( $params['sources'] ) ) {
-			self::$enableCargoQueries = false;
-		}
+		self::$enableCargoQueries = in_array( 'cargo', $requestedSources );
 
 		// Parse conversation history if provided and enabled
 		$conversationHistory = [];
