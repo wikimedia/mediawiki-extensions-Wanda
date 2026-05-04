@@ -1,10 +1,14 @@
 {
 	"@metadata": {
 		"authors": [
+			"Tensama0415",
 			"Ykhwong"
 		]
 	},
+	"wanda-desc": "미디어위키를 위한 챗봇",
+	"wanda-close": "닫기",
 	"wanda-clear-conversation": "대화 지우기",
 	"wanda-clear-conversation-aria": "대화 내역 삭제",
-	"wanda-toggle-memory-label": "대화 기억하기"
+	"wanda-toggle-memory-label": "대화 기억하기",
+	"wanda-thinking-label": "생각 표시"
 }

@@ -58,5 +58,11 @@
 	"wanda-cargo-no-tables": "Es sind keine Cargo-Tabellen für Abfragen verfügbar.",
 	"wanda-cargo-query-failed": "Die Abfrage der strukturierten Daten hat keine Ergebnisse geliefert.",
 	"wanda-cargo-multistep-max-reached": "Die maximale Anzahl an Abfrageschritten für Cargo wurde erreicht ($1).",
-	"wanda-thinking-label": "Denkprozess darstellen"
+	"wanda-thinking-label": "Denkprozess darstellen",
+	"wanda-wikidata-query-error": "Zu dieser Frage konnten keine Wikidata-Informationen abgerufen werden.",
+	"wanda-wikidata-no-results": "Die Wikidata-Abfrage lieferte keine Ergebnisse.",
+	"wanda-wikidata-sparql-error": "Die SPARQL-Abfrage konnte nicht ausgeführt werden.",
+	"wanda-wikidata-multistep-max-reached": "Die maximale Anzahl an Wikidata-Abfrageschritten wurde erreicht ($1).",
+	"apihelp-wandachat-param-wikidatalang": "BCP-47-Sprachcode für Wikidata-Labels (z. B. „en“, „de“, „fr“). Standardmäßig wird die konfigurierte WandaWikidataLang verwendet.",
+	"apihelp-wandachat-param-sources": "Durch Pipes getrennte Liste der abzurufenden Quellen (z. B. „wiki|wikidata|cargo“). Unterstützte Werte: wiki, wikidata, cargo, publicknowledge. Standardwert: „wiki“."
 }
