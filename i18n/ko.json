@@ -1,7 +1,9 @@
 {
 	"@metadata": {
 		"authors": [
-			"Ykhwong"
+			"Ykhwong",
+			"Tensama0415"
 		]
-	}
+	},
+	"wanda-desc": "미디어위키를 위한 챗봇"
 }
