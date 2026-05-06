@@ -58,9 +58,17 @@
 	"wanda-toggle-memory-aria": "Activar/Desactivar a memoria de conversa",
 	"apihelp-wandachat-param-images": "Lista de títulos de imaxes a anexar, separadas por barras verticais (por exemplo, «Ficheiro:Exemplo.jpg|Ficheiro:Imaxe2.png»)",
 	"apihelp-wandachat-param-conversationhistory": "Matriz codificada en JSON coas mensaxes de conversas anteriores, cada unha cos campos «role» e «content».",
+	"apihelp-wandachat-param-conversationmemoryenabled": "Indica se lembrar ou non esta conversa",
 	"wanda-cargo-query-error": "Non se puideron recuperar os datos estruturados para esta pregunta.",
 	"wanda-cargo-no-tables": "Non hai táboas de Cargo dispoñibles para as consultas.",
 	"wanda-cargo-query-failed": "A consulta de datos estruturados non devolveu ningún resultado.",
 	"wanda-cargo-multistep-max-reached": "Alcanzouse o número máximo de pasos da consulta de Cargo ($1).",
-	"wanda-thinking-label": "Mostrar o razonamento"
+	"wanda-thinking-label": "Mostrar o razonamento",
+	"wanda-wikidata-query-error": "Non se pode recuperar a información de Wikidata para esta pregunta.",
+	"wanda-wikidata-no-results": "A consulta de Wikidata non devolveu ningún resultado.",
+	"wanda-wikidata-sparql-error": "Non se puido executar a consulta SPARQL.",
+	"wanda-wikidata-multistep-max-reached": "Alcanzouse o número máximo de pasos da consulta de Wikidata ($1).",
+	"apihelp-wandachat-param-wikidataonly": "Omitir o contexto do wiki e mais de Elasticsearch; responder usando só datos de Wikidata",
+	"apihelp-wandachat-param-wikidatalang": "Código de lingua BCP-47 para as etiquetas de Wikidata (por exemplo, «en», «de», «fr»). O valor predeterminado é o «WandaWikidataLang» configurado.",
+	"apihelp-wandachat-param-sources": "Lista de fontes separadas por barras verticais para usar na recuperación (por exemplo, «wiki|wikidata|cargo»). Valores admitidos: «wiki», «wikidata», «cargo», «publicknowledge». O valor predeterminado é «wiki»."
 }
