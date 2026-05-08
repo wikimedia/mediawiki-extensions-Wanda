@@ -29,6 +29,7 @@
 	"wanda-api-error-temperature-invalid": "잘못된 온도 값입니다. 0.0에서 1.0 사이의 숫자를 입력해 주세요.",
 	"wanda-api-error-temperature-outofrange": "온도 값이 허용 범위를 벗어났습니다. 0.0에서 1.0 사이의 숫자를 입력해 주세요.",
 	"wanda-api-error-config-invalid": "채팅 서비스가 제대로 구성되지 않았습니다. 관리자에게 문의하세요.",
+	"wanda-api-error-no-index": "색인이 없어서 관련 위키 정보를 찾을 수 없습니다. 콘텐츠가 색인화되었는지 확인해 주세요.",
 	"wanda-api-error-no-results": "위키에서 해당 주제에 관련된 정보를 찾을 수 없었습니다.",
 	"wanda-api-error-generation-failed": "현재 응답을 생성하는 데 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",
 	"wanda-api-error-openai-key": "OpenAI API 키가 구성되지 않았습니다.",
