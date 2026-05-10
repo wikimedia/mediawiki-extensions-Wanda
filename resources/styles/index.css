@@ -143,9 +143,22 @@
     white-space: nowrap;
 }
 
-.wanda-sources-row .wanda-source-selector {
+.wanda-source-selector {
     flex: 1 1 auto;
     min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.wanda-source-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.95rem;
+}
+
+.wanda-sources-row .wanda-source-selector {
     margin-bottom: 0;
 }
 

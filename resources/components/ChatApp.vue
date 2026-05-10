@@ -86,14 +86,21 @@
       <div class="wanda-question-card">
         <div class="wanda-sources-row">
           <span class="wanda-sources-label">Sources:</span>
-          <cdx-multiselect-lookup
-            id="wanda-source-selector"
-            v-model:input-chips="chips"
-            v-model:selected="selectedValues"
-            :menu-items="menuItems"
-            class="wanda-source-selector"
-            @input="onInput"
-          ></cdx-multiselect-lookup>
+          <div class="wanda-source-selector">
+            <label
+              v-for="opt in sourceOptions"
+              :key="opt.value"
+              class="wanda-source-checkbox"
+            >
+              <input
+                type="checkbox"
+                :value="opt.value"
+                :checked="selectedValues.includes( opt.value )"
+                @change="toggleSource( opt.value, $event.target.checked )"
+              />
+              {{ opt.label }}
+            </label>
+          </div>
         </div>
 
         <div class="wanda-attached-images" v-if="attachedImages.length > 0">
@@ -190,7 +197,7 @@
 </template>
 
 <script>
-const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxMultiselectLookup } = require( '../../codex.js' );
+const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion } = require( '../../codex.js' );
 const { cdxIconImage } = require( '../../icons.json' );
 const { ref } = require( 'vue' );
 
@@ -208,25 +215,25 @@ const ALL_SOURCE_OPTIONS = BASE_SOURCE_OPTIONS.concat(
 
 module.exports = exports = {
   name: 'ChatApp',
-  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxMultiselectLookup },
+  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion },
   setup() {
-    const chips = ref( [ { value: 'wiki', label: 'Wiki' } ] );
     const selectedValues = ref( [ 'wiki' ] );
-    const menuItems = ref( [] );
 
-    function onInput( value ) {
-      const q = value ? value.toLowerCase() : '';
-      menuItems.value = ALL_SOURCE_OPTIONS.filter(
-        ( opt ) => !selectedValues.value.includes( opt.value ) &&
-          ( !q || opt.label.toLowerCase().includes( q ) )
-      );
+    function toggleSource( value, checked ) {
+      const idx = selectedValues.value.indexOf( value );
+      if ( checked ) {
+        if ( idx === -1 ) {
+          selectedValues.value.push( value );
+        }
+      } else if ( idx !== -1 ) {
+        selectedValues.value.splice( idx, 1 );
+      }
     }
 
     return {
-      chips,
       selectedValues,
-      menuItems,
-      onInput
+      sourceOptions: ALL_SOURCE_OPTIONS,
+      toggleSource
     };
   },
   data() {

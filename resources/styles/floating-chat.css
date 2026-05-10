@@ -223,9 +223,22 @@
     white-space: nowrap;
 }
 
-.wanda-floating-chat .wanda-sources-row .wanda-source-selector {
+.wanda-floating-chat .wanda-source-selector {
     flex: 1 1 auto;
     min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.wanda-floating-chat .wanda-source-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.95rem;
+}
+
+.wanda-floating-chat .wanda-sources-row .wanda-source-selector {
     margin-bottom: 0;
 }
 
