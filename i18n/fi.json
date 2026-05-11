@@ -7,5 +7,8 @@
 	"wanda-clear-conversation": "Poista keskustelu",
 	"wanda-clear-conversation-aria": "Poista keskusteluhistoria",
 	"wanda-toggle-memory-label": "Muista keskustelu",
-	"wanda-thinking-label": "Näytä ajattelu"
+	"apihelp-wandachat-param-conversationmemoryenabled": "Muistetaanko tämä keskustelu",
+	"wanda-thinking-label": "Näytä ajattelu",
+	"wanda-wikidata-query-error": "Tämän kysymyksen Wikidata-tietojen noutaminen epäonnistui.",
+	"wanda-wikidata-multistep-max-reached": "Wikidata-kyselyn vaiheiden enimmäismäärä ($1) on saavutettu."
 }
