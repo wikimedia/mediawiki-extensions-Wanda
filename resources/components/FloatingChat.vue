@@ -222,13 +222,18 @@ const RAG_SOURCE_NAMES = mw.config.get( 'WandaRAGSourceNames' ) || [];
 const ALL_SOURCE_OPTIONS = BASE_SOURCE_OPTIONS.concat(
   RAG_SOURCE_NAMES.map( ( name ) => ( { value: 'RAG:' + name, label: name } ) )
 );
+const DISABLED_SOURCES = mw.config.get( 'WandaDisabledSources' ) || [];
+const AVAILABLE_SOURCE_OPTIONS = ALL_SOURCE_OPTIONS.filter(
+  ( opt ) => !DISABLED_SOURCES.includes( opt.value )
+);
 
 module.exports = exports = {
   name: 'FloatingChat',
   components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion },
   setup() {
-    const selectedValues = ref( [ 'wiki' ] );
-
+    const defaultSource = AVAILABLE_SOURCE_OPTIONS[0] || null;
+    const selectedValues = ref( defaultSource ? [ defaultSource.value ] : [] );
+    
     function toggleSource( value, checked ) {
       const idx = selectedValues.value.indexOf( value );
       if ( checked ) {

@@ -33,6 +33,7 @@ class SpecialAIChat extends SpecialPage {
 
 		$out->addJsConfigVars( [
 			'WandaEnableAttachments' => $config->get( 'WandaEnableAttachments' ),
+			'WandaDisabledSources' => $config->get( 'WandaDisabledSources' ),
 			'WandaMaxImageSize' => $config->get( 'WandaMaxImageSize' ),
 			'WandaMaxImageCount' => $config->get( 'WandaMaxImageCount' ),
 			'WandaShowConfidenceScore' => $config->get( 'WandaShowConfidenceScore' ),

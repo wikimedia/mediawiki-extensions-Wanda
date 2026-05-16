@@ -205,6 +205,7 @@
 		"WandaShowConfidenceScore": false,
 		"WandaConversationMaxChars": 6000,
 		"WandaCargoExcludedTables": [],
+		"WandaDisabledSources": [],
 		"WandaCargoMaxQuerySteps": 3,
 		"WandaSparqlEndpoint": "https://query.wikidata.org/sparql",
 		"WandaWikidataApiEndpoint": "https://www.wikidata.org/w/api.php",

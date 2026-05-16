@@ -34,6 +34,7 @@ class FloatingChatHook {
 		$out->addJsConfigVars( [
 			'WandaShowPopup' => $config->get( 'WandaShowPopup' ),
 			'WandaEnableAttachments' => $config->get( 'WandaEnableAttachments' ),
+			'WandaDisabledSources' => $config->get( 'WandaDisabledSources' ),
 			'WandaMaxImageSize' => $config->get( 'WandaMaxImageSize' ),
 			'WandaMaxImageCount' => $config->get( 'WandaMaxImageCount' ),
 			'WandaShowConfidenceScore' => $config->get( 'WandaShowConfidenceScore' ),
