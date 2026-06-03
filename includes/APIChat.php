@@ -64,6 +64,8 @@ class APIChat extends ApiBase {
 	private static $wikidataMaxQuerySteps = 3;
 	/** @var int Seconds — separate from LLM timeout because WDQS has its own 60s server cap */
 	private static $sparqlTimeout = 60;
+	/** @var array */
+	private static $ragSources = [];
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName );
@@ -102,6 +104,7 @@ class APIChat extends ApiBase {
 		self::$wikidataLang = $this->getConfig()->get( 'WandaWikidataLang' ) ?? 'en';
 		self::$wikidataMaxQuerySteps = $this->getConfig()->get( 'WandaWikidataMaxQuerySteps' ) ?? 3;
 		self::$sparqlTimeout = $this->getConfig()->get( 'WandaSparqlTimeout' ) ?? 60;
+		self::$ragSources = $this->getConfig()->get( 'WandaRAGSources' ) ?? [];
 	}
 
 	public function execute() {
@@ -128,6 +131,12 @@ class APIChat extends ApiBase {
 		self::$enableWikidataQueries = in_array( 'wikidata', $requestedSources );
 		self::$enableCargoQueries = in_array( 'cargo', $requestedSources );
 
+		$selectedRAGNames = [];
+		foreach ( $requestedSources as $src ) {
+			if ( strpos( $src, 'RAG:' ) === 0 ) {
+				$selectedRAGNames[] = substr( $src, 4 );
+			}
+		}
 		$conversationMemoryEnabled = $params['conversationmemoryenabled'] ?? true;
 
 		// Parse conversation history if provided and enabled
@@ -251,6 +260,12 @@ class APIChat extends ApiBase {
 			}
 		}
 
+		// RAG sources: fetch content from configured URLs for each selected source
+		$ragContext = '';
+		if ( !empty( $selectedRAGNames ) && !empty( self::$ragSources ) ) {
+			$ragContext = $this->fetchRAGContext( $selectedRAGNames );
+		}
+
 		$response = $this->generateLLMResponse(
 			$userQuery,
 			$contextStr,
@@ -261,7 +276,8 @@ class APIChat extends ApiBase {
 			$conversationHistory,
 			$conversationMemoryEnabled,
 			$cargoContext,
-			$wikidataContext
+			$wikidataContext,
+			$ragContext
 		);
 		if ( !$response ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-generation-failed' )->text() );
@@ -497,6 +513,62 @@ class APIChat extends ApiBase {
 			'context' => "Attached Images:\n" . implode( "\n\n", $imageContextParts ),
 			'images' => $imageData
 		];
+	}
+
+	/**
+	 * Fetch content from configured RAG source URLs for the selected source names.
+	 *
+	 * @param array $selectedNames RAG source names selected by the user
+	 * @return string Combined context string from all fetched URLs
+	 */
+	private function fetchRAGContext( array $selectedNames ): string {
+		$parts = [];
+		$httpFactory = MediaWikiServices::getInstance()->getHttpRequestFactory();
+
+		foreach ( $selectedNames as $name ) {
+			if ( !isset( self::$ragSources[ $name ] ) ) {
+				continue;
+			}
+
+			$urls = (array)self::$ragSources[ $name ];
+			$urlParts = [];
+
+			foreach ( $urls as $url ) {
+				$url = trim( (string)$url );
+				if ( empty( $url ) || !filter_var( $url, FILTER_VALIDATE_URL ) ) {
+					printf( "invalid URL" );
+					wfDebugLog( 'Wanda', "RAG: Skipping invalid URL: " . $url );
+					continue;
+				}
+
+				$req = $httpFactory->create(
+					$url,
+					[ 'timeout' => self::$timeout ],
+					__METHOD__
+				);
+				$status = $req->execute();
+
+				if ( !$status->isOK() ) {
+					wfDebugLog( 'Wanda', "RAG: Failed to fetch " . $url .
+						" — " . $status->getMessage()->text() );
+					continue;
+				}
+
+				$body = $req->getContent();
+
+				$text = mb_convert_encoding( $body, 'UTF-8', 'UTF-8' );
+				if ( strlen( $text ) > 4000 ) {
+					$text = substr( $text, 0, 4000 ) . "\n[...truncated...]";
+				}
+				$urlParts[] = "--- From: " . $url . " ---\n" . trim( $text );
+			}
+
+			if ( !empty( $urlParts ) ) {
+				$parts[] = "== RAG Source: " . $name . " ==\n" . implode( "\n\n", $urlParts );
+			}
+		}
+
+		return implode( "\n\n", $parts );
 	}
 
 	/**
@@ -1656,7 +1728,8 @@ class APIChat extends ApiBase {
 		$conversationHistory = [],
 		$conversationMemoryEnabled = true,
 		$cargoContext = '',
-		$wikidataContext = ''
+		$wikidataContext = '',
+		$ragContext = ''
 	) {
 		if ( !$userQuery ) {
 			return false;
@@ -1669,9 +1742,10 @@ class APIChat extends ApiBase {
 		$context = trim( (string)$context );
 		$cargoContext = trim( (string)$cargoContext );
 		$wikidataContext = trim( (string)$wikidataContext );
+		$ragContext = trim( (string)$ragContext );
 		$maxContextChars = 10000;
 
-		// Allocate budget across the three context sources so none is dropped silently.
+		// Allocate budget across context sources so none is dropped silently.
 		$wikidataBudget = 0;
 		if ( $wikidataContext !== '' ) {
 			$wikidataBudget = min( 3000, $maxContextChars );
@@ -1688,7 +1762,16 @@ class APIChat extends ApiBase {
 			}
 		}
 
-		$wikiBudget = max( 0, $maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) );
+		$ragBudget = 0;
+		if ( $ragContext !== '' ) {
+			$ragBudget = min( 4000, $maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) );
+			if ( strlen( $ragContext ) > $ragBudget ) {
+				$ragContext = substr( $ragContext, 0, $ragBudget ) . "\n[...truncated...]";
+			}
+		}
+
+		$wikiBudget = max( 0, $maxContextChars - strlen( $wikidataContext ) -
+			strlen( $cargoContext ) - strlen( $ragContext ) );
 		if ( $context !== '' && strlen( $context ) > $wikiBudget ) {
 			$context = substr( $context, 0, $wikiBudget ) . "\n[...truncated...]";
 		}
@@ -1700,6 +1783,10 @@ class APIChat extends ApiBase {
 		if ( $cargoContext !== '' ) {
 			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )
 				. "Structured data from database:\n" . $cargoContext;
+		}
+		if ( $ragContext !== '' ) {
+			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )
+				. "External documents (RAG sources):\n" . $ragContext;
 		}
 		if ( $context !== '' ) {
 			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )

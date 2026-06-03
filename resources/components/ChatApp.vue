@@ -194,12 +194,17 @@ const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextI
 const { cdxIconImage } = require( '../../icons.json' );
 const { ref } = require( 'vue' );
 
-const ALL_SOURCE_OPTIONS = [
+const BASE_SOURCE_OPTIONS = [
   { value: 'wiki', label: 'Wiki' },
   { value: 'wikidata', label: 'Wikidata' },
   { value: 'publicknowledge', label: 'Public knowledge' },
   { value: 'cargo', label: 'Cargo' }
 ];
+
+const RAG_SOURCE_NAMES = mw.config.get( 'WandaRAGSourceNames' ) || [];
+const ALL_SOURCE_OPTIONS = BASE_SOURCE_OPTIONS.concat(
+  RAG_SOURCE_NAMES.map( ( name ) => ( { value: 'RAG:' + name, label: name } ) )
+);
 
 module.exports = exports = {
   name: 'ChatApp',
@@ -485,6 +490,9 @@ module.exports = exports = {
   },
     sourceLabel( value ) {
       const labels = { wiki: 'Wiki', wikidata: 'Wikidata', publicknowledge: 'Public knowledge', cargo: 'Cargo' };
+      if ( value && value.startsWith( 'RAG:' ) ) {
+        return value.slice( 4 );
+      }
       return labels[ value ] || value;
     },
     formatStepDesc( s ) {
