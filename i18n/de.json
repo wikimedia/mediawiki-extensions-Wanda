@@ -64,5 +64,5 @@
 	"wanda-wikidata-sparql-error": "Die SPARQL-Abfrage konnte nicht ausgeführt werden.",
 	"wanda-wikidata-multistep-max-reached": "Die maximale Anzahl an Wikidata-Abfrageschritten wurde erreicht ($1).",
 	"apihelp-wandachat-param-wikidatalang": "BCP-47-Sprachcode für Wikidata-Labels (z. B. „en“, „de“, „fr“). Standardmäßig wird die konfigurierte WandaWikidataLang verwendet.",
-	"apihelp-wandachat-param-sources": "Durch Pipes getrennte Liste der abzurufenden Quellen (z. B. „wiki|wikidata|cargo“). Unterstützte Werte: wiki, wikidata, cargo, publicknowledge. Standardwert: „wiki“."
+	"apihelp-wandachat-param-sources": "Durch Pipes getrennte Liste der abzurufenden Quellen (z. B. „wiki|wikidata|cargo“). Unterstützte Werte: wiki, wikidata, cargo, publicknowledge sowie alle konfigurierten RAG-Quellennamen. Standardwert: „wiki“."
 }
