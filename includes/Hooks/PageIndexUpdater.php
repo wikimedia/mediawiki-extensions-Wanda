@@ -22,6 +22,8 @@ class PageIndexUpdater {
 	/** @var string */
 	private static $llmApiKey;
 	/** @var string */
+	private static $wgproxy;
+	/** @var string */
 	private static $llmApiEndpoint;
 	/** @var int */
 	private static $timeout;
@@ -37,6 +39,7 @@ class PageIndexUpdater {
 		self::$llmModel = $config->get( 'WandaLLMModel' ) ?? 'gemma:2b';
 		self::$llmEmbeddingModel = $config->get( 'WandaLLMEmbeddingModel' ) ?? self::$llmModel;
 		self::$llmApiKey = $config->get( 'WandaLLMApiKey' ) ?? '';
+		self::$wgproxy = $config->get( 'HTTPProxy' ) ?? "";
 		self::$llmApiEndpoint = $config->get( 'WandaLLMApiEndpoint' ) ?? 'http://ollama:11434/api/';
 		self::$timeout = $config->get( 'WandaLLMTimeout' ) ?? 30;
 
@@ -173,7 +176,8 @@ class PageIndexUpdater {
 			self::$llmApiKey,
 			self::$llmApiEndpoint,
 			self::$llmEmbeddingModel,
-			self::$timeout
+			self::$timeout,
+			self::$wgproxy
 		);
 
 		$document = [
@@ -246,7 +250,8 @@ class PageIndexUpdater {
 			self::$llmApiKey,
 			self::$llmApiEndpoint,
 			self::$llmEmbeddingModel,
-			self::$timeout
+			self::$timeout,
+			self::$wgproxy
 		);
 	}
 

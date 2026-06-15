@@ -23,6 +23,8 @@ class APIChat extends ApiBase {
 	/** @var string */
 	private static $llmApiKey;
 	/** @var string */
+	private static $wgproxy;
+	/** @var string */
 	private static $llmApiEndpoint;
 	/** @var int */
 	private static $maxTokens;
@@ -93,6 +95,7 @@ class APIChat extends ApiBase {
 		self::$llmModel = $this->getConfig()->get( 'WandaLLMModel' ) ?? "gemma:2b";
 		self::$llmEmbeddingModel = $this->getConfig()->get( 'WandaLLMEmbeddingModel' ) ?? self::$llmModel;
 		self::$llmApiKey = $this->getConfig()->get( 'WandaLLMApiKey' ) ?? "";
+		self::$wgproxy = MediaWikiServices::getInstance()->getMainConfig()->get( 'HTTPProxy' ) ?? "";
 
 		// Set default endpoint based on provider
 		$defaultEndpoint = "http://ollama:11434/api/";
@@ -870,7 +873,8 @@ class APIChat extends ApiBase {
 			self::$llmApiKey,
 			self::$llmApiEndpoint,
 			self::$llmEmbeddingModel,
-			self::$timeout
+			self::$timeout,
+			self::$wgproxy
 		);
 	}
 
@@ -1085,6 +1089,9 @@ class APIChat extends ApiBase {
 			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 			curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
 			curl_setopt( $ch, CURLOPT_HTTPHEADER, [ 'Content-Type: application/json' ] );
+			if ( !empty( $wgproxy ) ) {
+				curl_setopt( $ch, CURLOPT_PROXY, self::$wgproxy );
+			}
 
 			$response = curl_exec( $ch );
 			$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
@@ -1210,6 +1217,9 @@ class APIChat extends ApiBase {
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
 		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
+		if ( !empty( $wgproxy ) ) {
+			curl_setopt( $ch, CURLOPT_PROXY, self::$wgproxy );
+		}
 
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
@@ -1353,6 +1363,9 @@ class APIChat extends ApiBase {
 				"Content-Type: application/json",
 				"Authorization: Bearer " . self::$llmApiKey
 			] );
+			if ( !empty( $wgproxy ) ) {
+				curl_setopt( $ch, CURLOPT_PROXY, self::$wgproxy );
+			}
 
 			$response = curl_exec( $ch );
 			$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
@@ -1507,6 +1520,9 @@ class APIChat extends ApiBase {
 			"x-api-key: " . self::$llmApiKey,
 			"anthropic-version: 2023-06-01"
 		] );
+		if ( !empty( $wgproxy ) ) {
+			curl_setopt( $ch, CURLOPT_PROXY, self::$wgproxy );
+		}
 
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
@@ -1620,6 +1636,9 @@ class APIChat extends ApiBase {
 			"Content-Type: application/json",
 			"api-key: " . self::$llmApiKey
 		] );
+		if ( !empty( $wgproxy ) ) {
+			curl_setopt( $ch, CURLOPT_PROXY, self::$wgproxy );
+		}
 
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );

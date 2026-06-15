@@ -13,18 +13,19 @@ class EmbeddingGenerator {
 	 * @param string $apiEndpoint API endpoint URL
 	 * @param string $model Model name to use
 	 * @param int $timeout Request timeout in seconds
+	 * @param string $wgproxy optional proxy server
 	 * @return array|null Embedding vector or null on failure
 	 */
-	public static function generate( $text, $provider, $apiKey, $apiEndpoint, $model, $timeout ) {
+	public static function generate( $text, $provider, $apiKey, $apiEndpoint, $model, $timeout, $wgproxy ) {
 		switch ( $provider ) {
 			case 'openai':
-				return self::generateOpenAIEmbedding( $text, $apiKey, $apiEndpoint, $model, $timeout );
+				return self::generateOpenAIEmbedding( $text, $apiKey, $apiEndpoint, $model, $timeout, $wgproxy );
 			case 'ollama':
-				return self::generateOllamaEmbedding( $text, $apiEndpoint, $model, $timeout );
+				return self::generateOllamaEmbedding( $text, $apiEndpoint, $model, $timeout, $wgproxy );
 			case 'gemini':
-				return self::generateGeminiEmbedding( $text, $apiKey, $model, $timeout );
+				return self::generateGeminiEmbedding( $text, $apiKey, $model, $timeout, $wgproxy );
 			case 'azure':
-				return self::generateAzureEmbedding( $text, $apiKey, $apiEndpoint, $model, $timeout );
+				return self::generateAzureEmbedding( $text, $apiKey, $apiEndpoint, $model, $timeout, $wgproxy );
 			default:
 				wfDebugLog( 'Wanda', "Unknown embedding provider: $provider" );
 				return null;
@@ -179,6 +180,7 @@ class EmbeddingGenerator {
 	 * @param string $apiEndpoint API endpoint
 	 * @param string $model Model name
 	 * @param int $timeout Timeout in seconds
+	 * @param string $wgproxy optional proxy server
 	 * @return array Array of embedding vectors
 	 */
 	public static function generateBatch(
@@ -187,7 +189,8 @@ class EmbeddingGenerator {
 		$apiKey,
 		$apiEndpoint,
 		$model,
-		$timeout
+		$timeout,
+		$wgproxy
 	) {
 		$embeddings = [];
 
@@ -198,7 +201,8 @@ class EmbeddingGenerator {
 				$apiKey,
 				$apiEndpoint,
 				$model,
-				$timeout
+				$timeout,
+				$wgproxy
 			);
 			if ( $embedding !== null ) {
 				$embeddings[] = $embedding;
@@ -211,7 +215,7 @@ class EmbeddingGenerator {
 	/**
 	 * Generate OpenAI embeddings
 	 */
-	private static function generateOpenAIEmbedding( $text, $apiKey, $apiEndpoint, $model, $timeout ) {
+	private static function generateOpenAIEmbedding( $text, $apiKey, $apiEndpoint, $model, $timeout, $wgproxy ) {
 		$url = rtrim( $apiEndpoint, '/' ) . '/embeddings';
 		$data = [
 			'input' => $text,
@@ -227,6 +231,9 @@ class EmbeddingGenerator {
 			'Authorization: Bearer ' . $apiKey
 		] );
 		curl_setopt( $ch, CURLOPT_TIMEOUT, $timeout );
+		if ( !empty( $wgproxy ) ) {
+			curl_setopt( $ch, CURLOPT_PROXY, $wgproxy );
+		}
 
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
@@ -253,7 +260,7 @@ class EmbeddingGenerator {
 	/**
 	 * Generate Ollama embeddings
 	 */
-	private static function generateOllamaEmbedding( $text, $apiEndpoint, $model, $timeout ) {
+	private static function generateOllamaEmbedding( $text, $apiEndpoint, $model, $timeout, $wgproxy ) {
 		$url = rtrim( $apiEndpoint, '/' ) . '/embed';
 		$data = [
 			'model' => $model,
@@ -266,6 +273,9 @@ class EmbeddingGenerator {
 		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $data ) );
 		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ 'Content-Type: application/json' ] );
 		curl_setopt( $ch, CURLOPT_TIMEOUT, $timeout );
+		if ( !empty( $wgproxy ) ) {
+			curl_setopt( $ch, CURLOPT_PROXY, $wgproxy );
+		}
 
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
@@ -292,7 +302,7 @@ class EmbeddingGenerator {
 	/**
 	 * Generate Gemini embeddings
 	 */
-	private static function generateGeminiEmbedding( $text, $apiKey, $model, $timeout ) {
+	private static function generateGeminiEmbedding( $text, $apiKey, $model, $timeout, $wgproxy ) {
 		$url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:embedContent?key={$apiKey}";
 		$data = [
 			'content' => [
@@ -308,6 +318,9 @@ class EmbeddingGenerator {
 		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $data ) );
 		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ 'Content-Type: application/json' ] );
 		curl_setopt( $ch, CURLOPT_TIMEOUT, $timeout );
+		if ( !empty( $wgproxy ) ) {
+			curl_setopt( $ch, CURLOPT_PROXY, $wgproxy );
+		}
 
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
@@ -339,7 +352,8 @@ class EmbeddingGenerator {
 		$apiKey,
 		$apiEndpoint,
 		$model,
-		$timeout
+		$timeout,
+		$wgproxy
 	) {
 		// Azure endpoint format:
 		// https://{resource}.openai.azure.com/openai/deployments/{deployment}/embeddings?api-version=2023-05-15
@@ -358,6 +372,9 @@ class EmbeddingGenerator {
 			'api-key: ' . $apiKey
 		] );
 		curl_setopt( $ch, CURLOPT_TIMEOUT, $timeout );
+		if ( !empty( $wgproxy ) ) {
+			curl_setopt( $ch, CURLOPT_PROXY, $wgproxy );
+		}
 
 		$response = curl_exec( $ch );
 		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );

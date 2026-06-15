@@ -85,14 +85,15 @@ class EmbeddingGeneratorTest extends MediaWikiUnitTestCase {
 			'',
 			'',
 			'',
-			5
+			5,
+			''
 		);
 		$this->assertSame( [], $result );
 	}
 
 	public function testGenerateUnknownProviderReturnsNull() {
 		$this->assertNull(
-			EmbeddingGenerator::generate( 'text', 'nope', '', '', '', 5 )
+			EmbeddingGenerator::generate( 'text', 'nope', '', '', '', 5, '' )
 		);
 	}
 }
