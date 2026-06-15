@@ -71,5 +71,5 @@
 	"wanda-wikidata-multistep-max-reached": "Het maximale aantal Wikidata-zoekopdrachtstappen is bereikt ($1).",
 	"apihelp-wandachat-param-wikidataonly": "Sla de wiki- en Elasticsearch-context over; beantwoord uitsluitend met Wikidata-gegevens",
 	"apihelp-wandachat-param-wikidatalang": "BCP-47 taalcode voor Wikidata-labels (bijv. 'en', 'de', 'fr'). Standaard ingesteld op de ingestelde WandaWikidataLang.",
-	"apihelp-wandachat-param-sources": "Door verticale strepen gescheiden lijst van bronnen die gebruikt moeten worden voor het ophalen van informatie (bijv. 'wiki|wikidata|cargo'). Ondersteunde waarden: wiki, wikidata, cargo, publicknowledge. Standaardwaarde is 'wiki'."
+	"apihelp-wandachat-param-sources": "Door verticale strepen gescheiden lijst van bronnen die gebruikt moeten worden voor het ophalen van informatie (bijv. 'wiki|wikidata|cargo'). Ondersteunde waarden: wiki, wikidata, cargo, publicknowledge en alle geconfigureerde RAG-bronnamen. Standaardwaarde is 'wiki'."
 }

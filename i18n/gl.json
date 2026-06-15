@@ -70,5 +70,5 @@
 	"wanda-wikidata-multistep-max-reached": "Alcanzouse o número máximo de pasos da consulta de Wikidata ($1).",
 	"apihelp-wandachat-param-wikidataonly": "Omitir o contexto do wiki e mais de Elasticsearch; responder usando só datos de Wikidata",
 	"apihelp-wandachat-param-wikidatalang": "Código de lingua BCP-47 para as etiquetas de Wikidata (por exemplo, «en», «de», «fr»). O valor predeterminado é o «WandaWikidataLang» configurado.",
-	"apihelp-wandachat-param-sources": "Lista de fontes separadas por barras verticais para usar na recuperación (por exemplo, «wiki|wikidata|cargo»). Valores admitidos: «wiki», «wikidata», «cargo», «publicknowledge». O valor predeterminado é «wiki»."
+	"apihelp-wandachat-param-sources": "Lista de fontes separadas por barras verticais para usar na recuperación (por exemplo, «wiki|wikidata|cargo»). Valores admitidos: «wiki», «wikidata», «cargo», «publicknowledge» e calquera nome configurado da fonte RAG. O valor predeterminado é «wiki»."
 }
