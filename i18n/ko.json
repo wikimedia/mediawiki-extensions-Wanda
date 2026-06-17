@@ -73,5 +73,5 @@
 	"wanda-wikidata-multistep-max-reached": "위키데이터 쿼리 단계의 최대 횟수($1)에 도달했습니다.",
 	"apihelp-wandachat-param-wikidataonly": "위키 및 엘라스틱서치 맥락을 생략합니다, 위키데이터 데이터만을 사용하여 답변합니다",
 	"apihelp-wandachat-param-wikidatalang": "위키데이터 라벨용 BCP-47 언어 코드(예: 'en', 'de', 'fr')입니다. 기본값은 구성된 WandaWikidataLang 입니다.",
-	"apihelp-wandachat-param-sources": "파이프로 구분된 검색에 사용할 소스 목록 (예: 'wiki|wikidata|cargo'). 지원되는 값:wiki, wikidata, cargo, publicknowledge. 기본 값은 'wiki' 입니다."
+	"apihelp-wandachat-param-sources": "파이프로 구분된 검색에 사용할 소스 목록 (예: 'wiki|wikidata|cargo'). 지원되는 값: wiki, wikidata, cargo, publicknowledge 및 구성된 RAG 소스 이름입니다. 기본 값은 'wiki' 입니다."
 }
