@@ -631,7 +631,7 @@ class APIChat extends ApiBase {
 
 				$body = $req->getContent();
 
-				$text = mb_convert_encoding( $body, 'UTF-8', 'UTF-8' );
+				$text = $this->extractReadableHtmlText( $body );
 				if ( strlen( $text ) > 4000 ) {
 					$text = substr( $text, 0, 4000 ) . "\n[...truncated...]";
 				}
@@ -644,6 +644,90 @@ class APIChat extends ApiBase {
 		}
 
 		return implode( "\n\n", $parts );
+	}
+
+	/**
+	 * Extract readable text from fetched HTML for RAG context, keeping only the title and body text.
+	 *
+	 * @param string $html Raw fetched HTML
+	 * @return string Cleaned text content
+	 */
+	private function extractReadableHtmlText( string $html ): string {
+		$html = mb_convert_encoding( $html, 'UTF-8', 'UTF-8' );
+
+		libxml_use_internal_errors( true );
+		$dom = new \DOMDocument();
+		$loaded = $dom->loadHTML( '<?xml encoding="UTF-8">' . $html );
+		if ( !$loaded ) {
+			libxml_clear_errors();
+			$text = html_entity_decode( strip_tags( $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+			$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]+/u', ' ', $text );
+			$text = preg_replace( '/\s+/u', ' ', $text );
+			return trim( $text );
+		}
+
+		$xpath = new \DOMXPath( $dom );
+		foreach ( [ 'script', 'style', 'noscript', 'template' ] as $tagName ) {
+			foreach ( $xpath->query( '//' . $tagName ) as $node ) {
+				$node->parentNode->removeChild( $node );
+			}
+		}
+
+		$segments = [];
+		$titleNodes = $xpath->query( '//title' );
+		if ( $titleNodes->length > 0 ) {
+			$titleText = trim( html_entity_decode(
+				$titleNodes->item( 0 )->textContent, ENT_QUOTES | ENT_HTML5, 'UTF-8'
+			) );
+			if ( $titleText !== '' ) {
+				$segments[] = $titleText;
+			}
+		}
+
+		$mainNodes = $xpath->query( '//main' );
+		if ( $mainNodes->length > 0 ) {
+			$mainText = trim( html_entity_decode(
+				$mainNodes->item( 0 )->textContent, ENT_QUOTES | ENT_HTML5, 'UTF-8'
+			) );
+			if ( $mainText !== '' ) {
+				$segments[] = $mainText;
+			}
+		} else {
+			$articleNodes = $xpath->query( '//article' );
+			if ( $articleNodes->length > 0 ) {
+				$articleText = trim( html_entity_decode(
+					$articleNodes->item( 0 )->textContent, ENT_QUOTES | ENT_HTML5, 'UTF-8'
+				) );
+				if ( $articleText !== '' ) {
+					$segments[] = $articleText;
+				}
+			} else {
+				$bodyNodes = $xpath->query( '//body' );
+				if ( $bodyNodes->length > 0 ) {
+					$bodyText = trim( html_entity_decode(
+						$bodyNodes->item( 0 )->textContent, ENT_QUOTES | ENT_HTML5, 'UTF-8'
+					) );
+					if ( $bodyText !== '' ) {
+						$segments[] = $bodyText;
+					}
+				}
+			}
+		}
+
+		if ( empty( $segments ) ) {
+			$text = html_entity_decode( strip_tags( $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		} else {
+			$text = implode( "\n\n", $segments );
+		}
+
+		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]+/u', ' ', $text );
+		$text = preg_replace( '/\s+/u', ' ', $text );
+		$text = trim( $text );
+
+		libxml_clear_errors();
+		libxml_use_internal_errors( false );
+
+		return $text;
 	}
 
 	/**
