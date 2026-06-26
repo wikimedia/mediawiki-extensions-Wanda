@@ -7,6 +7,7 @@ use MediaWiki\Extension\Wanda\Prompts\PromptTemplate;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Title\Title;
+use User;
 
 class CargoQueryHandler {
 	/** @var string */
@@ -27,6 +28,8 @@ class CargoQueryHandler {
 	private $availableTables = null;
 	/** @var array|null Cache of table schemas */
 	private $tableSchemas = null;
+	/** @var User|null Requesting user whose read permissions results are gated by */
+	private $user;
 
 	/**
 	 * @param string $llmProvider
@@ -36,6 +39,8 @@ class CargoQueryHandler {
 	 * @param int $timeout
 	 * @param array $excludedTables
 	 * @param int $maxQuerySteps
+	 * @param User|null $user Requesting user; when set, results are filtered to
+	 *   the pages this user is allowed to read. Null disables permission gating.
 	 */
 	public function __construct(
 		string $llmProvider,
@@ -44,7 +49,8 @@ class CargoQueryHandler {
 		string $llmApiEndpoint,
 		int $timeout,
 		array $excludedTables = [],
-		int $maxQuerySteps = 3
+		int $maxQuerySteps = 3,
+		?User $user = null
 	) {
 		$this->llmProvider = $llmProvider;
 		$this->llmModel = $llmModel;
@@ -53,6 +59,7 @@ class CargoQueryHandler {
 		$this->timeout = $timeout;
 		$this->excludedTables = $excludedTables;
 		$this->maxQuerySteps = max( 1, min( $maxQuerySteps, 10 ) );
+		$this->user = $user;
 	}
 
 	/**
@@ -141,8 +148,30 @@ class CargoQueryHandler {
 				break;
 			}
 
+			// Permission gating: every page that contributes fields to a row must
+			// be readable by the requesting user. Inject each table's _pageName so
+			// the rows can be filtered after execution.
+			//
+			// Aggregate queries (GROUP BY / COUNT / AVG / ...) expose derived
+			// statistics rather than page content or titles, and have no per-page
+			// provenance to attribute a row to, so they are passed through
+			// unfiltered (consistent with the task's scope of reading *pages*).
+			$pageColumns = [];
+			if ( $this->user !== null && !$this->isAggregateQuery( $validParams ) ) {
+				[ $validParams['fields'], $pageColumns ] = $this->injectPageProvenance(
+					$validParams['fields'], $validParams['tables']
+				);
+			}
+
 			$queryError = null;
 			$rows = $this->executeSafeQuery( $validParams, $queryError );
+
+			// Keep only rows whose every contributing page the user may read, then
+			// drop the synthetic provenance columns so they never reach the LLM.
+			if ( $this->user !== null && is_array( $rows ) && !empty( $pageColumns ) ) {
+				$rows = self::filterRowsByReadablePages( $rows, $pageColumns, [ $this, 'canUserReadPage' ] );
+				$rows = self::stripSyntheticColumns( $rows, $pageColumns );
+			}
 			if ( $rows === null || empty( $rows ) ) {
 				wfDebugLog( 'Wanda', wfMessage( 'wanda-cargo-query-failed' )->text() .
 					' (step ' . $stepNum . ')' );
@@ -216,6 +245,169 @@ class CargoQueryHandler {
 			'num_results' => $allRowCount,
 			'steps' => $steps
 		];
+	}
+
+	/**
+	 * Whether the query has no per-row page provenance and therefore cannot be
+	 * permission-checked against individual pages (GROUP BY or aggregate
+	 * functions in the field list).
+	 *
+	 * @param array $params Validated query params
+	 * @return bool
+	 */
+	private function isAggregateQuery( array $params ): bool {
+		if ( trim( (string)( $params['group_by'] ?? '' ) ) !== '' ) {
+			return true;
+		}
+		$fields = (string)( $params['fields'] ?? '' );
+		return (bool)preg_match( '/\b(COUNT|SUM|AVG|MIN|MAX|GROUP_CONCAT)\s*\(/i', $fields );
+	}
+
+	/**
+	 * Get the reference (alias if present, else table name) for each table in a
+	 * comma-separated tables clause. e.g. "Employees=E,Departments" → [E, Departments].
+	 *
+	 * @param string $tables
+	 * @return array
+	 */
+	private function getQueryTableRefs( string $tables ): array {
+		$refs = [];
+		foreach ( explode( ',', $tables ) as $t ) {
+			$parts = array_map( 'trim', explode( '=', trim( $t ) ) );
+			$name = $parts[0];
+			if ( $name === '' ) {
+				continue;
+			}
+			$refs[] = ( isset( $parts[1] ) && $parts[1] !== '' ) ? $parts[1] : $name;
+		}
+		return $refs;
+	}
+
+	/**
+	 * Ensure the selected fields expose the _pageName of every table contributing
+	 * to a row, so read permission can be verified per page.
+	 *
+	 * For a single table the bare _pageName is selected (preserving existing
+	 * source attribution). For joins, each table's _pageName is selected under a
+	 * synthetic alias (__wanda_page_N) which is stripped before the rows are
+	 * formatted or cited.
+	 *
+	 * @param string $fields Original field list
+	 * @param string $tables Tables clause
+	 * @return array [ string $fields, array $pageColumns ] — the (possibly
+	 *   extended) field list and the row keys that hold page names to check.
+	 */
+	private function injectPageProvenance( string $fields, string $tables ): array {
+		$refs = $this->getQueryTableRefs( $tables );
+		$fields = trim( $fields );
+
+		if ( count( $refs ) <= 1 ) {
+			// Single table: bare _pageName matches the Cargo default and the
+			// _pageName key that buildSources() already relies on.
+			if ( !$this->fieldsContainPageName( $fields ) ) {
+				$fields = ( $fields === '' ) ? '_pageName' : $fields . ',_pageName';
+			}
+			return [ $fields, [ '_pageName' ] ];
+		}
+
+		$pageColumns = [];
+		foreach ( $refs as $i => $ref ) {
+			$alias = '__wanda_page_' . $i;
+			$pageColumns[] = $alias;
+			$fields = ( $fields === '' ? '' : $fields . ',' ) . $ref . '._pageName=' . $alias;
+		}
+		return [ $fields, $pageColumns ];
+	}
+
+	/**
+	 * Whether the (bare) _pageName field is already present in a field list.
+	 *
+	 * @param string $fields
+	 * @return bool
+	 */
+	private function fieldsContainPageName( string $fields ): bool {
+		foreach ( explode( ',', $fields ) as $f ) {
+			$name = trim( explode( '=', trim( $f ) )[0] );
+			if ( strpos( $name, '.' ) !== false ) {
+				$name = explode( '.', $name, 2 )[1];
+			}
+			if ( strcasecmp( trim( $name ), '_pageName' ) === 0 ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Filter rows to those whose every contributing page the user may read.
+	 *
+	 * A row is kept only if, for every provenance column, the page name is
+	 * non-empty and passes the read predicate. Missing/empty provenance fails
+	 * closed (the row is dropped), so unattributable data is never surfaced.
+	 *
+	 * @param array $rows Result rows
+	 * @param array $pageColumns Row keys holding page names to check
+	 * @param callable $canRead fn( string $pageName ): bool
+	 * @return array Filtered rows
+	 */
+	public static function filterRowsByReadablePages( array $rows, array $pageColumns, callable $canRead ): array {
+		$filtered = [];
+		foreach ( $rows as $row ) {
+			$readable = true;
+			foreach ( $pageColumns as $col ) {
+				$pageName = isset( $row[$col] ) ? trim( (string)$row[$col] ) : '';
+				if ( $pageName === '' || !$canRead( $pageName ) ) {
+					$readable = false;
+					break;
+				}
+			}
+			if ( $readable ) {
+				$filtered[] = $row;
+			}
+		}
+		return $filtered;
+	}
+
+	/**
+	 * Remove synthetic provenance columns (__wanda_page_*) from result rows so
+	 * they are never shown to the LLM or used for source attribution.
+	 *
+	 * @param array $rows
+	 * @param array $pageColumns
+	 * @return array
+	 */
+	private static function stripSyntheticColumns( array $rows, array $pageColumns ): array {
+		$synthetic = array_filter( $pageColumns, static function ( $c ) {
+			return strncmp( $c, '__wanda_page_', 13 ) === 0;
+		} );
+		if ( empty( $synthetic ) ) {
+			return $rows;
+		}
+		foreach ( $rows as &$row ) {
+			foreach ( $synthetic as $c ) {
+				unset( $row[$c] );
+			}
+		}
+		unset( $row );
+		return $rows;
+	}
+
+	/**
+	 * Whether the requesting user is allowed to read the given page.
+	 *
+	 * Delegates to core PermissionManager so Cargo results inherit the exact read
+	 * permissions of the user (per-namespace $wgGroupPermissions, Lockdown, etc.).
+	 *
+	 * @param string $pageName Prefixed page name from a row's _pageName
+	 * @return bool
+	 */
+	private function canUserReadPage( string $pageName ): bool {
+		$title = Title::newFromText( $pageName );
+		if ( !$title ) {
+			return false;
+		}
+		return MediaWikiServices::getInstance()->getPermissionManager()
+			->userCan( 'read', $this->user, $title );
 	}
 
 	/**

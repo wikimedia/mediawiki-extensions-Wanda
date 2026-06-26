@@ -108,4 +108,115 @@ class CargoQueryHandlerTest extends MediaWikiUnitTestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( '_pageName,COUNT(Name)=cnt', $result['fields'] );
 	}
+
+	/**
+	 * Invoke a private method via reflection.
+	 *
+	 * @param CargoQueryHandler $handler
+	 * @param string $method
+	 * @param mixed ...$args
+	 * @return mixed
+	 */
+	private function callPrivate( CargoQueryHandler $handler, string $method, ...$args ) {
+		$rc = new ReflectionClass( $handler );
+		$m = $rc->getMethod( $method );
+		return $m->invokeArgs( $handler, $args );
+	}
+
+	public function testFilterRowsByReadablePagesSingleColumn() {
+		$rows = [
+			[ '_pageName' => 'Public', 'Salary' => '100' ],
+			[ '_pageName' => 'Secret', 'Salary' => '200' ],
+			[ '_pageName' => 'AlsoPublic', 'Salary' => '300' ],
+		];
+		$canRead = static function ( string $page ): bool {
+			return $page !== 'Secret';
+		};
+
+		$filtered = CargoQueryHandler::filterRowsByReadablePages( $rows, [ '_pageName' ], $canRead );
+
+		$this->assertSame(
+			[ 'Public', 'AlsoPublic' ],
+			array_column( $filtered, '_pageName' )
+		);
+	}
+
+	public function testFilterRowsByReadablePagesJoinRequiresAllReadable() {
+		// A joined row carries one page per table; the row is kept only when
+		// every contributing page is readable.
+		$rows = [
+			// Both readable → kept.
+			[ '__wanda_page_0' => 'EmpA', '__wanda_page_1' => 'DeptX', 'Salary' => '1' ],
+			// Department page restricted → dropped even though employee is readable.
+			[ '__wanda_page_0' => 'EmpB', '__wanda_page_1' => 'SecretDept', 'Salary' => '2' ],
+			// Employee page restricted → dropped.
+			[ '__wanda_page_0' => 'SecretEmp', '__wanda_page_1' => 'DeptY', 'Salary' => '3' ],
+		];
+		$canRead = static function ( string $page ): bool {
+			return strpos( $page, 'Secret' ) === false;
+		};
+
+		$filtered = CargoQueryHandler::filterRowsByReadablePages(
+			$rows, [ '__wanda_page_0', '__wanda_page_1' ], $canRead
+		);
+
+		$this->assertCount( 1, $filtered );
+		$this->assertSame( '1', $filtered[0]['Salary'] );
+	}
+
+	public function testFilterRowsByReadablePagesFailsClosedOnMissingProvenance() {
+		$rows = [
+			[ '_pageName' => 'Public' ],
+			// Missing provenance column → dropped (fail closed).
+			[ 'Salary' => '5' ],
+			// Empty provenance → dropped.
+			[ '_pageName' => '' ],
+		];
+		$filtered = CargoQueryHandler::filterRowsByReadablePages(
+			$rows, [ '_pageName' ], static fn () => true
+		);
+		$this->assertCount( 1, $filtered );
+		$this->assertSame( 'Public', $filtered[0]['_pageName'] );
+	}
+
+	public function testIsAggregateQueryDetectsGroupByAndFunctions() {
+		$handler = $this->newSeededHandler();
+
+		$this->assertTrue( $this->callPrivate( $handler, 'isAggregateQuery',
+			[ 'fields' => 'Dept', 'group_by' => 'Dept' ] ) );
+		$this->assertTrue( $this->callPrivate( $handler, 'isAggregateQuery',
+			[ 'fields' => 'COUNT(Name)=cnt', 'group_by' => '' ] ) );
+		$this->assertTrue( $this->callPrivate( $handler, 'isAggregateQuery',
+			[ 'fields' => 'AVG(Salary)', 'group_by' => '' ] ) );
+		$this->assertFalse( $this->callPrivate( $handler, 'isAggregateQuery',
+			[ 'fields' => 'Name,Salary', 'group_by' => '' ] ) );
+	}
+
+	public function testInjectPageProvenanceSingleTableAddsBarePageName() {
+		$handler = $this->newSeededHandler();
+
+		[ $fields, $cols ] = $this->callPrivate(
+			$handler, 'injectPageProvenance', 'Name,Salary', 'Employees'
+		);
+		$this->assertSame( 'Name,Salary,_pageName', $fields );
+		$this->assertSame( [ '_pageName' ], $cols );
+
+		// Already present → not duplicated.
+		[ $fields2, $cols2 ] = $this->callPrivate(
+			$handler, 'injectPageProvenance', '_pageName,Name', 'Employees'
+		);
+		$this->assertSame( '_pageName,Name', $fields2 );
+		$this->assertSame( [ '_pageName' ], $cols2 );
+	}
+
+	public function testInjectPageProvenanceJoinAddsPerTableAliases() {
+		$handler = $this->newSeededHandler();
+
+		[ $fields, $cols ] = $this->callPrivate(
+			$handler, 'injectPageProvenance', 'E.Name,D.DeptName', 'Employees=E,Departments=D'
+		);
+		$this->assertStringContainsString( 'E._pageName=__wanda_page_0', $fields );
+		$this->assertStringContainsString( 'D._pageName=__wanda_page_1', $fields );
+		$this->assertSame( [ '__wanda_page_0', '__wanda_page_1' ], $cols );
+	}
 }

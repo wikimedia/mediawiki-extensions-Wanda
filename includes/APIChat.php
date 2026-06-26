@@ -219,7 +219,9 @@ class APIChat extends ApiBase {
 				self::$llmApiEndpoint,
 				self::$timeout,
 				self::$cargoExcludedTables,
-				self::$cargoMaxQuerySteps
+				self::$cargoMaxQuerySteps,
+				// Gate Cargo results by the requesting user's read permissions.
+				$this->getUser()
 			);
 			$cargoResult = $cargoHandler->query( $userQuery );
 			$cargoSteps = $cargoResult['steps'] ?? [];
@@ -456,6 +458,13 @@ class APIChat extends ApiBase {
 				continue;
 			}
 
+			// Inherit the user's read permissions: skip files (and their
+			// description pages) the requesting user is not allowed to read.
+			if ( !$this->canUserReadTitle( $title->getPrefixedText() ) ) {
+				wfDebugLog( 'Wanda', "Skipping image not readable by current user: " . $title->getPrefixedText() );
+				continue;
+			}
+
 			$file = MediaWikiServices::getInstance()->getRepoGroup()->findFile( $title );
 			if ( !$file || !$file->exists() ) {
 				continue;
@@ -630,6 +639,49 @@ class APIChat extends ApiBase {
 	}
 
 	/**
+	 * Filter Elasticsearch hits down to the pages the requesting user may read.
+	 *
+	 * Each indexed document corresponds to a single wiki page (keyed by its
+	 * prefixed title in {@see PageIndexUpdater}), so a read check on the title
+	 * fully gates the document. Hits whose title is empty or cannot be resolved
+	 * are dropped (treated as unreadable).
+	 *
+	 * @param array $hits Raw Elasticsearch hits (each with _source.title)
+	 * @param callable $canRead fn( string $title ): bool — true if readable
+	 * @return array Filtered list of hits, preserving original order
+	 */
+	public static function filterReadableHits( array $hits, callable $canRead ): array {
+		$filtered = [];
+		foreach ( $hits as $hit ) {
+			$title = $hit['_source']['title'] ?? '';
+			if ( $title !== '' && $canRead( $title ) ) {
+				$filtered[] = $hit;
+			}
+		}
+		return $filtered;
+	}
+
+	/**
+	 * Whether the requesting user is allowed to read the given page.
+	 *
+	 * Delegates to the core PermissionManager so Wanda inherits the exact read
+	 * permissions of the user — including per-namespace $wgGroupPermissions and
+	 * access-control extensions such as Lockdown — rather than reimplementing
+	 * any of those checks.
+	 *
+	 * @param string $titleText Prefixed page title as stored in the index
+	 * @return bool
+	 */
+	private function canUserReadTitle( string $titleText ): bool {
+		$title = Title::newFromText( $titleText );
+		if ( !$title ) {
+			return false;
+		}
+		return MediaWikiServices::getInstance()->getPermissionManager()
+			->userCan( 'read', $this->getUser(), $title );
+	}
+
+	/**
 	 * Vector-based semantic search using embeddings
 	 */
 	private function vectorSearch( $queryText ) {
@@ -702,8 +754,16 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
+		// Drop any pages the requesting user is not allowed to read before
+		// slicing, so a restricted page cannot crowd out a readable one.
+		$readableHits = self::filterReadableHits( $data['hits']['hits'], [ $this, 'canUserReadTitle' ] );
+		if ( empty( $readableHits ) ) {
+			wfDebugLog( 'Wanda', "Vector search returned no results readable by the current user" );
+			return null;
+		}
+
 		// Get top 3 results and combine them
-		$topHits = array_slice( $data['hits']['hits'], 0, 3 );
+		$topHits = array_slice( $readableHits, 0, 3 );
 		$combinedContent = [];
 		$sources = [];
 		$seenTitles = [];
@@ -806,8 +866,16 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
+		// Drop any pages the requesting user is not allowed to read before
+		// slicing, so a restricted page cannot crowd out a readable one.
+		$readableHits = self::filterReadableHits( $data['hits']['hits'], [ $this, 'canUserReadTitle' ] );
+		if ( empty( $readableHits ) ) {
+			wfDebugLog( 'Wanda', "Text search returned no results readable by the current user" );
+			return null;
+		}
+
 		// Get top 3 results and combine them
-		$topHits = array_slice( $data['hits']['hits'], 0, 3 );
+		$topHits = array_slice( $readableHits, 0, 3 );
 		$combinedContent = [];
 		$sources = [];
 		$seenTitles = [];
