@@ -66,6 +66,20 @@ class APIChat extends ApiBase {
 	private static $sparqlTimeout = 60;
 	/** @var array */
 	private static $ragSources = [];
+	/** @var bool */
+	private static $enableExternalWikiSearch = false;
+	/** @var array */
+	private static $externalWikis = [];
+	/** @var int */
+	private static $externalWikiMaxResults = 3;
+	/** @var int */
+	private static $externalWikiExtractLen = 1200;
+	/** @var int */
+	private static $externalWikiTimeout = 10;
+	/** @var float */
+	private static $externalWikiMinESScore = 0.0;
+	/** @var array */
+	private static $externalWikiDefaultNamespaces = [ 0 ];
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName );
@@ -105,6 +119,13 @@ class APIChat extends ApiBase {
 		self::$wikidataMaxQuerySteps = $this->getConfig()->get( 'WandaWikidataMaxQuerySteps' ) ?? 3;
 		self::$sparqlTimeout = $this->getConfig()->get( 'WandaSparqlTimeout' ) ?? 60;
 		self::$ragSources = $this->getConfig()->get( 'WandaRAGSources' ) ?? [];
+		self::$externalWikis = $this->getConfig()->get( 'WandaExternalWikis' ) ?? [];
+		self::$externalWikiMaxResults = (int)( $this->getConfig()->get( 'WandaExternalWikiMaxResults' ) ?? 3 );
+		self::$externalWikiExtractLen = (int)( $this->getConfig()->get( 'WandaExternalWikiExtractLen' ) ?? 1200 );
+		self::$externalWikiTimeout = (int)( $this->getConfig()->get( 'WandaExternalWikiTimeout' ) ?? 10 );
+		self::$externalWikiMinESScore = (float)( $this->getConfig()->get( 'WandaExternalWikiMinESScore' ) ?? 0.0 );
+		self::$externalWikiDefaultNamespaces =
+			(array)( $this->getConfig()->get( 'WandaExternalWikiDefaultNamespaces' ) ?? [ 0 ] );
 	}
 
 	public function execute() {
@@ -130,6 +151,7 @@ class APIChat extends ApiBase {
 		}
 		self::$enableWikidataQueries = in_array( 'wikidata', $requestedSources );
 		self::$enableCargoQueries = in_array( 'cargo', $requestedSources );
+		self::$enableExternalWikiSearch = in_array( 'externalwiki', $requestedSources );
 
 		$selectedRAGNames = [];
 		foreach ( $requestedSources as $src ) {
@@ -268,6 +290,37 @@ class APIChat extends ApiBase {
 			$ragContext = $this->fetchRAGContext( $selectedRAGNames );
 		}
 
+		// External wiki prose retrieval (Wikipedia and other public MediaWiki wikis)
+		$externalWikiSources = [];
+		$externalWikiSteps   = [];
+		$externalWikiContext = '';
+		if ( self::$enableExternalWikiSearch && !empty( self::$externalWikis ) ) {
+			$externalWikiHandler = new ExternalWikiSearchHandler(
+				self::$externalWikis,
+				self::$externalWikiMaxResults,
+				self::$externalWikiExtractLen,
+				self::$externalWikiTimeout,
+				self::$externalWikiMinESScore,
+				self::$externalWikiDefaultNamespaces
+			);
+			// Extract the best local ES score for confidence gating
+			$localESScore = 0.0;
+			if ( $searchResults && isset( $searchResults['content'] ) && $searchResults['content'] !== '' ) {
+				// Vector search embeds score in the content string; approximate from num_results
+				$localESScore = isset( $searchResults['num_results'] ) && $searchResults['num_results'] > 0
+					? self::$vectorSearchMinScore
+					: 0.0;
+			}
+			$externalWikiResult = $externalWikiHandler->query( $userQuery, $localESScore );
+			$externalWikiSteps  = $externalWikiResult['steps'] ?? [];
+			if ( !empty( $externalWikiResult['content'] ) ) {
+				$externalWikiContext = $externalWikiResult['content'];
+				$externalWikiSources = $externalWikiResult['sources'] ?? [];
+				wfDebugLog( 'Wanda', 'ExternalWikiSearch returned ' .
+					$externalWikiResult['num_results'] . ' pages' );
+			}
+		}
+
 		$response = $this->generateLLMResponse(
 			$userQuery,
 			$contextStr,
@@ -279,7 +332,8 @@ class APIChat extends ApiBase {
 			$conversationMemoryEnabled,
 			$cargoContext,
 			$wikidataContext,
-			$ragContext
+			$ragContext,
+			$externalWikiContext
 		);
 		if ( !$response ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-generation-failed' )->text() );
@@ -311,6 +365,9 @@ class APIChat extends ApiBase {
 		if ( !empty( $wikidataSources ) ) {
 			$allSources = array_merge( $allSources, $wikidataSources );
 		}
+		if ( !empty( $externalWikiSources ) ) {
+			$allSources = array_merge( $allSources, $externalWikiSources );
+		}
 		if ( !empty( $allSources ) ) {
 			$this->getResult()->addValue( null, "sources", $allSources );
 		}
@@ -319,6 +376,9 @@ class APIChat extends ApiBase {
 		}
 		if ( !empty( $wikidataSteps ) ) {
 			$this->getResult()->addValue( null, "wikidataSteps", $wikidataSteps );
+		}
+		if ( !empty( $externalWikiSteps ) ) {
+			$this->getResult()->addValue( null, "externalWikiSteps", $externalWikiSteps );
 		}
 		$this->getResult()->addValue( null, "requestedSources", array_values( $requestedSources ) );
 		if ( !empty( $wikidataEntities ) ) {
@@ -1797,7 +1857,8 @@ class APIChat extends ApiBase {
 		$conversationMemoryEnabled = true,
 		$cargoContext = '',
 		$wikidataContext = '',
-		$ragContext = ''
+		$ragContext = '',
+		$externalWikiContext = ''
 	) {
 		if ( !$userQuery ) {
 			return false;
@@ -1811,6 +1872,7 @@ class APIChat extends ApiBase {
 		$cargoContext = trim( (string)$cargoContext );
 		$wikidataContext = trim( (string)$wikidataContext );
 		$ragContext = trim( (string)$ragContext );
+		$externalWikiContext = trim( (string)$externalWikiContext );
 		$maxContextChars = 10000;
 
 		// Allocate budget across context sources so none is dropped silently.
@@ -1838,8 +1900,20 @@ class APIChat extends ApiBase {
 			}
 		}
 
+		$externalWikiBudget = 0;
+		if ( $externalWikiContext !== '' ) {
+			$externalWikiBudget = min(
+				3000,
+				$maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) - strlen( $ragContext )
+			);
+			if ( strlen( $externalWikiContext ) > $externalWikiBudget ) {
+				$externalWikiContext = substr( $externalWikiContext, 0, $externalWikiBudget )
+					. "\n[...truncated...]";
+			}
+		}
+
 		$wikiBudget = max( 0, $maxContextChars - strlen( $wikidataContext ) -
-			strlen( $cargoContext ) - strlen( $ragContext ) );
+			strlen( $cargoContext ) - strlen( $ragContext ) - strlen( $externalWikiContext ) );
 		if ( $context !== '' && strlen( $context ) > $wikiBudget ) {
 			$context = substr( $context, 0, $wikiBudget ) . "\n[...truncated...]";
 		}
@@ -1855,6 +1929,10 @@ class APIChat extends ApiBase {
 		if ( $ragContext !== '' ) {
 			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )
 				. "External documents (RAG sources):\n" . $ragContext;
+		}
+		if ( $externalWikiContext !== '' ) {
+			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )
+				. "Context from external public wikis (e.g. Wikipedia):\n" . $externalWikiContext;
 		}
 		if ( $context !== '' ) {
 			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )

@@ -215,7 +215,8 @@ const BASE_SOURCE_OPTIONS = [
   { value: 'wiki', label: 'Wiki' },
   { value: 'wikidata', label: 'Wikidata' },
   { value: 'publicknowledge', label: 'Public knowledge' },
-  { value: 'cargo', label: 'Cargo' }
+  { value: 'cargo', label: 'Cargo' },
+  { value: 'externalwiki', label: 'External Wiki' }
 ];
 
 const RAG_SOURCE_NAMES = mw.config.get( 'WandaRAGSourceNames' ) || [];
@@ -549,7 +550,7 @@ module.exports = exports = {
     return html;
   },
     sourceLabel( value ) {
-      const labels = { wiki: 'Wiki', wikidata: 'Wikidata', publicknowledge: 'Public knowledge', cargo: 'Cargo' };
+      const labels = { wiki: 'Wiki', wikidata: 'Wikidata', publicknowledge: 'Public knowledge', cargo: 'Cargo', externalwiki: 'External Wiki' };
       if ( value && value.startsWith( 'RAG:' ) ) {
         return value.slice( 4 );
       }
@@ -568,6 +569,10 @@ module.exports = exports = {
           desc += ' \u2014 ' + s.reasoning;
         }
         return desc;
+      }
+      if ( s.source === 'externalwiki' ) {
+        const pageWord = s.pages === 1 ? 'page' : 'pages';
+        return s.wiki + ' (' + s.pages + ' ' + pageWord + ', ' + s.strategy + ')';
       }
       const tables = s.tables || s.table || 'unknown';
       if ( s.type === 'error' ) {
@@ -837,7 +842,8 @@ module.exports = exports = {
         }
         const allSteps = [
           ...( ( data && data.cargoSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'cargo' } ) ),
-          ...( ( data && data.wikidataSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'wikidata' } ) )
+          ...( ( data && data.wikidataSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'wikidata' } ) ),
+          ...( ( data && data.externalWikiSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'externalwiki' } ) ) 
         ];
         this.addMessage( 'bot', response, allSteps.length > 0 ? allSteps : null );
 

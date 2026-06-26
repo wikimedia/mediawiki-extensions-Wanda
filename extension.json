@@ -212,7 +212,13 @@
 		"WandaWikidataLang": "en",
 		"WandaWikidataMaxQuerySteps": 3,
 		"WandaSparqlTimeout": 60,
-		"WandaRAGSources": {}
+		"WandaRAGSources": {},
+		"WandaExternalWikis": {},
+		"WandaExternalWikiMaxResults": 3,
+		"WandaExternalWikiExtractLen": 10000,
+		"WandaExternalWikiTimeout": 10,
+		"WandaExternalWikiMinESScore": 0,
+		"WandaExternalWikiDefaultNamespaces": [ 0 ]
 	},
 	"manifest_version": 1
 }
