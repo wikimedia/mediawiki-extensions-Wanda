@@ -1,0 +1,18 @@
+{
+	"env": {
+		"jest": true,
+		"node": true,
+		"browser": true
+	},
+	"parserOptions": {
+		"ecmaVersion": 2022
+	},
+	"rules": {
+		"compat/compat": "off",
+		"mediawiki/no-storage": "off",
+		"es-x/no-block-scoped-variables": "off",
+		"es-x/no-arrow-functions": "off",
+		"es-x/no-template-literals": "off",
+		"es-x/no-object-assign": "off"
+	}
+}

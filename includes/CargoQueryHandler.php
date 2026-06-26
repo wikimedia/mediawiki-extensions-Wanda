@@ -4,6 +4,7 @@ namespace MediaWiki\Extension\Wanda;
 
 use ExtensionRegistry;
 use MediaWiki\Extension\Wanda\Prompts\PromptTemplate;
+use MediaWiki\MediaWikiServices;
 use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Title\Title;
 
@@ -746,11 +747,20 @@ class CargoQueryHandler {
 			return trim( explode( '=', trim( $t ) )[0] );
 		}, explode( ',', $tables ) );
 
-		// Build a URL for each individual table's Special:CargoTables page
+		// Build a URL for each individual table's Special:CargoTables page.
+		// The special page only exists when the Cargo extension is installed, so
+		// guard against missing aliases (which would otherwise emit a warning).
+		$cargoTablesExists = MediaWikiServices::getInstance()
+			->getSpecialPageFactory()
+			->exists( 'CargoTables' );
 		$tableHrefs = [];
 		foreach ( $tableNames as $tableName ) {
-			$specialTitle = SpecialPage::getTitleFor( 'CargoTables', $tableName );
-			$tableHrefs[$tableName] = $specialTitle ? $specialTitle->getLocalURL() : '';
+			if ( $cargoTablesExists ) {
+				$specialTitle = SpecialPage::getTitleFor( 'CargoTables', $tableName );
+				$tableHrefs[$tableName] = $specialTitle ? $specialTitle->getLocalURL() : '';
+			} else {
+				$tableHrefs[$tableName] = '';
+			}
 		}
 
 		// The primary table (first listed) owns the _pageName attribution for row-level sources
@@ -780,15 +790,13 @@ class CargoQueryHandler {
 		// For aggregate queries (no row-level pages), cite each table separately
 		if ( empty( $sources ) && !empty( $rows ) ) {
 			foreach ( $tableHrefs as $tableName => $tableHref ) {
-				if ( $tableHref !== '' ) {
-					$sources[] = [
-						'title' => $tableName,
-						'href' => $tableHref,
-						'cargoTable' => $tableName,
-						'tableHref' => $tableHref,
-						'type' => 'cargo'
-					];
-				}
+				$sources[] = [
+					'title' => $tableName,
+					'href' => $tableHref,
+					'cargoTable' => $tableName,
+					'tableHref' => $tableHref,
+					'type' => 'cargo'
+				];
 			}
 		}
 
