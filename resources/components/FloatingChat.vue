@@ -214,7 +214,7 @@ const { ref } = require( 'vue' );
 const BASE_SOURCE_OPTIONS = [
   { value: 'wiki', label: 'Wiki' },
   { value: 'wikidata', label: 'Wikidata' },
-  { value: 'publicknowledge', label: 'Public knowledge' },
+  { value: 'publicknowledge', label: 'LLM Knowledge' },
   { value: 'cargo', label: 'Cargo' },
   { value: 'externalwiki', label: 'External Wiki' }
 ];
@@ -550,7 +550,7 @@ module.exports = exports = {
     return html;
   },
     sourceLabel( value ) {
-      const labels = { wiki: 'Wiki', wikidata: 'Wikidata', publicknowledge: 'Public knowledge', cargo: 'Cargo', externalwiki: 'External Wiki' };
+      const labels = { wiki: 'Wiki', wikidata: 'Wikidata', publicknowledge: 'LLM Knowledge', cargo: 'Cargo', externalwiki: 'External Wiki' };
       if ( value && value.startsWith( 'RAG:' ) ) {
         return value.slice( 4 );
       }

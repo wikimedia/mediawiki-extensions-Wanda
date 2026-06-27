@@ -93,7 +93,7 @@ The Wanda extension provides a MediaWiki API module called `wandachat` for progr
 **Optional Parameters:**
 
 3. `format` (string) - Response format, recommended: `json`
-4. `usepublicknowledge` (boolean) - Allow fallback to public knowledge when wiki context is insufficient (default: `false`)
+4. `usepublicknowledge` (boolean) - Allow fallback to LLM knowledge when wiki context is insufficient (default: `false`)
 
 **Optional LLM Override Parameters:**
 

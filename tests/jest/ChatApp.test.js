@@ -32,7 +32,7 @@ describe( 'ChatApp - text helpers', () => {
 	test( 'sourceLabel maps known sources, strips RAG prefix, passes through unknown', () => {
 		const vm = factory().vm;
 		expect( vm.sourceLabel( 'wiki' ) ).toBe( 'Wiki' );
-		expect( vm.sourceLabel( 'publicknowledge' ) ).toBe( 'Public knowledge' );
+		expect( vm.sourceLabel( 'publicknowledge' ) ).toBe( 'LLM Knowledge' );
 		expect( vm.sourceLabel( 'RAG:Handbook' ) ).toBe( 'Handbook' );
 		expect( vm.sourceLabel( 'mystery' ) ).toBe( 'mystery' );
 	} );
