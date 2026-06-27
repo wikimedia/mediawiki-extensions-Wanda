@@ -219,7 +219,8 @@
 		"WandaExternalWikiExtractLen": 10000,
 		"WandaExternalWikiTimeout": 10,
 		"WandaExternalWikiMinESScore": 0,
-		"WandaExternalWikiDefaultNamespaces": [ 0 ]
+		"WandaExternalWikiDefaultNamespaces": [ 0 ],
+		"WandaAllowedNamespaces": []
 	},
 	"manifest_version": 1
 }

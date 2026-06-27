@@ -738,9 +738,12 @@ class APIChat extends ApiBase {
 	 * @param string $titleText Prefixed page title as stored in the index
 	 * @return bool
 	 */
-	private function canUserReadTitle( string $titleText ): bool {
+	private function canUserReadTitle( string $titleText, array $allowedNamespaces = [] ): bool {
 		$title = Title::newFromText( $titleText );
 		if ( !$title ) {
+			return false;
+		}
+		if ( !empty( $allowedNamespaces ) && !in_array( $title->getNamespace(), $allowedNamespaces, true ) ) {
 			return false;
 		}
 		return MediaWikiServices::getInstance()->getPermissionManager()
@@ -822,7 +825,11 @@ class APIChat extends ApiBase {
 
 		// Drop any pages the requesting user is not allowed to read before
 		// slicing, so a restricted page cannot crowd out a readable one.
-		$readableHits = self::filterReadableHits( $data['hits']['hits'], [ $this, 'canUserReadTitle' ] );
+		$allowedNamespaces = $this->getConfig()->get( 'WandaAllowedNamespaces' ) ?? [];
+		$readableHits = self::filterReadableHits(
+			$data['hits']['hits'],
+			fn ( $titleText ) => $this->canUserReadTitle( $titleText, $allowedNamespaces )
+		);
 		if ( empty( $readableHits ) ) {
 			wfDebugLog( 'Wanda', "Vector search returned no results readable by the current user" );
 			return null;
@@ -935,7 +942,11 @@ class APIChat extends ApiBase {
 
 		// Drop any pages the requesting user is not allowed to read before
 		// slicing, so a restricted page cannot crowd out a readable one.
-		$readableHits = self::filterReadableHits( $data['hits']['hits'], [ $this, 'canUserReadTitle' ] );
+		$allowedNamespaces = $this->getConfig()->get( 'WandaAllowedNamespaces' ) ?? [];
+		$readableHits = self::filterReadableHits(
+			$data['hits']['hits'],
+			fn ( $titleText ) => $this->canUserReadTitle( $titleText, $allowedNamespaces )
+		);
 		if ( empty( $readableHits ) ) {
 			wfDebugLog( 'Wanda', "Text search returned no results readable by the current user" );
 			return null;
