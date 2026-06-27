@@ -899,7 +899,7 @@ class CargoQueryHandler {
 			return '';
 		}
 
-		$maxContextChars = 3000;
+		$maxContextChars = intdiv( APIChat::$maxContextChars, 4 );
 		$headers = array_keys( $rows[0] );
 
 		$output = '--- Cargo data from table: ' . $tableName .

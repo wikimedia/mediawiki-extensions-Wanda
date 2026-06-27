@@ -739,7 +739,7 @@ class WikidataQueryHandler {
 			return '';
 		}
 
-		$maxContextChars = 3000;
+		$maxContextChars = intdiv( APIChat::$maxContextChars, 4 );
 		$headers = array_keys( $rows[0] );
 
 		$output = '--- Wikidata results (' . count( $rows ) . ' rows) ---' . "\n";

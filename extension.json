@@ -197,6 +197,7 @@
 		"WandaLLMMaxTokens": 1000,
 		"WandaLLMTemperature": "0.7",
 		"WandaLLMTimeout": 30,
+		"WandaMaxContextChars": 10000,
 		"WandaAutoReindex": true,
 		"WandaSkipESQuery": false,
 		"WandaUseContentLang": false,

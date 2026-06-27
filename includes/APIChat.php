@@ -30,6 +30,8 @@ class APIChat extends ApiBase {
 	private static $temperature;
 	/** @var int */
 	private static $timeout;
+	/** @var int */
+	public static $maxContextChars = 10000;
 	/** @var string */
 	private static $customPromptTitle;
 	/** @var string */
@@ -102,6 +104,7 @@ class APIChat extends ApiBase {
 		self::$maxTokens = $this->getConfig()->get( 'WandaLLMMaxTokens' ) ?? 2048;
 		self::$temperature = $this->getConfig()->get( 'WandaLLMTemperature' ) ?? 0.7;
 		self::$timeout = $this->getConfig()->get( 'WandaLLMTimeout' ) ?? 30;
+		self::$maxContextChars = (int)( $this->getConfig()->get( 'WandaMaxContextChars' ) ?? 10000 );
 		self::$customPromptTitle = $this->getConfig()->get( 'WandaCustomPromptTitle' ) ?? "";
 		self::$customPrompt = $this->getConfig()->get( 'WandaCustomPrompt' ) ?? "";
 		self::$skipESQuery = $this->getConfig()->get( 'WandaSkipESQuery' ) ?? false;
@@ -1873,12 +1876,17 @@ class APIChat extends ApiBase {
 		$wikidataContext = trim( (string)$wikidataContext );
 		$ragContext = trim( (string)$ragContext );
 		$externalWikiContext = trim( (string)$externalWikiContext );
-		$maxContextChars = 10000;
+		$maxContextChars = self::$maxContextChars;
 
 		// Allocate budget across context sources so none is dropped silently.
+		$wikidataBudgetCap = intdiv( $maxContextChars, 4 );
+		$cargoBudgetCap = intdiv( $maxContextChars, 4 );
+		$ragBudgetCap = (int)round( $maxContextChars * 0.3 );
+		$externalWikiBudgetCap = max( 0, $maxContextChars - $wikidataBudgetCap - $cargoBudgetCap - $ragBudgetCap );
+
 		$wikidataBudget = 0;
 		if ( $wikidataContext !== '' ) {
-			$wikidataBudget = min( 3000, $maxContextChars );
+			$wikidataBudget = min( $wikidataBudgetCap, $maxContextChars );
 			if ( strlen( $wikidataContext ) > $wikidataBudget ) {
 				$wikidataContext = substr( $wikidataContext, 0, $wikidataBudget ) . "\n[...truncated...]";
 			}
@@ -1886,7 +1894,7 @@ class APIChat extends ApiBase {
 
 		$cargoBudget = 0;
 		if ( $cargoContext !== '' ) {
-			$cargoBudget = min( 3000, $maxContextChars - strlen( $wikidataContext ) );
+			$cargoBudget = min( $cargoBudgetCap, $maxContextChars - strlen( $wikidataContext ) );
 			if ( strlen( $cargoContext ) > $cargoBudget ) {
 				$cargoContext = substr( $cargoContext, 0, $cargoBudget ) . "\n[...truncated...]";
 			}
@@ -1894,7 +1902,7 @@ class APIChat extends ApiBase {
 
 		$ragBudget = 0;
 		if ( $ragContext !== '' ) {
-			$ragBudget = min( 4000, $maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) );
+			$ragBudget = min( $ragBudgetCap, $maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) );
 			if ( strlen( $ragContext ) > $ragBudget ) {
 				$ragContext = substr( $ragContext, 0, $ragBudget ) . "\n[...truncated...]";
 			}
@@ -1903,7 +1911,7 @@ class APIChat extends ApiBase {
 		$externalWikiBudget = 0;
 		if ( $externalWikiContext !== '' ) {
 			$externalWikiBudget = min(
-				3000,
+				$externalWikiBudgetCap,
 				$maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) - strlen( $ragContext )
 			);
 			if ( strlen( $externalWikiContext ) > $externalWikiBudget ) {
