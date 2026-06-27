@@ -33,6 +33,7 @@ describe( 'ChatApp - text helpers', () => {
 		const vm = factory().vm;
 		expect( vm.sourceLabel( 'wiki' ) ).toBe( 'Wiki' );
 		expect( vm.sourceLabel( 'publicknowledge' ) ).toBe( 'LLM Knowledge' );
+		expect( vm.sourceLabel( 'smw' ) ).toBe( 'Semantic MediaWiki' );
 		expect( vm.sourceLabel( 'RAG:Handbook' ) ).toBe( 'Handbook' );
 		expect( vm.sourceLabel( 'mystery' ) ).toBe( 'mystery' );
 	} );
@@ -119,6 +120,27 @@ describe( 'ChatApp - formatStepDesc', () => {
 		const vm = factory().vm;
 		expect( vm.formatStepDesc( { source: 'wikidata', rows: 1 } ) )
 			.toBe( 'Wikidata (1 row)' );
+	} );
+
+	test( 'describes an smw query with pluralised rows and reasoning', () => {
+		const vm = factory().vm;
+		expect( vm.formatStepDesc( { source: 'smw', rows: 1 } ) )
+			.toBe( 'Semantic MediaWiki (1 row)' );
+		expect( vm.formatStepDesc( { source: 'smw', rows: 3 } ) )
+			.toBe( 'Semantic MediaWiki (3 rows)' );
+		expect( vm.formatStepDesc( {
+			source: 'smw', step: 2, rows: 2, reasoning: 'need capital'
+		} ) ).toBe( 'Step 2: Semantic MediaWiki (2 rows) — need capital' );
+	} );
+
+	test( 'describes an smw error step', () => {
+		const vm = factory().vm;
+		expect( vm.formatStepDesc( {
+			source: 'smw', type: 'error', message: 'Query failed validation'
+		} ) ).toBe( 'Semantic MediaWiki: Query failed validation' );
+		// Falls back to a generic message when none is supplied.
+		expect( vm.formatStepDesc( { source: 'smw', type: 'error' } ) )
+			.toBe( 'Semantic MediaWiki: query failed' );
 	} );
 
 	test( 'describes an error step', () => {
@@ -222,6 +244,21 @@ describe( 'ChatApp - sendMessage', () => {
 		expect( vm.messages[ 1 ].content ).toContain( '<b>Source</b>: Public' );
 	} );
 
+	test( 'tags smwSteps with source "smw" and attaches them to the bot message', async () => {
+		global.__mwApiMock.post.mockResolvedValue( {
+			response: 'Berlin has 3.7M people',
+			smwSteps: [ { step: 1, rows: 1, ask: '{{#ask: [[Berlin]] |?Population }}' } ]
+		} );
+		const vm = factory().vm;
+		vm.inputText = 'population of Berlin';
+		await vm.sendMessage();
+
+		const botMessage = vm.messages[ vm.messages.length - 1 ];
+		expect( botMessage.steps ).toHaveLength( 1 );
+		expect( botMessage.steps[ 0 ].source ).toBe( 'smw' );
+		expect( botMessage.steps[ 0 ].ask ).toContain( '#ask' );
+	} );
+
 	test( 'maps NO_MATCHING_CONTEXT to the localised no-context message', async () => {
 		global.__mwApiMock.post.mockResolvedValue( { response: 'NO_MATCHING_CONTEXT' } );
 		const vm = factory().vm;
@@ -288,8 +325,24 @@ describe( 'ChatApp - configurable sources', () => {
 			const vm = isoMount( Comp ).vm;
 			// 'wiki' is disabled, so the first available default is 'wikidata'.
 			expect( vm.selectedValues ).toEqual( [ 'wikidata' ] );
+			// Disabled sources are hidden from the checkbox area entirely, not
+			// merely deselected by default.
+			expect( vm.sourceOptions.some( ( o ) => o.value === 'wiki' ) ).toBe( false );
 			// The RAG source is offered as a selectable option.
 			expect( vm.sourceOptions.some( ( o ) => o.value === 'RAG:Handbook' ) ).toBe( true );
+		} );
+	} );
+
+	test( 'hides the SMW and Cargo checkboxes when their extensions are absent', () => {
+		// The server adds 'smw'/'cargo' to WandaDisabledSources when Semantic
+		// MediaWiki / Cargo are not installed, so those sources must not be offered.
+		global.mw.config.set( 'WandaDisabledSources', [ 'smw', 'cargo' ] );
+		jest.isolateModules( () => {
+			const { mount: isoMount } = require( '@vue/test-utils' );
+			const Comp = require( '../../resources/components/ChatApp.vue' );
+			const vm = isoMount( Comp ).vm;
+			expect( vm.sourceOptions.some( ( o ) => o.value === 'smw' ) ).toBe( false );
+			expect( vm.sourceOptions.some( ( o ) => o.value === 'cargo' ) ).toBe( false );
 		} );
 	} );
 } );

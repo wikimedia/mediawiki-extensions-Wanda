@@ -66,6 +66,25 @@ describe( 'FloatingChat - shared logic', () => {
 		expect( vm.sourceLabel( 'RAG:Docs' ) ).toBe( 'Docs' );
 	} );
 
+	test( 'sourceLabel maps the smw source', () => {
+		const vm = factory().vm;
+		expect( vm.sourceLabel( 'smw' ) ).toBe( 'Semantic MediaWiki' );
+	} );
+
+	test( 'formatStepDesc describes smw success and error steps', () => {
+		const vm = factory().vm;
+		expect( vm.formatStepDesc( { source: 'smw', rows: 2 } ) )
+			.toBe( 'Semantic MediaWiki (2 rows)' );
+		expect( vm.formatStepDesc( {
+			source: 'smw', type: 'error', message: 'Query failed validation'
+		} ) ).toBe( 'Semantic MediaWiki: Query failed validation' );
+	} );
+
+	test( 'offers Semantic MediaWiki as a selectable source option', () => {
+		const vm = factory().vm;
+		expect( vm.sourceOptions.some( ( o ) => o.value === 'smw' ) ).toBe( true );
+	} );
+
 	test( 'persists state under floating-specific sessionStorage keys', async () => {
 		global.__mwApiMock.post.mockResolvedValue( { response: 'Hi' } );
 		const vm = factory().vm;

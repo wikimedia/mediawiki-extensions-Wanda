@@ -67,7 +67,7 @@ class CargoQueryHandler {
 	 *
 	 * @return bool
 	 */
-	public function isCargoAvailable(): bool {
+	public static function isCargoAvailable(): bool {
 		return ExtensionRegistry::getInstance()->isLoaded( 'Cargo' );
 	}
 
@@ -83,7 +83,7 @@ class CargoQueryHandler {
 		$steps = [];
 		$empty = [ 'content' => '', 'sources' => [], 'num_results' => 0, 'steps' => &$steps ];
 
-		if ( !$this->isCargoAvailable() ) {
+		if ( !self::isCargoAvailable() ) {
 			wfDebugLog( 'Wanda', 'Cargo extension is not loaded, skipping Cargo queries' );
 			$steps[] = [ 'type' => 'error', 'message' => 'Cargo extension is not loaded' ];
 			return $empty;

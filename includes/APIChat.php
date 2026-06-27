@@ -57,6 +57,14 @@ class APIChat extends ApiBase {
 	/** @var int */
 	private static $cargoMaxQuerySteps = 3;
 	/** @var bool */
+	private static $enableSMWQueries = false;
+	/** @var array */
+	private static $smwExcludedProperties = [];
+	/** @var int */
+	private static $smwMaxQuerySteps = 3;
+	/** @var int */
+	private static $smwMaxResults = 50;
+	/** @var bool */
 	private static $enableWikidataQueries = false;
 	/** @var string */
 	private static $sparqlEndpoint = 'https://query.wikidata.org/sparql';
@@ -117,6 +125,9 @@ class APIChat extends ApiBase {
 		self::$conversationMaxChars = $this->getConfig()->get( 'WandaConversationMaxChars' ) ?? 6000;
 		self::$cargoExcludedTables = $this->getConfig()->get( 'WandaCargoExcludedTables' ) ?? [];
 		self::$cargoMaxQuerySteps = $this->getConfig()->get( 'WandaCargoMaxQuerySteps' ) ?? 3;
+		self::$smwExcludedProperties = $this->getConfig()->get( 'WandaSMWExcludedProperties' ) ?? [];
+		self::$smwMaxQuerySteps = $this->getConfig()->get( 'WandaSMWMaxQuerySteps' ) ?? 3;
+		self::$smwMaxResults = $this->getConfig()->get( 'WandaSMWMaxResults' ) ?? 50;
 		self::$sparqlEndpoint = $this->getConfig()->get( 'WandaSparqlEndpoint' ) ??
 			'https://query.wikidata.org/sparql';
 		self::$wikidataApiEndpoint = $this->getConfig()->get( 'WandaWikidataApiEndpoint' ) ??
@@ -157,6 +168,7 @@ class APIChat extends ApiBase {
 		}
 		self::$enableWikidataQueries = in_array( 'wikidata', $requestedSources );
 		self::$enableCargoQueries = in_array( 'cargo', $requestedSources );
+		self::$enableSMWQueries = in_array( 'smw', $requestedSources );
 		self::$enableExternalWikiSearch = in_array( 'externalwiki', $requestedSources );
 
 		$selectedRAGNames = [];
@@ -261,6 +273,31 @@ class APIChat extends ApiBase {
 			}
 		}
 
+		// Semantic MediaWiki structured data retrieval
+		$smwSources = [];
+		$smwSteps = [];
+		$smwContext = '';
+		if ( self::$enableSMWQueries ) {
+			$smwHandler = new SMWQueryHandler(
+				self::$llmProvider,
+				self::$llmModel,
+				self::$llmApiKey,
+				self::$llmApiEndpoint,
+				self::$timeout,
+				self::$smwExcludedProperties,
+				self::$smwMaxQuerySteps,
+				self::$smwMaxResults
+			);
+			$smwResult = $smwHandler->query( $userQuery );
+			$smwSteps = $smwResult['steps'] ?? [];
+			if ( !empty( $smwResult['content'] ) ) {
+				$smwContext = $smwResult['content'];
+				$smwSources = $smwResult['sources'] ?? [];
+				wfDebugLog( 'Wanda', "SMW query returned " .
+					$smwResult['num_results'] . " results" );
+			}
+		}
+
 		// Wikidata knowledge graph retrieval
 		$wikidataSources = [];
 		$wikidataSteps = [];
@@ -339,7 +376,8 @@ class APIChat extends ApiBase {
 			$cargoContext,
 			$wikidataContext,
 			$ragContext,
-			$externalWikiContext
+			$externalWikiContext,
+			$smwContext
 		);
 		if ( !$response ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-generation-failed' )->text() );
@@ -368,6 +406,9 @@ class APIChat extends ApiBase {
 		if ( !empty( $cargoSources ) ) {
 			$allSources = array_merge( $allSources, $cargoSources );
 		}
+		if ( !empty( $smwSources ) ) {
+			$allSources = array_merge( $allSources, $smwSources );
+		}
 		if ( !empty( $wikidataSources ) ) {
 			$allSources = array_merge( $allSources, $wikidataSources );
 		}
@@ -379,6 +420,9 @@ class APIChat extends ApiBase {
 		}
 		if ( !empty( $cargoSteps ) ) {
 			$this->getResult()->addValue( null, "cargoSteps", $cargoSteps );
+		}
+		if ( !empty( $smwSteps ) ) {
+			$this->getResult()->addValue( null, "smwSteps", $smwSteps );
 		}
 		if ( !empty( $wikidataSteps ) ) {
 			$this->getResult()->addValue( null, "wikidataSteps", $wikidataSteps );
@@ -1975,7 +2019,8 @@ class APIChat extends ApiBase {
 		$cargoContext = '',
 		$wikidataContext = '',
 		$ragContext = '',
-		$externalWikiContext = ''
+		$externalWikiContext = '',
+		$smwContext = ''
 	) {
 		if ( !$userQuery ) {
 			return false;
@@ -1987,6 +2032,7 @@ class APIChat extends ApiBase {
 
 		$context = trim( (string)$context );
 		$cargoContext = trim( (string)$cargoContext );
+		$smwContext = trim( (string)$smwContext );
 		$wikidataContext = trim( (string)$wikidataContext );
 		$ragContext = trim( (string)$ragContext );
 		$externalWikiContext = trim( (string)$externalWikiContext );
@@ -1995,8 +2041,12 @@ class APIChat extends ApiBase {
 		// Allocate budget across context sources so none is dropped silently.
 		$wikidataBudgetCap = intdiv( $maxContextChars, 4 );
 		$cargoBudgetCap = intdiv( $maxContextChars, 4 );
+		$smwBudgetCap = intdiv( $maxContextChars, 4 );
 		$ragBudgetCap = (int)round( $maxContextChars * 0.3 );
-		$externalWikiBudgetCap = max( 0, $maxContextChars - $wikidataBudgetCap - $cargoBudgetCap - $ragBudgetCap );
+		$externalWikiBudgetCap = max(
+			0,
+			$maxContextChars - $wikidataBudgetCap - $cargoBudgetCap - $smwBudgetCap - $ragBudgetCap
+		);
 
 		$wikidataBudget = 0;
 		if ( $wikidataContext !== '' ) {
@@ -2014,9 +2064,20 @@ class APIChat extends ApiBase {
 			}
 		}
 
+		$smwBudget = 0;
+		if ( $smwContext !== '' ) {
+			$smwBudget = min( $smwBudgetCap, $maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) );
+			if ( strlen( $smwContext ) > $smwBudget ) {
+				$smwContext = substr( $smwContext, 0, $smwBudget ) . "\n[...truncated...]";
+			}
+		}
+
 		$ragBudget = 0;
 		if ( $ragContext !== '' ) {
-			$ragBudget = min( $ragBudgetCap, $maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) );
+			$ragBudget = min(
+				$ragBudgetCap,
+				$maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) - strlen( $smwContext )
+			);
 			if ( strlen( $ragContext ) > $ragBudget ) {
 				$ragContext = substr( $ragContext, 0, $ragBudget ) . "\n[...truncated...]";
 			}
@@ -2026,7 +2087,8 @@ class APIChat extends ApiBase {
 		if ( $externalWikiContext !== '' ) {
 			$externalWikiBudget = min(
 				$externalWikiBudgetCap,
-				$maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) - strlen( $ragContext )
+				$maxContextChars - strlen( $wikidataContext ) - strlen( $cargoContext ) -
+					strlen( $smwContext ) - strlen( $ragContext )
 			);
 			if ( strlen( $externalWikiContext ) > $externalWikiBudget ) {
 				$externalWikiContext = substr( $externalWikiContext, 0, $externalWikiBudget )
@@ -2035,7 +2097,8 @@ class APIChat extends ApiBase {
 		}
 
 		$wikiBudget = max( 0, $maxContextChars - strlen( $wikidataContext ) -
-			strlen( $cargoContext ) - strlen( $ragContext ) - strlen( $externalWikiContext ) );
+			strlen( $cargoContext ) - strlen( $smwContext ) - strlen( $ragContext ) -
+			strlen( $externalWikiContext ) );
 		if ( $context !== '' && strlen( $context ) > $wikiBudget ) {
 			$context = substr( $context, 0, $wikiBudget ) . "\n[...truncated...]";
 		}
@@ -2047,6 +2110,10 @@ class APIChat extends ApiBase {
 		if ( $cargoContext !== '' ) {
 			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )
 				. "Structured data from database:\n" . $cargoContext;
+		}
+		if ( $smwContext !== '' ) {
+			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )
+				. "Structured data from Semantic MediaWiki:\n" . $smwContext;
 		}
 		if ( $ragContext !== '' ) {
 			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )

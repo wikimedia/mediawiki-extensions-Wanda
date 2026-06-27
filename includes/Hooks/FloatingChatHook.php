@@ -10,6 +10,8 @@
 
 namespace MediaWiki\Extension\Wanda\Hooks;
 
+use MediaWiki\Extension\Wanda\CargoQueryHandler;
+use MediaWiki\Extension\Wanda\SMWQueryHandler;
 use MediaWiki\MediaWikiServices;
 
 /**
@@ -31,10 +33,21 @@ class FloatingChatHook {
 		}
 
 		$config = MediaWikiServices::getInstance()->getMainConfig();
+
+		// Hide structured-data sources whose backing extension is not installed, so
+		// the source checkbox area only offers sources the wiki can actually query.
+		$disabledSources = $config->get( 'WandaDisabledSources' ) ?? [];
+		if ( !SMWQueryHandler::isSMWAvailable() && !in_array( 'smw', $disabledSources, true ) ) {
+			$disabledSources[] = 'smw';
+		}
+		if ( !CargoQueryHandler::isCargoAvailable() && !in_array( 'cargo', $disabledSources, true ) ) {
+			$disabledSources[] = 'cargo';
+		}
+
 		$out->addJsConfigVars( [
 			'WandaShowPopup' => $config->get( 'WandaShowPopup' ),
 			'WandaEnableAttachments' => $config->get( 'WandaEnableAttachments' ),
-			'WandaDisabledSources' => $config->get( 'WandaDisabledSources' ),
+			'WandaDisabledSources' => $disabledSources,
 			'WandaMaxImageSize' => $config->get( 'WandaMaxImageSize' ),
 			'WandaMaxImageCount' => $config->get( 'WandaMaxImageCount' ),
 			'WandaShowConfidenceScore' => $config->get( 'WandaShowConfidenceScore' ),

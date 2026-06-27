@@ -50,6 +50,7 @@
                     >
                       {{ formatStepDesc( s ) }}
                       <pre v-if="s.source === 'wikidata' && s.sparql" class="wanda-sparql-query"><code>{{ s.sparql }}</code></pre>
+                      <pre v-if="s.source === 'smw' && s.ask" class="wanda-sparql-query"><code>{{ s.ask }}</code></pre>
                     </li>
                   </ol>
                 </cdx-accordion>
@@ -274,6 +275,7 @@ const BASE_SOURCE_OPTIONS = [
   { value: 'wikidata', label: 'Wikidata' },
   { value: 'publicknowledge', label: 'LLM Knowledge' },
   { value: 'cargo', label: 'Cargo' },
+  { value: 'smw', label: 'Semantic MediaWiki' },
   { value: 'externalwiki', label: 'External Wiki' }
 ];
 
@@ -306,7 +308,7 @@ module.exports = exports = {
 
     return {
       selectedValues,
-      sourceOptions: ALL_SOURCE_OPTIONS,
+      sourceOptions: AVAILABLE_SOURCE_OPTIONS,
       toggleSource
     };
   },
@@ -620,7 +622,7 @@ module.exports = exports = {
     return html;
   },
     sourceLabel( value ) {
-      const labels = { wiki: 'Wiki', wikidata: 'Wikidata', publicknowledge: 'LLM Knowledge', cargo: 'Cargo', externalwiki: 'External Wiki' };
+      const labels = { wiki: 'Wiki', wikidata: 'Wikidata', publicknowledge: 'LLM Knowledge', cargo: 'Cargo', smw: 'Semantic MediaWiki', externalwiki: 'External Wiki' };
       if ( value && value.startsWith( 'RAG:' ) ) {
         return value.slice( 4 );
       }
@@ -637,6 +639,17 @@ module.exports = exports = {
         let desc = stepLabel + 'Wikidata (' + s.rows + ' ' + rowWord + ')';
         if ( s.reasoning ) {
           desc += ' \u2014 ' + s.reasoning;
+        }
+        return desc;
+      }
+      if ( s.source === 'smw' ) {
+        if ( s.type === 'error' ) {
+          return stepLabel + 'Semantic MediaWiki: ' + ( s.message || 'query failed' );
+        }
+        const rowWord = s.rows === 1 ? 'row' : 'rows';
+        let desc = stepLabel + 'Semantic MediaWiki (' + s.rows + ' ' + rowWord + ')';
+        if ( s.reasoning ) {
+          desc += ' — ' + s.reasoning;
         }
         return desc;
       }
@@ -970,8 +983,9 @@ module.exports = exports = {
         }
         const allSteps = [
           ...( ( data && data.cargoSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'cargo' } ) ),
+          ...( ( data && data.smwSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'smw' } ) ),
           ...( ( data && data.wikidataSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'wikidata' } ) ),
-          ...( ( data && data.externalWikiSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'externalwiki' } ) ) 
+          ...( ( data && data.externalWikiSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'externalwiki' } ) )
         ];
         this.addMessage( 'bot', response, allSteps.length > 0 ? allSteps : null );
 
