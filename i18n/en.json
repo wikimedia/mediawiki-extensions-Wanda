@@ -105,5 +105,7 @@
 	"apihelp-wandaedit-param-apiendpoint": "Override the LLM API endpoint for this request.",
 	"apihelp-wandaedit-param-timeout": "Override the request timeout (seconds) for this request.",
 	"apihelp-wandaedit-param-maxtokens": "Override the maximum number of tokens in the LLM response.",
-	"apihelp-wandaedit-example-preview": "Preview an infobox field change on the page 'John Smith'."
+	"apihelp-wandaedit-example-preview": "Preview an infobox field change on the page 'John Smith'.",
+	"wanda-api-error-rate-limit": "You have sent too many requests. Please wait a moment before trying again.",
+	"wanda-api-error-budget-exceeded": "You have reached your daily limit of $1 tokens. $2 tokens remain today. Your limit resets at midnight UTC."
 }

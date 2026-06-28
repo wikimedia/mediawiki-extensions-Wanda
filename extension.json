@@ -256,7 +256,20 @@
 		"WandaExternalWikiTimeout": 10,
 		"WandaExternalWikiMinESScore": 0,
 		"WandaExternalWikiDefaultNamespaces": [ 0 ],
-		"WandaAllowedNamespaces": []
+		"WandaAllowedNamespaces": [],
+		"WandaDailyTokenBudget": 0
 	},
-	"manifest_version": 1
+	"manifest_version": 1,
+	"RateLimits": {
+		"wandachat": {
+			"user": [ 10, 60 ],
+			"ip": [ 5, 60 ],
+			"newbie": [ 3, 60 ],
+			"actor": [ 200, 86400 ]
+		}
+	},
+	"TestAutoloadNamespaces": {
+		"MediaWiki\\Extension\\Wanda\\Tests\\Integration\\": "tests/phpunit/integration/",
+		"MediaWiki\\Extension\\Wanda\\Tests\\Unit\\": "tests/phpunit/unit/"
+	}
 }

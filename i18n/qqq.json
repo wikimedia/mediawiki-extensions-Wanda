@@ -105,5 +105,7 @@
 	"apihelp-wandaedit-param-apiendpoint": "{{doc-apihelp-param|wandaedit|apiendpoint}}",
 	"apihelp-wandaedit-param-timeout": "{{doc-apihelp-param|wandaedit|timeout}}",
 	"apihelp-wandaedit-param-maxtokens": "{{doc-apihelp-param|wandaedit|maxtokens}}",
-	"apihelp-wandaedit-example-preview": "{{doc-apihelp-example|wandaedit}}"
+	"apihelp-wandaedit-example-preview": "{{doc-apihelp-example|wandaedit}}",
+	"wanda-api-error-rate-limit": "API error shown when the user exceeds the 'wandachat' rate limit.",
+	"wanda-api-error-budget-exceeded": "API error shown when the user has used up their daily token budget.\nParameters:\n* $1 - Daily token limit\n* $2 - Tokens remaining today"
 }

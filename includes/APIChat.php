@@ -74,6 +74,8 @@ class APIChat extends ApiBase {
 	private static $sparqlTimeout = 60;
 	/** @var array */
 	private static $ragSources = [];
+	/** @var int Daily token budget per user (0 = disabled) */
+	private static $dailyTokenBudget = 0;
 	/** @var bool */
 	private static $enableExternalWikiSearch = false;
 	/** @var array */
@@ -128,6 +130,7 @@ class APIChat extends ApiBase {
 		self::$wikibaseSources = $this->getConfig()->get( 'WandaWikibaseSources' ) ?? [];
 		self::$wikibaseMaxQuerySteps = $this->getConfig()->get( 'WandaWikibaseMaxQuerySteps' ) ?? 3;
 		self::$ragSources = $this->getConfig()->get( 'WandaRAGSources' ) ?? [];
+		self::$dailyTokenBudget = (int)( $this->getConfig()->get( 'WandaDailyTokenBudget' ) ?? 0 );
 		self::$externalWikis = $this->getConfig()->get( 'WandaExternalWikis' ) ?? [];
 		self::$externalWikiMaxResults = (int)( $this->getConfig()->get( 'WandaExternalWikiMaxResults' ) ?? 3 );
 		self::$externalWikiExtractLen = (int)( $this->getConfig()->get( 'WandaExternalWikiExtractLen' ) ?? 1200 );
@@ -192,6 +195,19 @@ class APIChat extends ApiBase {
 		// Validate input parameters
 		if ( empty( $userQuery ) ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-empty-question' )->text() );
+			return;
+		}
+
+		// Counts requests per user/IP on a rolling window.
+		// Sysops bypass via the 'noratelimit' right.
+		if ( $this->getUser()->pingLimiter( 'wandachat' ) ) {
+			wfDebugLog( 'Wanda', 'Rate limit hit for user: ' . $this->getUser()->getName() );
+			$this->getResult()->addValue(
+				null,
+				'response',
+				$this->msg( 'wanda-api-error-rate-limit' )->text()
+			);
+			$this->getResult()->addValue( null, 'throttled', 1 );
 			return;
 		}
 
@@ -367,7 +383,7 @@ class APIChat extends ApiBase {
 			}
 		}
 
-		$response = $this->generateLLMResponse(
+		$llmResult = $this->generateLLMResponse(
 			$userQuery,
 			$contextStr,
 			$allowPublicKnowledge,
@@ -382,9 +398,27 @@ class APIChat extends ApiBase {
 			$externalWikiContext,
 			$smwContext
 		);
-		if ( !$response ) {
+		if ( !$llmResult ) {
 			$this->getResult()->addValue( null, "response", $this->msg( 'wanda-api-error-generation-failed' )->text() );
 			return;
+		}
+
+		$responseText  = $llmResult['text'];
+		$actualTokens  = (int)$llmResult['tokens'];
+		$responseError = (bool)$llmResult['error'];
+
+		wfDebugLog( 'Wanda', "actualTokens={$actualTokens} error=" . ( $responseError ? 'true' : 'false' ) );
+
+		// Deduct from the daily token budget ONLY on a successful LLM response,
+		// using the real token count reported by the provider.
+		if ( self::$dailyTokenBudget > 0 && !$responseError && $actualTokens > 0 ) {
+			$budgetError = $this->checkAndConsumeTokenBudget( $actualTokens );
+			if ( $budgetError !== null ) {
+				wfDebugLog( 'Wanda', 'Daily budget exceeded for user: ' . $this->getUser()->getName() );
+				$this->getResult()->addValue( null, 'response', $budgetError );
+				$this->getResult()->addValue( null, 'budget_exceeded', 1 );
+				return;
+			}
 		}
 
 		// Prepare source data only when we used wiki context
@@ -394,7 +428,7 @@ class APIChat extends ApiBase {
 		}
 
 		// Return response along with source attribution
-		$this->getResult()->addValue( null, "response", $response );
+		$this->getResult()->addValue( null, "response", $responseText );
 		// Backwards-compatible single string of wiki sources
 		if ( $searchResults && isset( $searchResults['source'] ) && $searchResults['source'] !== '' ) {
 			$this->getResult()->addValue( null, "source", $searchResults['source'] );
@@ -481,9 +515,87 @@ class APIChat extends ApiBase {
 	}
 
 	/**
+	 * Check the user's daily token budget and consume one request's worth if
+	 * budget remains.
+	 *
+	 * Storage: MediaWiki MainObjectStash (memcached / Redis / APCu depending on
+	 * site config). Key is scoped per-user (registered) or per-IP (anonymous),
+	 * and expires at the end of the current UTC day so the budget resets
+	 * automatically at midnight UTC without any cron job.
+	 *
+	 *
+	 * Sysops (users with 'noratelimit' right) bypass the budget entirely,
+	 * consistent with how pingLimiter works.
+	 *
+	 * @param int $actualTokens Real token count reported by the provider.
+	 * @return string|null Error message string if over budget, null if OK.
+	 */
+	private function checkAndConsumeTokenBudget( int $actualTokens ): ?string {
+		$user = $this->getUser();
+
+		// Sysops bypass (mirrors pingLimiter behaviour)
+		if ( $user->isAllowed( 'noratelimit' ) ) {
+			return null;
+		}
+
+		$stash = MediaWikiServices::getInstance()->getMainObjectStash();
+
+		// Key: scoped to this extension + user identity + UTC date
+		// Anonymous users are identified by IP (same as pingLimiter).
+		$identity = $user->isAnon()
+			? 'ip:' . $this->getRequest()->getIP()
+			: 'user:' . $user->getId();
+
+		$utcDay = gmdate( 'Y-m-d' );
+		$key    = $stash->makeKey( 'wanda', 'token-budget', $identity, $utcDay );
+
+		// TTL = seconds remaining until midnight UTC
+		$nowUtc      = new \DateTime( 'now', new \DateTimeZone( 'UTC' ) );
+		$midnightUtc = new \DateTime( 'tomorrow midnight', new \DateTimeZone( 'UTC' ) );
+		$ttl         = $midnightUtc->getTimestamp() - $nowUtc->getTimestamp();
+
+		// Atomically increment. incrWithInit( key, ttl, value, init ) sets the
+		// key to $init when absent and increments by $value when present.
+		// Both $value and $init are $actualTokens so the first call both
+		// creates and charges correctly.
+		$newUsed = $stash->incrWithInit( $key, $ttl, $actualTokens, $actualTokens );
+
+		if ( $newUsed === false ) {
+			// Stash unavailable — fail open to avoid blocking all requests.
+			wfDebugLog( 'Wanda', "Token budget stash unavailable for {$identity}; failing open." );
+			return null;
+		}
+
+		$newUsed = (int)$newUsed;
+
+		if ( $newUsed > self::$dailyTokenBudget ) {
+			$remaining = max( 0, self::$dailyTokenBudget - ( $newUsed - $actualTokens ) );
+			wfDebugLog(
+				'Wanda',
+				"Token budget exceeded for {$identity}: newUsed={$newUsed}, "
+				. "budget=" . self::$dailyTokenBudget
+				. ", actualTokens={$actualTokens}"
+			);
+			return $this->msg(
+				'wanda-api-error-budget-exceeded',
+				self::$dailyTokenBudget,
+				$remaining
+			)->text();
+		}
+
+		wfDebugLog(
+			'Wanda',
+			"Token budget: {$identity} used {$newUsed}/" . self::$dailyTokenBudget
+			. " tokens today (charged {$actualTokens}, TTL {$ttl}s)"
+		);
+
+		return null;
+	}
+
+	/**
 	 * Validate provider configuration
 	 */
-	private function validateProviderConfig() {
+	protected function validateProviderConfig() {
 		switch ( self::$llmProvider ) {
 			case 'openai':
 			case 'anthropic':
@@ -777,7 +889,7 @@ class APIChat extends ApiBase {
 	/**
 	 * Detects the most recent Elasticsearch index dynamically.
 	 */
-	private function detectElasticsearchIndex() {
+	protected function detectElasticsearchIndex() {
 		$ch = curl_init( self::$esHost . "/_cat/indices?v&format=json" );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		curl_setopt( $ch, CURLOPT_TIMEOUT, 5 );
@@ -820,7 +932,11 @@ class APIChat extends ApiBase {
 		return $selectedIndex;
 	}
 
-	private function queryElasticsearch( $queryText ) {
+	/**
+	 * Elastic search gets conducted here. First, it attempts a vector search using embeddings.
+	 * If that fails or returns no results, it falls back to a traditional text search.
+	 */
+	protected function queryElasticsearch( $queryText ) {
 		$vectorResult = $this->vectorSearch( $queryText );
 		if ( $vectorResult !== null ) {
 			wfDebugLog( 'Wanda', "Using vector search results" );
@@ -1117,7 +1233,11 @@ class APIChat extends ApiBase {
 	 */
 	private function generateGeminiResponse( $prompt, $imageData = [], $chatMessages = null ) {
 		if ( empty( self::$llmApiKey ) ) {
-			return $this->msg( 'wanda-api-error-gemini-key' )->text();
+			return [
+				'text'   => $this->msg( 'wanda-api-error-gemini-key' )->text(),
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		$model = self::$llmModel ?: 'gemini-1.5-flash';
@@ -1263,7 +1383,11 @@ class APIChat extends ApiBase {
 			$lastError = $errorMsg;
 
 			if ( !$shouldRetry ) {
-				return $errorMsg;
+				return [
+					'text'   => $errorMsg,
+					'tokens' => 0,
+					'error'  => true,
+				];
 			}
 		}
 
@@ -1274,13 +1398,21 @@ class APIChat extends ApiBase {
 				$finalError .= " The service is currently overloaded. 
 					Please try again in a few moments or consider using Ollama for local processing.";
 			}
-			return $finalError;
+			return [
+				'text'   => $finalError,
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		$json = json_decode( $response, true );
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			wfDebugLog( 'Wanda', "Gemini JSON decode error: " . json_last_error_msg() );
-			return "Invalid JSON response from Gemini: " . json_last_error_msg();
+			return [
+				'text'   => "Invalid JSON response from Gemini: " . json_last_error_msg(),
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		// Check for MAX_TOKENS finish reason (response was truncated)
@@ -1288,23 +1420,62 @@ class APIChat extends ApiBase {
 			isset( $json['candidates'][0]['finishReason'] )
 			&& $json['candidates'][0]['finishReason'] === 'MAX_TOKENS'
 		) {
+			$tokensUsed = (int)( $json['usageMetadata']['totalTokenCount'] ?? self::$maxTokens );
 			if ( isset( $json['candidates'][0]['content']['parts'][0]['text'] ) ) {
-				return $json['candidates'][0]['content']['parts'][0]['text'] .
-					"\n\n[Response truncated due to token limit. " .
-					"Current limit: " . self::$maxTokens . " tokens]";
+				return [
+					'text'   => $json['candidates'][0]['content']['parts'][0]['text'] .
+						"\n\n[Response truncated due to token limit. " .
+						"Current limit: " . self::$maxTokens . " tokens]",
+					'tokens' => $tokensUsed,
+					'error'  => false,
+				];
 			}
-			return $this->msg( 'wanda-api-error-token-limit', self::$maxTokens )->text();
+			return [
+				'text'   => $this->msg( 'wanda-api-error-token-limit', self::$maxTokens )->text(),
+				'tokens' => $tokensUsed,
+				'error'  => true,
+			];
 		}
 
 		if ( !isset( $json['candidates'][0]['content']['parts'][0]['text'] ) ) {
 			wfDebugLog( 'Wanda', "Gemini response missing expected fields. Response: " . print_r( $json, true ) );
 			if ( isset( $json['promptFeedback']['blockReason'] ) ) {
-				return "Gemini blocked the request: " . $json['promptFeedback']['blockReason'];
+				return [
+					'text'   => "Gemini blocked the request: " . $json['promptFeedback']['blockReason'],
+					'tokens' => 0,
+					'error'  => true,
+				];
 			}
-			return "Unexpected response format from Gemini.";
+			return [
+				'text'   => "Unexpected response format from Gemini.",
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
-		return $json['candidates'][0]['content']['parts'][0]['text'];
+		// DEBUG: log usageMetadata keys to confirm field name — remove after confirming
+		wfDebugLog( 'Wanda', "Gemini usageMetadata: " . json_encode( $json['usageMetadata'] ?? [] ) );
+
+		$tokensUsed = (int)( $json['usageMetadata']['totalTokenCount'] ?? 0 );
+		if ( $tokensUsed === 0 ) {
+			// Some Gemini model versions report token counts under different sub-keys;
+			// fall back to summing the known alternatives before using $maxTokens.
+			$meta = $json['usageMetadata'] ?? [];
+			$tokensUsed = (int)( 0
+				+ ( $meta['promptTokenCount'] ?? 0 )
+				+ ( $meta['candidatesTokenCount'] ?? 0 )
+				+ ( $meta['thoughtsTokenCount'] ?? 0 )
+			);
+		}
+		if ( $tokensUsed === 0 ) {
+			$tokensUsed = self::$maxTokens;
+		}
+
+		return [
+			'text'   => $json['candidates'][0]['content']['parts'][0]['text'],
+			'tokens' => $tokensUsed,
+			'error'  => false,
+		];
 	}
 
 	/**
@@ -1367,19 +1538,31 @@ class APIChat extends ApiBase {
 		// Log error details for debugging
 		if ( $curlError ) {
 			wfDebugLog( 'Wanda', "Ollama cURL error: " . $curlError );
-			return "Connection error: Unable to reach Ollama service at " . self::$llmApiEndpoint;
+			return [
+				'text'  => "Connection error: Unable to reach Ollama service at " . self::$llmApiEndpoint,
+				'tokens' => 0,
+				'error' => true,
+			];
 		}
 
 		if ( $httpCode !== 200 ) {
 			wfDebugLog( 'Wanda', "Ollama HTTP error code: " . $httpCode . ", Response: " . $response );
-			return "API error: Ollama returned HTTP code "
-				. $httpCode . ". Please check your Ollama service.";
+			return [
+				'text'  => "API error: Ollama returned HTTP code "
+					. $httpCode . ". Please check your Ollama service.",
+				'tokens' => 0,
+				'error' => true,
+			];
 		}
 
 		if ( empty( $response ) ) {
 			wfDebugLog( 'Wanda', "Ollama returned empty response" );
-			return "Empty response from Ollama service. 
-				Please check if the model '" . self::$llmModel . "' is available.";
+			return [
+				'text'  => "Empty response from Ollama service. 
+				Please check if the model '" . self::$llmModel . "' is available.",
+				'tokens' => 0,
+				'error' => true,
+			];
 		}
 
 		$jsonResponse = json_decode( $response, true );
@@ -1387,7 +1570,11 @@ class APIChat extends ApiBase {
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			wfDebugLog( 'Wanda', "Ollama JSON decode error: "
 				. json_last_error_msg() . ", Response: " . substr( $response, 0, 500 ) );
-			return "Invalid JSON response from Ollama: " . json_last_error_msg();
+			return [
+				'text'  => "Invalid JSON response from Ollama: " . json_last_error_msg(),
+				'tokens' => 0,
+				'error' => true,
+			];
 		}
 
 		if ( !isset( $jsonResponse['response'] ) ) {
@@ -1396,11 +1583,27 @@ class APIChat extends ApiBase {
 				"Ollama response missing 'response' field. Full response: "
 				. print_r( $jsonResponse, true )
 			);
-			return "Unexpected response format from Ollama. Response: "
-				. ( isset( $jsonResponse['error'] ) ? $jsonResponse['error'] : 'Unknown error' );
+			return [
+				'text' => "Unexpected response format from Ollama. Response: "
+					. ( isset( $jsonResponse['error'] ) ? $jsonResponse['error'] : 'Unknown error' ),
+				'tokens' => 0,
+				'error' => true,
+			];
 		}
 
-		return $jsonResponse['response'];
+		// Ollama /api/generate reports prompt_eval_count (input) + eval_count (output).
+		// Fall back to $maxTokens if the fields are absent (older Ollama builds).
+		$tokensUsed = (int)( ( $jsonResponse['prompt_eval_count'] ?? 0 )
+			+ ( $jsonResponse['eval_count'] ?? 0 ) );
+		if ( $tokensUsed === 0 ) {
+			$tokensUsed = self::$maxTokens;
+		}
+
+		return [
+			'text'   => $jsonResponse['response'],
+			'tokens' => $tokensUsed,
+			'error'  => false,
+		];
 	}
 
 	/**
@@ -1423,7 +1626,11 @@ class APIChat extends ApiBase {
 
 	private function generateOpenAIResponse( $prompt, $imageData = [], $chatMessages = null ) {
 		if ( empty( self::$llmApiKey ) ) {
-			return $this->msg( 'wanda-api-error-openai-key' )->text();
+			return [
+				'text'   => $this->msg( 'wanda-api-error-openai-key' )->text(),
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		// Use multi-turn messages if available and no images
@@ -1541,7 +1748,11 @@ class APIChat extends ApiBase {
 
 		if ( $curlError ) {
 			wfDebugLog( 'Wanda', "OpenAI cURL error: " . $curlError );
-			return "Connection error: Unable to reach OpenAI API.";
+			return [
+				'text'   => "Connection error: Unable to reach OpenAI API.",
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		if ( $httpCode !== 200 ) {
@@ -1553,23 +1764,41 @@ class APIChat extends ApiBase {
 					$errorMsg .= ": " . $errorData['error']['message'];
 				}
 			}
-			return $errorMsg;
+			return [
+				'text'   => $errorMsg,
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		$jsonResponse = json_decode( $response, true );
 
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			wfDebugLog( 'Wanda', "OpenAI JSON decode error: " . json_last_error_msg() );
-			return "Invalid JSON response from OpenAI: " . json_last_error_msg();
+			return [
+				'text'   => "Invalid JSON response from OpenAI: " . json_last_error_msg(),
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		if ( !isset( $jsonResponse['choices'][0]['message']['content'] ) ) {
 			wfDebugLog( 'Wanda', "OpenAI response missing expected fields. 
 				Response: " . print_r( $jsonResponse, true ) );
-			return "Unexpected response format from OpenAI.";
+			return [
+				'text'   => "Unexpected response format from OpenAI.",
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
-		return $jsonResponse['choices'][0]['message']['content'];
+		$tokensUsed = (int)( $jsonResponse['usage']['total_tokens'] ?? self::$maxTokens );
+
+		return [
+			'text'   => $jsonResponse['choices'][0]['message']['content'],
+			'tokens' => $tokensUsed,
+			'error'  => false,
+		];
 	}
 
 	/**
@@ -1577,7 +1806,11 @@ class APIChat extends ApiBase {
 	 */
 	private function generateAnthropicResponse( $prompt, $imageData = [], $chatMessages = null ) {
 		if ( empty( self::$llmApiKey ) ) {
-			return $this->msg( 'wanda-api-error-anthropic-key' )->text();
+			return [
+				'text'   => $this->msg( 'wanda-api-error-anthropic-key' )->text(),
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		// Use multi-turn messages if available and no images
@@ -1669,7 +1902,11 @@ class APIChat extends ApiBase {
 
 		if ( $curlError ) {
 			wfDebugLog( 'Wanda', "Anthropic cURL error: " . $curlError );
-			return "Connection error: Unable to reach Anthropic API.";
+			return [
+				'text'   => "Connection error: Unable to reach Anthropic API.",
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		if ( $httpCode !== 200 ) {
@@ -1681,23 +1918,45 @@ class APIChat extends ApiBase {
 					$errorMsg .= ": " . $errorData['error']['message'];
 				}
 			}
-			return $errorMsg;
+			return [
+				'text'   => $errorMsg,
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		$jsonResponse = json_decode( $response, true );
 
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			wfDebugLog( 'Wanda', "Anthropic JSON decode error: " . json_last_error_msg() );
-			return "Invalid JSON response from Anthropic: " . json_last_error_msg();
+			return [
+				'text'   => "Invalid JSON response from Anthropic: " . json_last_error_msg(),
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		if ( !isset( $jsonResponse['content'][0]['text'] ) ) {
 			wfDebugLog( 'Wanda', "Anthropic response missing expected fields. Response: "
 				. print_r( $jsonResponse, true ) );
-			return "Unexpected response format from Anthropic.";
+			return [
+				'text'   => "Unexpected response format from Anthropic.",
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
-		return $jsonResponse['content'][0]['text'];
+		$tokensUsed = (int)( ( $jsonResponse['usage']['input_tokens'] ?? 0 )
+			+ ( $jsonResponse['usage']['output_tokens'] ?? 0 ) );
+		if ( $tokensUsed === 0 ) {
+			$tokensUsed = self::$maxTokens;
+		}
+
+		return [
+			'text'   => $jsonResponse['content'][0]['text'],
+			'tokens' => $tokensUsed,
+			'error'  => false,
+		];
 	}
 
 	/**
@@ -1705,7 +1964,11 @@ class APIChat extends ApiBase {
 	 */
 	private function generateAzureResponse( $prompt, $imageData = [], $chatMessages = null ) {
 		if ( empty( self::$llmApiKey ) ) {
-			return $this->msg( 'wanda-api-error-azure-key' )->text();
+			return [
+				'text'   => $this->msg( 'wanda-api-error-azure-key' )->text(),
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		// Use multi-turn messages if available and no images
@@ -1785,7 +2048,11 @@ class APIChat extends ApiBase {
 
 		if ( $curlError ) {
 			wfDebugLog( 'Wanda', "Azure cURL error: " . $curlError );
-			return "Connection error: Unable to reach Azure OpenAI endpoint.";
+			return [
+				'text'   => "Connection error: Unable to reach Azure OpenAI endpoint.",
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		if ( $httpCode !== 200 ) {
@@ -1797,23 +2064,41 @@ class APIChat extends ApiBase {
 					$errorMsg .= ": " . $errorData['error']['message'];
 				}
 			}
-			return $errorMsg;
+			return [
+				'text'   => $errorMsg,
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		$jsonResponse = json_decode( $response, true );
 
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			wfDebugLog( 'Wanda', "Azure JSON decode error: " . json_last_error_msg() );
-			return "Invalid JSON response from Azure: " . json_last_error_msg();
+			return [
+				'text'   => "Invalid JSON response from Azure: " . json_last_error_msg(),
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
 		if ( !isset( $jsonResponse['choices'][0]['message']['content'] ) ) {
 			wfDebugLog( 'Wanda', "Azure response missing expected fields. Response: "
 				. print_r( $jsonResponse, true ) );
-			return "Unexpected response format from Azure OpenAI.";
+			return [
+				'text'   => "Unexpected response format from Azure OpenAI.",
+				'tokens' => 0,
+				'error'  => true,
+			];
 		}
 
-		return $jsonResponse['choices'][0]['message']['content'];
+		$tokensUsed = (int)( $jsonResponse['usage']['total_tokens'] ?? self::$maxTokens );
+
+		return [
+			'text'   => $jsonResponse['choices'][0]['message']['content'],
+			'tokens' => $tokensUsed,
+			'error'  => false,
+		];
 	}
 
 	/**
@@ -1928,8 +2213,10 @@ class APIChat extends ApiBase {
 
 			self::$maxTokens = $originalMaxTokens;
 
-			if ( $result && is_string( $result ) && strlen( $result ) > 10 ) {
-				return trim( $result );
+			// All generate methods now return ['text' => ..., 'tokens' => ..., 'error' => ...].
+			$text = is_array( $result ) ? ( $result['text'] ?? '' ) : '';
+			if ( $text && !( $result['error'] ?? true ) && strlen( $text ) > 10 ) {
+				return trim( $text );
 			}
 
 			return false;
@@ -2007,7 +2294,7 @@ class APIChat extends ApiBase {
 	 * @param array $conversationHistory Previous conversation messages
 	 * @return string|false LLM answer text or false on complete failure
 	 */
-	private function generateLLMResponse(
+	protected function generateLLMResponse(
 		$userQuery,
 		$context,
 		$allowPublicKnowledge = false,
@@ -2211,35 +2498,43 @@ class APIChat extends ApiBase {
 			? $this->buildChatMessages( $conversationHistory, $systemPrompt, $userQuery, $imageData )
 			: null;
 
-		$response = null;
+		$result = null;
 		switch ( self::$llmProvider ) {
 			case 'ollama':
-				$response = $this->generateOllamaResponse( $flatPrompt, $imageData );
+				$result = $this->generateOllamaResponse( $flatPrompt, $imageData );
 				break;
 			case 'openai':
-				$response = $this->generateOpenAIResponse( $flatPrompt, $imageData, $chatMessages );
+				$result = $this->generateOpenAIResponse( $flatPrompt, $imageData, $chatMessages );
 				break;
 			case 'anthropic':
-				$response = $this->generateAnthropicResponse( $flatPrompt, $imageData, $chatMessages );
+				$result = $this->generateAnthropicResponse( $flatPrompt, $imageData, $chatMessages );
 				break;
 			case 'azure':
-				$response = $this->generateAzureResponse( $flatPrompt, $imageData, $chatMessages );
+				$result = $this->generateAzureResponse( $flatPrompt, $imageData, $chatMessages );
 				break;
 			case 'gemini':
-				$response = $this->generateGeminiResponse( $flatPrompt, $imageData, $chatMessages );
+				$result = $this->generateGeminiResponse( $flatPrompt, $imageData, $chatMessages );
 				break;
 			default:
 				return false;
 		}
 
-		// Normalize / sanitize response
-		if ( !is_string( $response ) || trim( $response ) === '' ) {
+		// All generate methods now return ['text' => string, 'tokens' => int, 'error' => bool].
+		if ( !is_array( $result ) || !isset( $result['text'] ) ) {
 			return false;
 		}
 
-		// Remove any leading/trailing whitespace or stray control characters
-		$clean = trim( preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]+/u', ' ', $response ) );
-		return $clean === '' ? false : $clean;
+		// Normalize / sanitize response text
+		$clean = trim( preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]+/u', ' ', $result['text'] ) );
+		if ( $clean === '' ) {
+			return false;
+		}
+
+		return [
+			'text'   => $clean,
+			'tokens' => (int)( $result['tokens'] ?? 0 ),
+			'error'  => (bool)( $result['error'] ?? false ),
+		];
 	}
 
 	public function getAllowedParams() {
