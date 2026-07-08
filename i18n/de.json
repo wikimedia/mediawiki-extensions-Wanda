@@ -21,7 +21,7 @@
 	"apihelp-wandachat-param-apikey": "API-Schlüssel für den Cloud-Anbieter",
 	"apihelp-wandachat-param-apiendpoint": "Benutzerdefinierter API-Endpunkt für den Cloud-Anbieter",
 	"apihelp-wandachat-param-timeout": "Timeout in Sekunden für die API-Anforderung",
-	"apihelp-wandachat-param-usepublicknowledge": "Ob dem Chatbot erlaubt werden soll, neben dem Wiki-Kontext auch sein öffentliches Wissen zu verwenden (true/false)",
+	"apihelp-wandachat-param-usepublicknowledge": "Ob dem Chatbot erlaubt werden soll, neben dem Wiki-Kontext auch sein LLM-Wissen zu verwenden (true/false)",
 	"apihelp-wandachat-param-skipesquery": "Ob die Elasticsearch-Abfrage übersprungen werden soll",
 	"wanda-api-error-empty-question": "Bitte gib eine gültige Frage ein.",
 	"wanda-api-error-config-invalid": "Der Chat-Dienst ist nicht richtig konfiguriert. Bitte wende dich an einen Administrator.",
@@ -35,9 +35,9 @@
 	"wanda-api-error-token-limit": "Die Antwort wurde aufgrund der Token-Begrenzung ($1 Token) gekürzt. Bitte formuliere deine Frage genauer oder erhöhe den Wert für „WandaLLMMaxTokens“ in der Konfiguration.",
 	"wanda-api-error-fallback": "Da bin ich mir nicht sicher.",
 	"wanda-llm-response-nocontext": "Ich habe nicht genügend Informationen im Wiki-Kontext, um das zu beantworten.",
-	"wanda-toggle-public-knowledge-label": "Öffentliches Wissen zusätzlich nutzen",
+	"wanda-toggle-public-knowledge-label": "LLM-Wissen zusätzlich nutzen",
 	"wanda-toggle-public-knowledge-help": "Wenn diese Option aktiviert ist, kann der Assistent zusätzlich zum Wiki-Kontext sein allgemeines Wissen nutzen.",
-	"wanda-toggle-public-knowledge-aria": "Nutzung öffentlichen Wissens umschalten",
+	"wanda-toggle-public-knowledge-aria": "Nutzung LLM-Wissens umschalten",
 	"wanda-floating-chat-header": "Wanda KI-Assistent",
 	"wanda-attach-image-title": "Bilder aus dem Wiki einfügen",
 	"wanda-remove-image-aria": "Angehängtes Bild entfernen",
@@ -64,5 +64,5 @@
 	"wanda-wikidata-sparql-error": "Die SPARQL-Abfrage konnte nicht ausgeführt werden.",
 	"wanda-wikidata-multistep-max-reached": "Die maximale Anzahl an Wikidata-Abfrageschritten wurde erreicht ($1).",
 	"apihelp-wandachat-param-wikidatalang": "BCP-47-Sprachcode für Wikidata-Labels (z. B. „en“, „de“, „fr“). Standardmäßig wird die konfigurierte WandaWikidataLang verwendet.",
-	"apihelp-wandachat-param-sources": "Durch Pipes getrennte Liste der abzurufenden Quellen (z. B. „wiki|wikidata|cargo“). Unterstützte Werte: wiki, wikidata, cargo, publicknowledge sowie alle konfigurierten RAG-Quellennamen. Standardwert: „wiki“."
+	"apihelp-wandachat-param-sources": "Durch Pipes getrennte Liste der abzurufenden Quellen (z. B. „wiki|wikidata|cargo“). Unterstützte Werte: wiki, wikidata, cargo, publicknowledge, externalwiki sowie alle konfigurierten RAG-Quellennamen. Standardwert: „wiki“."
 }

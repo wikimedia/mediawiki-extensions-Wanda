@@ -23,7 +23,7 @@
 	"apihelp-wandachat-param-apikey": "API-sleutel voor de cloudprovider",
 	"apihelp-wandachat-param-apiendpoint": "Aangepast API-eindpunt voor de cloudprovider",
 	"apihelp-wandachat-param-timeout": "Time-out in seconden voor de API-aanvraag",
-	"apihelp-wandachat-param-usepublicknowledge": "Of de chatbot zijn openbare kennis mag gebruiken naast de wiki-context (waar/onwaar)",
+	"apihelp-wandachat-param-usepublicknowledge": "Of de chatbot zijn LLM-kennis mag gebruiken naast de wiki-context (waar/onwaar)",
 	"apihelp-wandachat-param-skipesquery": "Of de Elasticsearch-query moet worden overgeslagen",
 	"wanda-api-error-empty-question": "Stel een geldige vraag.",
 	"wanda-api-error-temperature-invalid": "Ongeldige temperatuurwaarde. Geef een getal tussen 0,0 en 1,0 op.",
@@ -39,9 +39,9 @@
 	"wanda-api-error-token-limit": "Het antwoord werd afgekapt vanwege de tokenlimiet ($1 tokens). Probeer een specifiekere vraag te stellen of verhoog WandaLLMMaxTokens in de instellingen.",
 	"wanda-api-error-fallback": "Dat weet ik niet zeker.",
 	"wanda-llm-response-nocontext": "Ik heb niet genoeg informatie in de wiki-context om die vraag te beantwoorden.",
-	"wanda-toggle-public-knowledge-label": "Gebruik daarnaast ook openbare kennis",
+	"wanda-toggle-public-knowledge-label": "Gebruik daarnaast ook LLM-kennis",
 	"wanda-toggle-public-knowledge-help": "Na inschakeling kan de assistent naast de wiki-context ook zijn algemene kennis gebruiken.",
-	"wanda-toggle-public-knowledge-aria": "Gebruik van openbare kennis in-/uitschakelen",
+	"wanda-toggle-public-knowledge-aria": "Gebruik van LLM-kennis in-/uitschakelen",
 	"wanda-floating-chat-header": "Wanda AI-assistent",
 	"wanda-attach-image-title": "Afbeeldingen van wiki toevoegen",
 	"wanda-remove-image-aria": "Bijgevoegde afbeelding verwijderen",
@@ -71,5 +71,5 @@
 	"wanda-wikidata-multistep-max-reached": "Het maximale aantal Wikidata-zoekopdrachtstappen is bereikt ($1).",
 	"apihelp-wandachat-param-wikidataonly": "Sla de wiki- en Elasticsearch-context over; beantwoord uitsluitend met Wikidata-gegevens",
 	"apihelp-wandachat-param-wikidatalang": "BCP-47 taalcode voor Wikidata-labels (bijv. 'en', 'de', 'fr'). Standaard ingesteld op de ingestelde WandaWikidataLang.",
-	"apihelp-wandachat-param-sources": "Door verticale strepen gescheiden lijst van bronnen die gebruikt moeten worden voor het ophalen van informatie (bijv. 'wiki|wikidata|cargo'). Ondersteunde waarden: wiki, wikidata, cargo, publicknowledge en alle geconfigureerde RAG-bronnamen. Standaardwaarde is 'wiki'."
+	"apihelp-wandachat-param-sources": "Door sluistekens gescheiden lijst van bronnen die gebruikt moeten worden voor het ophalen van informatie (bv. ‘wiki|wikidata|cargo’). Ondersteunde waarden: wiki, wikidata, cargo, publicknowledge, externalwiki en alle geconfigureerde RAG-bronnamen. Standaardwaarde is ‘wiki’."
 }

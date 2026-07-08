@@ -22,7 +22,7 @@
 	"apihelp-wandachat-param-apikey": "Clave API para o provedor da nube",
 	"apihelp-wandachat-param-apiendpoint": "Punto final personalizado da API para o provedor da nube",
 	"apihelp-wandachat-param-timeout": "Tempo de espera en segundos para a solicitude á API",
-	"apihelp-wandachat-param-usepublicknowledge": "Indica se ao bot de conversa se lle permite usar o seu coñecemento público ademais do contexto do wiki (verdadeiro/falso)",
+	"apihelp-wandachat-param-usepublicknowledge": "Indica se ao bot de conversa se lle permite usar os seus coñecementos de LLM ademais do contexto do wiki (true/false)",
 	"apihelp-wandachat-param-skipesquery": "Indica se se debe omitir a consulta a Elasticsearch",
 	"wanda-api-error-empty-question": "Indica unha pregunta válida.",
 	"wanda-api-error-temperature-invalid": "O valor de temperatura non é válido. Introduce un número entre 0,0 e 1,0.",
@@ -38,9 +38,9 @@
 	"wanda-api-error-token-limit": "A resposta truncouse debido ao límite de tokens ($1 tokens). Intenta facer unha pregunta máis específica ou aumenta o valor de «WandaLLMMaxTokens» na configuración.",
 	"wanda-api-error-fallback": "Non sei con certeza.",
 	"wanda-llm-response-nocontext": "Non teño información suficiente no contexto do wiki para responder a iso.",
-	"wanda-toggle-public-knowledge-label": "Utilizar tamén o coñecemento público",
+	"wanda-toggle-public-knowledge-label": "Utilizar tamén os coñecementos de LLM",
 	"wanda-toggle-public-knowledge-help": "Cando isto está activado, o asistente pode usar os seus coñecementos xerais ademais do contexto do wiki.",
-	"wanda-toggle-public-knowledge-aria": "Activar ou desactivar o uso de coñecemento público",
+	"wanda-toggle-public-knowledge-aria": "Activar ou desactivar o uso de coñecementos de LLM",
 	"wanda-floating-chat-header": "Asistente de IA de Wanda",
 	"wanda-attach-image-title": "Anexar imaxes do wiki",
 	"wanda-remove-image-aria": "Eliminar a imaxe anexada",
@@ -70,5 +70,5 @@
 	"wanda-wikidata-multistep-max-reached": "Alcanzouse o número máximo de pasos da consulta de Wikidata ($1).",
 	"apihelp-wandachat-param-wikidataonly": "Omitir o contexto do wiki e mais de Elasticsearch; responder usando só datos de Wikidata",
 	"apihelp-wandachat-param-wikidatalang": "Código de lingua BCP-47 para as etiquetas de Wikidata (por exemplo, «en», «de», «fr»). O valor predeterminado é o «WandaWikidataLang» configurado.",
-	"apihelp-wandachat-param-sources": "Lista de fontes separadas por barras verticais para usar na recuperación (por exemplo, «wiki|wikidata|cargo»). Valores admitidos: «wiki», «wikidata», «cargo», «publicknowledge» e calquera nome configurado da fonte RAG. O valor predeterminado é «wiki»."
+	"apihelp-wandachat-param-sources": "Lista de fontes separadas por barras verticais para usar na recuperación (por exemplo, «wiki|wikidata|cargo»). Valores admitidos: «wiki», «wikidata», «cargo», «publicknowledge», «externalwiki» e calquera nome configurado da fonte RAG. O valor predeterminado é «wiki»."
 }
