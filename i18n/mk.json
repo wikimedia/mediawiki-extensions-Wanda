@@ -36,6 +36,7 @@
 	"wanda-api-error-anthropic-key": "Не е поставен приложнички клуч за Anthropic.",
 	"wanda-api-error-azure-key": "Не е поставен приложнички клуч за Azure.",
 	"wanda-api-error-gemini-key": "Не е поставен приложнички клуч за Gemini.",
+	"wanda-api-error-token-limit": "Одговорот е скратен поради огранчување на шифрата ($1 шифри). Поставајте поконкретни прашања или повишете ги WandaLLMMaxTokens во поставките.",
 	"wanda-api-error-fallback": "Не сум сигурна за ова.",
 	"wanda-llm-response-nocontext": "Немам доволно информации во викиконтекстот за да одговорам на тоа.",
 	"wanda-toggle-public-knowledge-label": "Дополнително користи општи познавања",
@@ -52,5 +53,15 @@
 	"wanda-image-too-large": "Оваа слика е преголема. Се дозволуваат највеќе $1.",
 	"wanda-image-limit-reached": "Може да се прикачат највеќе $1 слики.",
 	"wanda-close": "Затвори",
-	"apihelp-wandachat-param-images": "Список на наслови на слики за прикачување, одделени со прави цртви (на пр. „File:Example.jpg|File:Image2.png“)"
+	"wanda-clear-conversation": "Исчисти го разговорот",
+	"wanda-clear-conversation-aria": "Исчисти разговорна историја",
+	"wanda-toggle-memory-label": "Запомни го разговорот",
+	"wanda-toggle-memory-aria": "Вкл/искл запомнети разговори",
+	"apihelp-wandachat-param-images": "Список на наслови на слики за прикачување, одделени со прави цртви (на пр. „File:Example.jpg|File:Image2.png“)",
+	"apihelp-wandachat-param-conversationhistory": "Строј на претходни разговорни пораки кодиран во JSON, секој со полиња „role“ и „content“.",
+	"wanda-cargo-query-error": "Не можев да ги добијам структурираните податоци за ова прашање.",
+	"wanda-cargo-no-tables": "Нема достапни табели на Карго за побарување.",
+	"wanda-cargo-query-failed": "Барањето до структурираните податоци не даде ништо.",
+	"wanda-cargo-multistep-max-reached": "Достигнат дозволениот број на чекори во барањето до Карго ($1).",
+	"wanda-thinking-label": "Прикажи го размислувањето"
 }
