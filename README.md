@@ -58,6 +58,9 @@ $wgWandaShowPopup = true; // Show/hide the floating chat widget on all pages
 
 $wgWandaEnableAttachments = true; // Show/hide the "Attach images" icon
 
+// Editing (experimental) — see the "Editing" section below
+$wgWandaEnableEditing = false; // Allow authorized users to edit pages via Wanda
+
 // Custom prompt settings
 $wgWandaCustomPrompt = ''; // Custom prompt template to override default behavior
 
@@ -234,6 +237,52 @@ Cargo results include source links:
 - The Cargo extension must be installed and loaded
 - At least one Cargo table must be declared and populated
 - If Cargo is not installed, the feature is silently skipped
+
+## Editing (experimental)
+
+Wanda can edit wiki pages on request. This is delivered incrementally; the current phase
+supports **free-text and infobox / template field edits** on a single page
+(for example, *"Change the value of John Smith's 'Phone number' field to 555-1212"* or
+*"Reword the first sentence to mention she is a marine biologist"*). The page does not
+need to contain an infobox. If the target page does not exist yet, Wanda proposes the
+full wikitext for the new page and creates it when the user confirms.
+
+Editing is **disabled by default** and gated by two layers:
+
+1. The feature flag `$wgWandaEnableEditing = true;` in `LocalSettings.php`.
+2. The `wanda-edit` user right, granted to the `sysop` group by default. Grant it to other
+   groups as needed:
+
+   ```php
+   $wgGroupPermissions['editor']['wanda-edit'] = true;
+   ```
+
+Wanda also respects each page's own edit permissions (protection, Lockdown, etc.), so it can
+never edit a page the requesting user could not edit manually.
+
+### How it works
+
+1. In `Special:Wanda` or the floating widget, authorized users see an **Edit mode** checkbox.
+2. With edit mode on, a **Page to edit** input appears next to the checkbox, prefilled with
+   the current page. The user adjusts it as needed (entering a title that does not exist yet
+   creates that page) and types an editing instruction.
+3. Wanda asks the LLM for the proposed wikitext and shows a **diff preview**. Nothing is saved yet.
+4. The user clicks **Apply edit** to save. The revision is attributed to the requesting user
+   with an edit summary noting it was AI-assisted via Wanda.
+
+### `wandaedit` API
+
+A write API module `wandaedit` powers the feature (requires a CSRF token and POST):
+
+| Parameter | Description |
+| --------- | ----------- |
+| `message` | Natural-language editing instruction |
+| `title` | Page to edit (created if it does not exist) |
+| `confirm` | `false` (default) returns a preview diff without saving; `true` saves `newtext` |
+| `newtext` | The previewed wikitext to save (required when `confirm=true`) |
+
+The module also accepts the same per-request LLM overrides as `wandachat`
+(`provider`, `model`, `apikey`, `apiendpoint`, `timeout`, `maxtokens`).
 
 ## Requirements
 

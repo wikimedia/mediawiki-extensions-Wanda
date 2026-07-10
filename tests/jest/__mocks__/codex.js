@@ -17,5 +17,6 @@ module.exports = {
 	CdxDialog: slotStub( 'CdxDialog' ),
 	CdxTextInput: slotStub( 'CdxTextInput' ),
 	CdxIcon: slotStub( 'CdxIcon' ),
-	CdxAccordion: slotStub( 'CdxAccordion' )
+	CdxAccordion: slotStub( 'CdxAccordion' ),
+	CdxLookup: slotStub( 'CdxLookup' )
 };

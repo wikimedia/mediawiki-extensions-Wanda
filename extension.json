@@ -32,7 +32,16 @@
 		"Wanda": "MediaWiki\\Extension\\Wanda\\Specials\\SpecialAIChat"
 	},
 	"APIModules": {
-		"wandachat": "MediaWiki\\Extension\\Wanda\\APIChat"
+		"wandachat": "MediaWiki\\Extension\\Wanda\\APIChat",
+		"wandaedit": "MediaWiki\\Extension\\Wanda\\APIEdit"
+	},
+	"AvailableRights": [
+		"wanda-edit"
+	],
+	"GroupPermissions": {
+		"sysop": {
+			"wanda-edit": true
+		}
 	},
 	"ResourceModules": {
 		"ext.wanda.main": {
@@ -55,6 +64,7 @@
 			"dependencies": [
 				"mediawiki.util",
 				"mediawiki.api",
+				"mediawiki.diff.styles",
 				"vue"
 			],
 			"codexComponents": [
@@ -66,7 +76,8 @@
 				"CdxTextInput",
 				"CdxIcon",
 				"CdxAccordion",
-				"CdxMultiselectLookup"
+				"CdxMultiselectLookup",
+				"CdxLookup"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -74,6 +85,18 @@
 				"wanda-chat-instruction1",
 				"wanda-chat-instruction2",
 				"wanda-chat-pdftotext-error",
+				"wanda-edit-card-heading",
+				"wanda-toggle-edit-label",
+				"wanda-toggle-edit-aria",
+				"wanda-edit-target-label",
+				"wanda-edit-preview-title",
+				"wanda-edit-apply",
+				"wanda-edit-cancel",
+				"wanda-edit-no-change",
+				"wanda-edit-success",
+				"wanda-edit-created",
+				"wanda-edit-error",
+				"wanda-edit-notitle",
 				"wanda-llm-response-nocontext",
 				"wanda-toggle-public-knowledge-label",
 				"wanda-toggle-public-knowledge-help",
@@ -123,6 +146,7 @@
 			"dependencies": [
 				"mediawiki.util",
 				"mediawiki.api",
+				"mediawiki.diff.styles",
 				"vue"
 			],
 			"codexComponents": [
@@ -134,7 +158,8 @@
 				"CdxTextInput",
 				"CdxIcon",
 				"CdxAccordion",
-				"CdxMultiselectLookup"
+				"CdxMultiselectLookup",
+				"CdxLookup"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
@@ -142,6 +167,18 @@
 				"wanda-chat-instruction1",
 				"wanda-chat-instruction2",
 				"wanda-floating-chat-title",
+				"wanda-edit-card-heading",
+				"wanda-toggle-edit-label",
+				"wanda-toggle-edit-aria",
+				"wanda-edit-target-label",
+				"wanda-edit-preview-title",
+				"wanda-edit-apply",
+				"wanda-edit-cancel",
+				"wanda-edit-no-change",
+				"wanda-edit-success",
+				"wanda-edit-created",
+				"wanda-edit-error",
+				"wanda-edit-notitle",
 				"wanda-llm-response-nocontext",
 				"wanda-toggle-public-knowledge-label",
 				"wanda-toggle-public-knowledge-help",
@@ -187,6 +224,7 @@
 		"WandaEnableAttachments": true,
 		"WandaCustomPrompt": "",
 		"WandaCustomPromptTitle": "",
+		"WandaEnableEditing": false,
 		"WandaLLMProvider": "ollama",
 		"WandaLLMApiEndpoint": "http://ollama:11434/api/",
 		"WandaLLMApiKey": "",

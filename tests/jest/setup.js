@@ -5,7 +5,7 @@
 
 // A single Api instance is reused so tests can configure its get/post mocks via
 // global.__mwApiMock without having to intercept the constructor per test.
-const apiMock = { get: jest.fn(), post: jest.fn() };
+const apiMock = { get: jest.fn(), post: jest.fn(), postWithToken: jest.fn() };
 global.__mwApiMock = apiMock;
 
 const configStore = {};
@@ -37,6 +37,7 @@ global.mw = {
 global.resetMwMocks = () => {
 	apiMock.get.mockReset();
 	apiMock.post.mockReset();
+	apiMock.postWithToken.mockReset();
 	global.mw.notify.mockReset();
 	Object.keys( configStore ).forEach( ( key ) => {
 		delete configStore[ key ];

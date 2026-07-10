@@ -18,6 +18,7 @@
 .chat-box {
     flex: 1 1 auto;
     overflow-y: auto;
+    min-height: 0;
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -30,6 +31,9 @@
     padding: 20px;
     font-size: 16px;
     color: #555;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .chat-instructions h2 {
@@ -629,4 +633,56 @@ body > .cdx-dialog-backdrop:has(.wanda-image-picker-dialog) + .cdx-dialog {
 
 .wanda-clear-conversation-btn {
     font-size: 12px;
+}
+
+/* Wanda edit mode */
+.wanda-edit-card {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.wanda-edit-card-heading {
+    font-weight: 600;
+    font-size: 12px;
+    color: #54595d;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.wanda-edit-mode-row {
+    display: flex;
+    width: 100%;
+}
+
+.wanda-edit-target-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 8px;
+}
+
+.wanda-edit-target-label {
+    white-space: nowrap;
+}
+
+.wanda-edit-target-input {
+    flex: 1 1 auto;
+    min-width: 160px;
+}
+
+.wanda-edit-preview-dialog .wanda-edit-summary {
+    margin: 0 0 8px;
+    font-weight: bold;
+}
+
+.wanda-edit-diff {
+    overflow-x: auto;
 }

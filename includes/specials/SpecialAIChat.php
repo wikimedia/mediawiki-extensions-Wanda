@@ -37,7 +37,9 @@ class SpecialAIChat extends SpecialPage {
 			'WandaMaxImageSize' => $config->get( 'WandaMaxImageSize' ),
 			'WandaMaxImageCount' => $config->get( 'WandaMaxImageCount' ),
 			'WandaShowConfidenceScore' => $config->get( 'WandaShowConfidenceScore' ),
-			'WandaRAGSourceNames' => array_keys( $config->get( 'WandaRAGSources' ) ?? [] )
+			'WandaRAGSourceNames' => array_keys( $config->get( 'WandaRAGSources' ) ?? [] ),
+			'WandaCanEdit' => $config->get( 'WandaEnableEditing' )
+				&& $this->getUser()->isAllowed( 'wanda-edit' )
 		] );
 
 		$out->addModules( 'ext.wanda.main' );

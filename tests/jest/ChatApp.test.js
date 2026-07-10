@@ -293,3 +293,57 @@ describe( 'ChatApp - configurable sources', () => {
 		} );
 	} );
 } );
+
+describe( 'ChatApp - edit mode', () => {
+	test( 'defaults the edit target to the current page name', () => {
+		global.mw.config.set( 'wgNamespaceNumber', 0 );
+		global.mw.config.set( 'wgPageName', 'John_Smith' );
+		expect( factory().vm.editTarget ).toBe( 'John Smith' );
+	} );
+
+	test( 'leaves the edit target empty on virtual pages (e.g. special pages)', () => {
+		global.mw.config.set( 'wgNamespaceNumber', -1 );
+		global.mw.config.set( 'wgPageName', 'Special:AIChat' );
+		expect( factory().vm.editTarget ).toBe( '' );
+	} );
+
+	test( 'shows the labelled page input only while edit mode is enabled', async () => {
+		global.mw.config.set( 'WandaCanEdit', true );
+		const wrapper = factory();
+		expect( wrapper.find( '.wanda-edit-mode-row' ).exists() ).toBe( true );
+		expect( wrapper.find( '.wanda-edit-target-label' ).exists() ).toBe( false );
+
+		wrapper.vm.editModeEnabled = true;
+		await wrapper.vm.$nextTick();
+		const label = wrapper.find( '.wanda-edit-target-label' );
+		expect( label.exists() ).toBe( true );
+		expect( label.text() ).toBe( 'wanda-edit-target-label' );
+	} );
+} );
+
+describe( 'ChatApp - applyEdit', () => {
+	async function applyWithResponse( response ) {
+		const wrapper = factory();
+		const vm = wrapper.vm;
+		global.__mwApiMock.postWithToken.mockResolvedValue( response );
+		vm.editPreview = { title: 'Some page', message: 'do it', newtext: 'text' };
+		await vm.applyEdit();
+		return vm;
+	}
+
+	test( 'reports a created page with the created message', async () => {
+		const vm = await applyWithResponse(
+			{ result: 'success', title: 'Some page', new: true, diffurl: '/w/diff' }
+		);
+		const last = vm.messages[ vm.messages.length - 1 ];
+		expect( last.content ).toContain( 'wanda-edit-created' );
+	} );
+
+	test( 'reports an updated page with the success message', async () => {
+		const vm = await applyWithResponse(
+			{ result: 'success', title: 'Some page', new: false, diffurl: '/w/diff' }
+		);
+		const last = vm.messages[ vm.messages.length - 1 ];
+		expect( last.content ).toContain( 'wanda-edit-success' );
+	} );
+} );
