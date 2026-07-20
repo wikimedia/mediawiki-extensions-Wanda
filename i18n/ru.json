@@ -1,8 +1,25 @@
 {
 	"@metadata": {
 		"authors": [
+			"Daisy40",
 			"Kareyac"
 		]
 	},
+	"wanda-desc": "Чат-бот для MediaWiki",
+	"wanda-chat-welcometext": "Привет! Я Ванда, ваш ИИ-ассистент.",
+	"wanda-chat-welcomedesc": "Задавайте мне любые вопросы по вашей вики, и я постараюсь помочь!",
+	"wanda-floating-chat-title": "Чат с Вандой",
+	"apihelp-wandachat-param-message": "Сообщение для отправки чат-боту",
+	"apihelp-wandachat-param-customprompt": "Текст промпта для использования вместо промпта по умолчанию",
+	"apihelp-wandachat-param-maxtokens": "Максимальное количество токенов в ответе",
+	"apihelp-wandachat-param-model": "Языковая модель для генерации ответа",
+	"apihelp-wandachat-param-provider": "Облачный провайдер для языковой модели",
+	"apihelp-wandachat-param-apikey": "API-ключ для облачного провайдера",
+	"apihelp-wandachat-param-timeout": "Время ожидания в секундах для API-запроса",
+	"wanda-api-error-openai-key": "API-ключ OpenAI не настроен.",
+	"wanda-api-error-anthropic-key": "API-ключ Anthropic не настроен.",
+	"wanda-api-error-azure-key": "API-ключ Azure не настроен.",
+	"wanda-api-error-gemini-key": "API-ключ Gemini не настроен.",
+	"wanda-image-search-placeholder": "Поиск изображений...",
 	"wanda-close": "Закрыть"
 }
