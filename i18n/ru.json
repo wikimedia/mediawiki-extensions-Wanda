@@ -1,7 +1,15 @@
 {
 	"@metadata": {
 		"authors": [
-			"Kareyac"
+			"Kareyac",
+			"Daisy40"
 		]
-	}
+	},
+	"wanda-desc": "Чат-бот для MediaWiki",
+	"wanda-chat-welcometext": "Привет! Я Ванда, ваш ИИ-ассистент.",
+	"wanda-chat-welcomedesc": "Задавайте мне любые вопросы по вашей вики, и я постараюсь помочь!",
+	"wanda-floating-chat-title": "Чат с Вандой",
+	"wanda-api-error-openai-key": "API-ключ OpenAI не настроен.",
+	"wanda-api-error-anthropic-key": "API-ключ Anthropic не настроен.",
+	"wanda-api-error-azure-key": "API-ключ Azure не настроен."
 }
