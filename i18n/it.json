@@ -13,5 +13,14 @@
 	"wanda-image-too-large": "Questa immagine è troppo grande. La dimensione massima del file è $1.",
 	"wanda-image-limit-reached": "È possibile allegare al massimo $1 immagini.",
 	"wanda-close": "Chiudi",
-	"wanda-clear-conversation-aria": "Cancella la cronologia delle conversazioni"
+	"wanda-clear-conversation-aria": "Cancella la cronologia delle conversazioni",
+	"right-wanda-edit": "Effettua modifiche assistite dall'IA utilizzando Wanda",
+	"action-wanda-edit": "effettuare modifiche assistite dall'IA utilizzando Wanda",
+	"wanda-edit-target-label": "Pagina da modificare/creare:",
+	"wanda-edit-apply": "Applica modifica",
+	"wanda-edit-cancel": "Annulla",
+	"wanda-edit-success": "Fatto! La pagina è stata aggiornata:",
+	"wanda-edit-created": "Fatto! La pagina è stata creata:",
+	"wanda-api-error-edit-permission": "Non si dispone dei permessi necessari per modificare le pagine con Wanda.",
+	"wanda-api-error-edit-failed": "La modifica non può essere salvata."
 }

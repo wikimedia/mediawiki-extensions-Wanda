@@ -23,5 +23,12 @@
 	"wanda-image-search-placeholder": "No Biller sichen ...",
 	"wanda-image-no-results": "Keng Biller fonnt",
 	"wanda-image-too-large": "Dëst Bild ass ze grouss. Déi maximal Dateigréisst ass $1.",
-	"wanda-close": "Zoumaachen"
+	"wanda-close": "Zoumaachen",
+	"right-wanda-edit": "KI-assistéiert Ännerunge mat Wanda maachen",
+	"action-wanda-edit": "KI-assistéiert Ännerunge mat Wanda ze maachen",
+	"wanda-edit-card-heading": "KI-Ännerung",
+	"wanda-edit-target-label": "Säit fir z'änneren/unzeleeën:",
+	"wanda-edit-cancel": "Ofbriechen",
+	"wanda-edit-summary": "KI-assistéiert Ännerung mat Wanda: $1",
+	"wanda-api-error-edit-failed": "D'Ännerung konnt net gespäichert ginn."
 }
