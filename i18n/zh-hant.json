@@ -1,7 +1,8 @@
 {
 	"@metadata": {
 		"authors": [
-			"Kly"
+			"Kly",
+			"Addonian1123"
 		]
 	},
 	"wanda-desc": "MediaWiki 的聊天機器人",
@@ -35,7 +36,7 @@
 	"wanda-api-error-anthropic-key": "未配置 Anthropic API 金鑰。",
 	"wanda-api-error-azure-key": "未配置 Azure API 金鑰。",
 	"wanda-api-error-gemini-key": "未配置 Gemini API 金鑰。",
-	"wanda-api-error-token-limit": "出於令牌數量限制（最多 $1 個令牌），回應內容被截斷。請嘗試提出更具體的問題，或在組態中增加 WandaALLMMaxTokens 的值。",
+	"wanda-api-error-token-limit": "出於令牌數量限制（最多$1個令牌），回應內容被截斷。請嘗試提出更具體的問題，或在組態中增加WandaALLMMaxTokens的值。",
 	"wanda-api-error-fallback": "這我不太確定。",
 	"wanda-llm-response-nocontext": "我在 wiki 上下文裡沒有足夠的資訊來回答這個問題。",
 	"wanda-toggle-public-knowledge-label": "額外使用公共知識。",
@@ -57,10 +58,10 @@
 	"wanda-toggle-memory-label": "記住對話",
 	"wanda-toggle-memory-aria": "切換對話記憶",
 	"apihelp-wandachat-param-images": "以垂直線字元區分的附加圖片標題清單（例如：「File:Example.jpg|File:Image2.png」）",
-	"apihelp-wandachat-param-conversationhistory": "以 JSON 編碼的先前對話訊息陣列，每個都有「role」和「content」欄位。",
+	"apihelp-wandachat-param-conversationhistory": "以JSON編碼的先前對話訊息陣列，每個都有「role」和「content」欄位。",
 	"wanda-cargo-query-error": "無法檢索此問題的結構化資料。",
-	"wanda-cargo-no-tables": "沒有可供查詢的 Cargo 表格。",
+	"wanda-cargo-no-tables": "沒有可供查詢的Cargo表格。",
 	"wanda-cargo-query-failed": "結構化資料查詢未回傳任何結果。",
-	"wanda-cargo-multistep-max-reached": "已達到 Cargo 查詢步驟的最大數量（$1）。",
-	"wanda-thinking-label": "展現思考"
+	"wanda-cargo-multistep-max-reached": "已達到Cargo查詢步驟的最大數量（$1）。",
+	"wanda-thinking-label": "顯示思考流程"
 }
