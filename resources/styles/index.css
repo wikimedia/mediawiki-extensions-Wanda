@@ -1,688 +1,688 @@
 .chat-container {
-    display: flex;
-    flex-direction: column;
-    width: 100% !important;
-    max-height: 600px;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    background-color: #f8f9fa;
+	display: flex;
+	flex-direction: column;
+	width: 100% !important;
+	max-height: 600px;
+	border: 1px solid #ccc;
+	border-radius: 10px;
+	box-shadow: 0 4px 10px rgba( 0, 0, 0, 0.1 );
+	overflow: hidden;
+	background-color: #f8f9fa;
 }
 
 /* Codex text area max width */
 .chat-container textarea {
-    max-width: 100%;
+	max-width: 100%;
 }
 
 .chat-box {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    min-height: 0;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    scroll-behavior: smooth;
+	flex: 1 1 auto;
+	overflow-y: auto;
+	min-height: 0;
+	padding: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	scroll-behavior: smooth;
 }
 
 .chat-instructions {
-    text-align: center;
-    padding: 20px;
-    font-size: 16px;
-    color: #555;
-    flex: 1 1 auto;
-    overflow-y: auto;
-    min-height: 0;
+	text-align: center;
+	padding: 20px;
+	font-size: 16px;
+	color: #555;
+	flex: 1 1 auto;
+	overflow-y: auto;
+	min-height: 0;
 }
 
 .chat-instructions h2 {
-    font-size: 20px;
-    margin-bottom: 10px;
-    color: #222;
+	font-size: 20px;
+	margin-bottom: 10px;
+	color: #222;
 }
 
 .chat-instructions ul {
-    list-style: none;
-    padding: 0;
+	list-style: none;
+	padding: 0;
 }
 
 .chat-instructions li {
-    font-size: 14px;
-    margin: 5px 0;
+	font-size: 14px;
+	margin: 5px 0;
 }
 
 .chat-message-wrapper {
-    display: flex;
-    max-width: 95%;
+	display: flex;
+	max-width: 95%;
 }
 
 .user-wrapper {
-    justify-content: flex-end;
+	justify-content: flex-end;
 }
 
 .bot-wrapper {
-    justify-content: flex-start;
+	justify-content: flex-start;
 }
 
 .chat-message-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    max-width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	max-width: 100%;
 }
 
 .bot-wrapper .chat-message-container {
-    align-items: flex-start;
+	align-items: flex-start;
 }
 
 .chat-message {
-    padding: 10px 15px;
-    border-radius: 15px;
-    font-size: 14px;
-    max-width: 100%;
-    word-wrap: break-word;
+	padding: 10px 15px;
+	border-radius: 15px;
+	font-size: 14px;
+	max-width: 100%;
+	word-wrap: break-word;
 }
 
 .user-message {
-    background-color: #007bff;
-    color: white;
-    border-bottom-right-radius: 5px;
+	background-color: #007bff;
+	color: #fff;
+	border-bottom-right-radius: 5px;
 }
 
 .bot-message {
-    background-color: #e9ecef;
-    color: #333;
-    border-bottom-left-radius: 5px;
+	background-color: #e9ecef;
+	color: #333;
+	border-bottom-left-radius: 5px;
 }
 
 /* Rendered Markdown tables inside bot messages */
 .wanda-table-wrap {
-    overflow-x: auto;
-    max-width: 100%;
+	overflow-x: auto;
+	max-width: 100%;
 }
 
 .wanda-table {
-    border-collapse: collapse;
-    width: 100%;
+	border-collapse: collapse;
+	width: 100%;
 }
 
 .wanda-table th,
 .wanda-table td {
-    border: 1px solid #ddd;
-    padding: 4px 6px;
-    text-align: left;
-    vertical-align: top;
+	border: 1px solid #ddd;
+	padding: 4px 6px;
+	text-align: left;
+	vertical-align: top;
 }
 
 .wanda-table th {
-    font-weight: 600;
+	font-weight: 600;
 }
 
 .chat-input-container {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    padding: 10px;
-    background-color: white;
-    border-top: 1px solid #ddd;
-    gap: 8px;
-    flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: start;
+	padding: 10px;
+	background-color: #fff;
+	border-top: 1px solid #ddd;
+	gap: 8px;
+	flex-shrink: 0;
 }
 
 .chat-input-box {
-    flex: 1 1 auto;
-    min-width: 0;
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 .wanda-sources-row {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    gap: 8px;
+	display: flex;
+	align-items: center;
+	width: 100%;
+	gap: 8px;
 }
 
 .wanda-sources-label {
-    flex: 0 0 auto;
-    white-space: nowrap;
+	flex: 0 0 auto;
+	white-space: nowrap;
 }
 
 .wanda-source-selector {
-    flex: 1 1 auto;
-    min-width: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .wanda-source-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.95rem;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.95rem;
 }
 
 .wanda-sources-row .wanda-source-selector {
-    margin-bottom: 0;
+	margin-bottom: 0;
 }
 
 .wanda-question-card {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    background-color: #f8f9fa;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+	width: 100%;
+	padding: 8px;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	background-color: #f8f9fa;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
 }
 
 .wanda-question-card .wanda-attached-images {
-    margin-bottom: 0;
+	margin-bottom: 0;
 }
 
 .wanda-question-outline {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 /* Button sizing */
 .chat-input-container .cdx-button {
-    font-size: medium;
-    flex: 0 0 auto;
-    white-space: nowrap;
+	font-size: medium;
+	flex: 0 0 auto;
+	white-space: nowrap;
 }
 
 .chat-progress-bar {
-    width: 100%;
-    max-width: 100%;
-    margin: 5px 0;
+	width: 100%;
+	max-width: 100%;
+	margin: 5px 0;
 }
 
 .wanda-floating-input-row {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    width: 100%;
-    gap: 8px;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	width: 100%;
+	gap: 8px;
 }
 
 /* Image attachment styles */
 .wanda-attached-images {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    width: 100%;
-    margin-bottom: 8px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	width: 100%;
+	margin-bottom: 8px;
 }
 
 .wanda-image-thumbnail {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px;
-    background: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    max-width: 100%;
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px;
+	background: #f0f0f0;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	max-width: 100%;
 }
 
 .wanda-image-thumbnail img {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
-    border-radius: 4px;
+	width: 50px;
+	height: 50px;
+	object-fit: cover;
+	border-radius: 4px;
 }
 
 .wanda-image-info {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-width: 0;
 }
 
 .wanda-image-title {
-    font-size: 12px;
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+	font-size: 12px;
+	font-weight: 500;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .wanda-image-size {
-    font-size: 11px;
-    color: #666;
+	font-size: 11px;
+	color: #666;
 }
 
 .wanda-remove-image {
-    background: #ff4444;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    font-size: 18px;
-    line-height: 1;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+	background: #f44;
+	color: #fff;
+	border: none;
+	border-radius: 50%;
+	width: 24px;
+	height: 24px;
+	cursor: pointer;
+	font-size: 18px;
+	line-height: 1;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .wanda-remove-image:hover {
-    background: #cc0000;
+	background: #c00;
 }
 
 .wanda-attach-button {
-    padding: 6px 10px !important;
+	padding: 6px 10px !important;
 }
 
 .wanda-attach-button .cdx-icon {
-    width: 20px;
-    height: 20px;
+	width: 20px;
+	height: 20px;
 }
 
 /* Image picker dialog styles */
 .wanda-image-picker-dialog .cdx-dialog__body {
-    height: 50vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+	height: 50vh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
 }
 
 .wanda-image-picker-content {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    height: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	height: 100%;
 }
 
 .wanda-image-picker-results {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-top: 16px;
-    overflow-y: auto;
-    padding-top: 8px;
-    flex: 1;
-    align-content: start;
+	display: grid;
+	grid-template-columns: repeat( 3, 1fr );
+	gap: 12px;
+	margin-top: 16px;
+	overflow-y: auto;
+	padding-top: 8px;
+	flex: 1;
+	align-content: start;
 }
 
 .wanda-image-result {
-    display: flex;
-    flex-direction: column;
-    padding: 8px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    margin-top: 4px;
-    min-width: 0;
+	display: flex;
+	flex-direction: column;
+	padding: 8px;
+	border: 2px solid #e0e0e0;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	background: #fff;
+	box-shadow: 0 2px 4px rgba( 0, 0, 0, 0.05 );
+	margin-top: 4px;
+	min-width: 0;
 }
 
-.wanda-image-result:hover:not(.disabled) {
-    border-color: #007bff;
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
-    transform: translateY(-2px);
-    position: relative;
-    z-index: 1;
+.wanda-image-result:hover:not( .disabled ) {
+	border-color: #007bff;
+	box-shadow: 0 4px 12px rgba( 0, 123, 255, 0.25 );
+	transform: translateY( -2px );
+	position: relative;
+	z-index: 1;
 }
 
 .wanda-image-result.disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    background: #f5f5f5;
+	opacity: 0.4;
+	cursor: not-allowed;
+	background: #f5f5f5;
 }
 
 .wanda-image-result img {
-    width: 100%;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 6px;
-    margin-bottom: 8px;
-    background: #f0f0f0;
+	width: 100%;
+	height: 100px;
+	object-fit: cover;
+	border-radius: 6px;
+	margin-bottom: 8px;
+	background: #f0f0f0;
 }
 
 .wanda-image-result-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 .wanda-image-result-title {
-    font-size: 13px;
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: #333;
-    max-width: 100%;
-    display: block;
+	font-size: 13px;
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: #333;
+	max-width: 100%;
+	display: block;
 }
 
 .wanda-image-result-size {
-    font-size: 11px;
-    color: #888;
-    font-weight: 500;
+	font-size: 11px;
+	color: #888;
+	font-weight: 500;
 }
 
 /* Message images displayed as small thumbnails below the message */
 .wanda-message-images {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
-    justify-content: flex-end;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 6px;
+	justify-content: flex-end;
 }
 
 .chat-message-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    max-width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	max-width: 100%;
 }
 
 .bot-wrapper .chat-message-container {
-    align-items: flex-start;
+	align-items: flex-start;
 }
 
 .bot-wrapper .wanda-message-images {
-    justify-content: flex-start;
+	justify-content: flex-start;
 }
 
 .wanda-message-image {
-    width: 45px;
-    height: 45px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 2px solid rgba(255, 255, 255, 0.95);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+	width: 45px;
+	height: 45px;
+	object-fit: cover;
+	border-radius: 8px;
+	border: 2px solid rgba( 255, 255, 255, 0.95 );
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 6px rgba( 0, 0, 0, 0.3 );
 }
 
 .wanda-message-image:hover {
-    transform: scale(2.2);
-    border-color: rgba(0, 123, 255, 0.8);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    z-index: 100;
+	transform: scale( 2.2 );
+	border-color: rgba( 0, 123, 255, 0.8 );
+	box-shadow: 0 4px 12px rgba( 0, 0, 0, 0.5 );
+	z-index: 100;
 }
 
 /* Image picker dialog with very high z-index */
 .wanda-image-picker-dialog {
-    z-index: 99999 !important;
+	z-index: 99999 !important;
 }
 
 .wanda-image-picker-dialog .cdx-dialog {
-    z-index: 99999 !important;
+	z-index: 99999 !important;
 }
 
 .wanda-image-picker-dialog .cdx-dialog__backdrop {
-    z-index: 99998 !important;
+	z-index: 99998 !important;
 }
 
 /* Ensure Codex dialog wrapper also has high z-index */
 .cdx-dialog-backdrop.wanda-image-picker-dialog {
-    z-index: 99998 !important;
+	z-index: 99998 !important;
 }
 
-body > .cdx-dialog-backdrop:has(.wanda-image-picker-dialog) {
-    z-index: 99998 !important;
+body > .cdx-dialog-backdrop:has( .wanda-image-picker-dialog ) {
+	z-index: 99998 !important;
 }
 
-body > .cdx-dialog-backdrop:has(.wanda-image-picker-dialog) + .cdx-dialog {
-    z-index: 99999 !important;
+body > .cdx-dialog-backdrop:has( .wanda-image-picker-dialog ) + .cdx-dialog {
+	z-index: 99999 !important;
 }
 
 .wanda-search-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    color: #999;
-    background-color: #f5f5f5;
-    font-size: 14px;
-    flex: 1;
-    width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	color: #999;
+	background-color: #f5f5f5;
+	font-size: 14px;
+	flex: 1;
+	width: 100%;
 }
 
 .wanda-no-results {
-    text-align: center;
-    padding: 20px;
-    color: #666;
+	text-align: center;
+	padding: 20px;
+	color: #666;
 }
 
 .wanda-searching {
-    padding: 20px;
+	padding: 20px;
 }
 
 /* Sources list */
 .wanda-sources-list {
-    margin: 4px 0 0;
-    padding-left: 20px;
-    list-style: disc;
+	margin: 4px 0 0;
+	padding-left: 20px;
+	list-style: disc;
 }
 
 .wanda-sources-list li {
-    margin: 2px 0;
+	margin: 2px 0;
 }
 
 /* Thinking accordion — override CdxAccordion defaults to fit inside chat bubble */
 .wanda-thinking {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    border-bottom: none;
+	margin-top: 8px;
+	padding-top: 8px;
+	border-top: 1px solid rgba( 0, 0, 0, 0.1 );
+	border-bottom: none;
 }
 
 .wanda-thinking > summary {
-    padding: 6px 0;
-    font-size: 0.98em;
-    color: #444;
-    border: none;
-    background: none;
+	padding: 6px 0;
+	font-size: 0.98em;
+	color: #444;
+	border: none;
+	background: none;
 }
 
 .wanda-thinking > summary:hover {
-    background: none;
+	background: none;
 }
 
 .wanda-thinking > summary::before {
-    min-width: 14px;
-    min-height: 14px;
-    width: 14px;
+	min-width: 14px;
+	min-height: 14px;
+	width: 14px;
 }
 
 .wanda-thinking .cdx-accordion__header {
-    font-size: 0.98em !important;
-    line-height: 1.4;
+	font-size: 0.98em !important;
+	line-height: 1.4;
 }
 
 .wanda-thinking .cdx-accordion__content {
-    padding: 8px 0 0;
-    font-size: 0.98em !important;
-    line-height: 1.5;
+	padding: 8px 0 0;
+	font-size: 0.98em !important;
+	line-height: 1.5;
 }
 
 .wanda-thinking-steps {
-    margin: 0;
-    padding-left: 22px;
-    font-size: 0.96em;
-    color: #444;
+	margin: 0;
+	padding-left: 22px;
+	font-size: 0.96em;
+	color: #444;
 }
 
 .wanda-thinking-steps li {
-    margin: 5px 0;
+	margin: 5px 0;
 }
 
 .wanda-sparql-query code {
-    font-size: 0.96em;
-    white-space: pre-wrap;
-    word-break: break-word;
+	font-size: 0.96em;
+	white-space: pre-wrap;
+	word-break: break-word;
 }
 
 .wanda-thinking-steps li {
-    margin: 3px 0;
+	margin: 3px 0;
 }
 
 .wanda-step--info {
-    color: #555;
+	color: #555;
 }
 
 .wanda-step--info::marker {
-    content: 'ℹ  ';
+	content: 'ℹ  ';
 }
 
 .wanda-step--error {
-    color: #a05000;
+	color: #a05000;
 }
 
 .wanda-step--error::marker {
-    content: '⚠  ';
+	content: '⚠  ';
 }
 
 .wanda-step--query {
-    color: #333;
+	color: #333;
 }
 
 .wanda-source-selector {
-    margin-bottom: 6px;
+	margin-bottom: 6px;
 }
 
 .wanda-message-sources {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 4px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-bottom: 4px;
 }
 
 .wanda-source-chip {
-    display: inline-block;
-    padding: 1px 8px;
-    border-radius: 12px;
-    background: #eaf3fb;
-    border: 1px solid #a2c4e0;
-    color: #2b4f7a;
-    font-size: 0.78em;
-    font-weight: 500;
-    line-height: 1.6;
+	display: inline-block;
+	padding: 1px 8px;
+	border-radius: 12px;
+	background: #eaf3fb;
+	border: 1px solid #a2c4e0;
+	color: #2b4f7a;
+	font-size: 0.78em;
+	font-weight: 500;
+	line-height: 1.6;
 }
 
 .wanda-sparql-query {
-    margin: 4px 0 0;
-    padding: 6px 8px;
-    background: #f3f3f3;
-    border-left: 3px solid #a0a0a0;
-    border-radius: 3px;
-    font-size: 0.85em;
-    white-space: pre-wrap;
-    word-break: break-all;
-    color: #333;
+	margin: 4px 0 0;
+	padding: 6px 8px;
+	background: #f3f3f3;
+	border-left: 3px solid #a0a0a0;
+	border-radius: 3px;
+	font-size: 0.85em;
+	white-space: pre-wrap;
+	word-break: break-all;
+	color: #333;
 }
 
-@media (max-width: 600px) {
-    .chat-container {
-        height: 400px;
-        max-width: 100%;
-    }
+@media ( max-width: 600px ) {
+	.chat-container {
+		height: 400px;
+		max-width: 100%;
+	}
 
-    .chat-message {
-        font-size: 13px;
-        padding: 8px 12px;
-    }
+	.chat-message {
+		font-size: 13px;
+		padding: 8px 12px;
+	}
 
-    .chat-input-container {
-        padding: 5px;
-    }
+	.chat-input-container {
+		padding: 5px;
+	}
 
-    .wanda-image-picker-results {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 12px;
-    }
+	.wanda-image-picker-results {
+		grid-template-columns: repeat( auto-fill, minmax( 120px, 1fr ) );
+		gap: 12px;
+	}
 
-    .wanda-image-result img {
-        height: 100px;
-    }
+	.wanda-image-result img {
+		height: 100px;
+	}
 
-    .wanda-message-images {
-        max-width: 25%;
-    }
+	.wanda-message-images {
+		max-width: 25%;
+	}
 
-    .wanda-message-image {
-        max-width: 40px;
-    }
+	.wanda-message-image {
+		max-width: 40px;
+	}
 
-    .wanda-image-picker-dialog .cdx-dialog__body {
-        height: 45vh;
-    }
+	.wanda-image-picker-dialog .cdx-dialog__body {
+		height: 45vh;
+	}
 }
 
 /* Clear Conversation */
 .wanda-clear-row {
-    display: flex;
-    justify-content: flex-end;
-    padding: 4px 10px 0;
+	display: flex;
+	justify-content: flex-end;
+	padding: 4px 10px 0;
 }
 
 .wanda-clear-conversation-btn {
-    font-size: 12px;
+	font-size: 12px;
 }
 
 /* Wanda edit mode */
 .wanda-edit-card {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    background-color: #f8f9fa;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+	width: 100%;
+	padding: 8px;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	background-color: #f8f9fa;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
 }
 
 .wanda-edit-card-heading {
-    font-weight: 600;
-    font-size: 12px;
-    color: #54595d;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+	font-weight: 600;
+	font-size: 12px;
+	color: #54595d;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
 }
 
 .wanda-edit-mode-row {
-    display: flex;
-    width: 100%;
+	display: flex;
+	width: 100%;
 }
 
 .wanda-edit-target-row {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 8px;
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	width: 100%;
+	gap: 8px;
 }
 
 .wanda-edit-target-label {
-    white-space: nowrap;
+	white-space: nowrap;
 }
 
 .wanda-edit-target-input {
-    flex: 1 1 auto;
-    min-width: 160px;
+	flex: 1 1 auto;
+	min-width: 160px;
 }
 
 .wanda-edit-preview-dialog .wanda-edit-summary {
-    margin: 0 0 8px;
-    font-weight: bold;
+	margin: 0 0 8px;
+	font-weight: bold;
 }
 
 .wanda-edit-diff {
-    overflow-x: auto;
+	overflow-x: auto;
 }
