@@ -5,6 +5,7 @@
 		"declaration-property-value-disallowed-list": null,
 		"no-duplicate-selectors": null,
 		"declaration-no-important": null,
-		"no-descending-specificity": null
+		"no-descending-specificity": null,
+		"declaration-property-value-keyword-no-deprecated": null
 	}
 }
