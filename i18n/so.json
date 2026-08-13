@@ -1,0 +1,41 @@
+{
+	"@metadata": {
+		"authors": [
+			"AhmedG612"
+		]
+	},
+	"wanda-desc": "Chatbot-ka MediaWiki",
+	"wanda-chat-welcometext": "Salaan! Waxaan ahay Wanda, kaaliyahaaga AI.",
+	"wanda-chat-welcomedesc": "I weydii wax kasta oo ku saabsan wikigaaga, waxaana isku dayi doonaa inaan ku caawiyo!",
+	"wanda-chat-instruction1": "Hel jawaabaha su'aalahaaga",
+	"wanda-chat-instruction2": "Jawaabo ay awoodda AI bixiso",
+	"wanda-chat-pdftotext-error": "Fadlan hubi in adeegga pdftotext la rakibay oo uu diyaar u yahay in la isticmaalo.",
+	"wanda-floating-chat-title": "La sheekayso Wanda",
+	"apihelp-wandachat-summary": "U dir su'aal ama codsi chatbot-ka kordhinta Wanda",
+	"apihelp-wandachat-param-message": "Fariinta loo dirayo chatbot-ka",
+	"apihelp-wandachat-param-customprompt": "Qoraalka tilmaanta ee la adeegsanayo halkii laga isticmaali lahaa tilmaanta caadiga ah",
+	"apihelp-wandachat-param-customprompttitle": "Cinwaanka bogga wiki-ga ee loo adeegsanayo tusmada tilmaanta gaarka ah",
+	"apihelp-wandachat-param-temperature": "Heerkulka muunad-qaadista ee loo isticmaalo soo saarista jawaabta (0.0 ilaa 1.0). Qiimayaasha sare waxay soo saaraan jawaabo kala duwanaansho badan leh.",
+	"apihelp-wandachat-param-maxtokens": "Tirada ugu badan ee calaamadaha jawaabta",
+	"apihelp-wandachat-param-model": "Qaabka luqadeed ee loo isticmaali doono soo saarista jawaabta",
+	"apihelp-wandachat-param-provider": "Bixiyaha daruuraha ee loo isticmaali doono qaabka luqadeed",
+	"apihelp-wandachat-param-apikey": "Furaha API-ga ee bixiyaha daruuraha",
+	"apihelp-wandachat-param-apiendpoint": "Barta API-ga gaarka ah ee bixiyaha daruuraha",
+	"apihelp-wandachat-param-timeout": "Waqtiga ugu badan ee sugitaanka codsiga API-ga, oo lagu cabbirayo ilbiriqsiyo",
+	"apihelp-wandachat-param-skipesquery": "Haddii laga boodi doono weydiinta Elasticsearch",
+	"wanda-api-error-empty-question": "Fadlan bixi su'aal sax ah.",
+	"wanda-api-error-temperature-invalid": "Qiimaha heerkulku waa khalad. Fadlan bixi lambar u dhexeeya 0.0 iyo 1.0.",
+	"wanda-api-error-temperature-outofrange": "Qiimaha heerkulku wuxuu ka baxsan yahay xadka. Fadlan bixi lambar u dhexeeya 0.0 iyo 1.0.",
+	"wanda-api-error-config-invalid": "Adeegga wada sheekaysigu si sax ah looma habayn. Fadlan la xidhiidh maamule.",
+	"wanda-api-error-no-index": "Ma helin macluumaad wiki oo khuseeya maadaama aan la helin tusmooyin. Fadlan hubi in nuxurka la sameeyay tusmo.",
+	"wanda-api-error-no-results": "Ma helin macluumaad khuseeya mawduucaasi gudaha wiki-ga.",
+	"wanda-api-error-generation-failed": "Waxaan hadda dhibaato kala kulmayaa soo saarista jawaab. Fadlan mar kale isku day.",
+	"wanda-api-error-openai-key": "Furaha API-ga OpenAI lama habayn.",
+	"wanda-api-error-anthropic-key": "Furaha API-ga Anthropic lama habayn.",
+	"wanda-api-error-azure-key": "Furaha API-ga Azure lama habayn.",
+	"wanda-api-error-gemini-key": "Furaha API-ga Gemini lama habayn.",
+	"wanda-api-error-fallback": "Ma hubo arrintaas.",
+	"wanda-llm-response-nocontext": "Ma haysto macluumaad ku filan oo ku jira macnaha guud ee wiki-ga si aan uga jawaabo taas.",
+	"wanda-toggle-public-knowledge-help": "Marka la hawlgeliyo, kaaliyuhu waxa uu isticmaali karaa aqoontiisa guud marka lagu daro macnaha guud ee wiki-ga.",
+	"wanda-floating-chat-header": "Kaaliyaha Wanda AI"
+}
