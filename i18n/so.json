@@ -1,0 +1,23 @@
+{
+	"@metadata": {
+		"authors": [
+			"AhmedG612"
+		]
+	},
+	"wanda-desc": "Chatbot-ka MediaWiki",
+	"wanda-chat-welcometext": "Salaan! Waxaan ahay Wanda, kaaliyahaaga AI.",
+	"wanda-chat-welcomedesc": "I weydii wax kasta oo ku saabsan wikigaaga, waxaana isku dayi doonaa inaan ku caawiyo!",
+	"wanda-chat-instruction1": "Hel jawaabaha su'aalahaaga",
+	"wanda-chat-instruction2": "Jawaabo ay awoodda AI bixiso",
+	"wanda-chat-pdftotext-error": "Fadlan hubi in adeegga pdftotext la rakibay oo uu diyaar u yahay in la isticmaalo.",
+	"wanda-floating-chat-title": "La sheekayso Wanda",
+	"wanda-api-error-empty-question": "Fadlan bixi su'aal sax ah.",
+	"wanda-api-error-config-invalid": "Adeegga wada sheekaysigu si sax ah looma habayn. Fadlan la xidhiidh maamule.",
+	"wanda-api-error-no-index": "Ma helin macluumaad wiki oo khuseeya maadaama aan la helin tusmooyin. Fadlan hubi in nuxurka la sameeyay tusmo.",
+	"wanda-api-error-no-results": "Ma helin macluumaad khuseeya mawduucaasi gudaha wiki-ga.",
+	"wanda-api-error-generation-failed": "Waxaan hadda dhibaato kala kulmayaa soo saarista jawaab. Fadlan mar kale isku day.",
+	"wanda-api-error-openai-key": "Furaha API-ga OpenAI lama habayn.",
+	"wanda-api-error-anthropic-key": "Furaha API-ga Anthropic lama habayn.",
+	"wanda-api-error-azure-key": "Furaha API-ga Azure lama habayn.",
+	"wanda-api-error-fallback": "Ma hubo arrintaas."
+}
