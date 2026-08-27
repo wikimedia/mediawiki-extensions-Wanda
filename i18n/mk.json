@@ -71,5 +71,8 @@
 	"wanda-wikidata-multistep-max-reached": "Достигнат дозволениот број на чекори во барањето до Википодатоците ($1).",
 	"apihelp-wandachat-param-wikidataonly": "Прескокни контекст на вики и Elasticsearch; одговарај само со податоци од Википодатоците",
 	"apihelp-wandachat-param-wikidatalang": "BCP-47 јазичен код за натписи на Википодатоците(на пр. „mk“, „en“, „de“). По основно е поставениот WandaWikidataLang.",
-	"apihelp-wandachat-param-sources": "Список на извори што се користат во добивање информации одделен со прави црти (на пр. „wiki|wikidata|cargo“). Поддржани вредности: wiki, wikidata, cargo, publicknowledge и сите поставени изворни имиња на RAG. По основно: „wiki“."
+	"apihelp-wandachat-param-sources": "Список на извори што се користат во добивање информации одделен со прави црти (на пр. „wiki|wikidata|cargo“). Поддржани вредности: wiki, wikidata, cargo, publicknowledge и сите поставени изворни имиња на RAG. По основно: „wiki“.",
+	"wanda-edit-card-heading": "ВИ-уредување",
+	"wanda-toggle-edit-label": "Режим на уредување",
+	"wanda-toggle-edit-aria": "Префрли режим на уредување"
 }
