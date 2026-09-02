@@ -14,6 +14,7 @@
 	"wanda-image-limit-reached": "È possibile allegare al massimo $1 immagini.",
 	"wanda-close": "Chiudi",
 	"wanda-clear-conversation-aria": "Cancella la cronologia delle conversazioni",
+	"wanda-smw-not-available": "Semantic MediaWiki non è installato su questo wiki.",
 	"right-wanda-edit": "Effettua modifiche assistite dall'IA utilizzando Wanda",
 	"action-wanda-edit": "effettuare modifiche assistite dall'IA utilizzando Wanda",
 	"wanda-edit-target-label": "Pagina da modificare/creare:",
