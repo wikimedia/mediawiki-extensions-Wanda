@@ -8,9 +8,12 @@ Wanda is a MediaWiki extension that provides an AI-powered chatbot interface for
 - **Vector-Based Semantic Search**: Uses high-dimensional embeddings for intelligent content retrieval with configurable similarity thresholds
 - **Dual Search Strategy**: Automatic fallback from vector search to text-based search for reliability
 - **Floating Chat Widget**: Always-accessible chat button on all pages
+- **Editing**: Allowed users can additionally create and edit pages via natural-language queries
+- **Image Analysis**: Ask questions about images that have been uploaded to the wiki
+- **Additional Text Querying**: Query text data from local files, or external wikis
+- **Structured Data Querying**: Query structured data from the MediaWiki extensions Cargo and Semantic MediaWiki, or the site Wikidata
 - **Special Page**: Dedicated chat interface at Special:Wanda
 - **Responsive Design**: Works on desktop and mobile devices
-- **Cargo Table Queries**: Query structured data from Cargo tables using LLM-generated queries
 - **Secure Configuration**: API key management and timeout controls
 
 ## Installation
@@ -76,7 +79,7 @@ $wgWandaLLMTimeout = 30; // Request timeout in seconds for LLM calls
 // Indexing settings
 $wgWandaAutoReindex = true; // Automatically reindex content after update.php
 
-$wgWandaSkipESQuery = false; //Skip Elastic Search
+$wgWandaSkipESQuery = false; // Skip Elastic Search
 
 // Cargo structured data integration
 $wgWandaCargoExcludedTables = []; // Array of Cargo table names to exclude from queries
@@ -232,11 +235,61 @@ Cargo results include source links:
 - **Row-level**: Links to `PageName?action=pagevalues` showing the page's stored Cargo data
 - **Table-level**: Links to `Special:CargoTables/TableName` showing the full table
 
-### Requirements
+### Disabling
 
-- The Cargo extension must be installed and loaded
-- At least one Cargo table must be declared and populated
-- If Cargo is not installed, the feature is silently skipped
+To disable Cargo querying, add the following to `LocalSettings.php`:
+
+```php
+$wgWandaDisabledSources[] = 'cargo';
+```
+
+## Semantic MediaWiki Integration
+If the [Semantic MediaWiki](https://www.semantic-mediawiki.org/wiki/Semantic_MediaWiki) (SMW) extension is installed, then by default Wanda will include its data as a source that can be queried.
+
+The following configuration variables exist for SMW querying:
+
+- `$wgWandaSMWExcludedProperties` - an array holding the names of properties to not query on
+- `$wgWandaSMWMaxQuerySteps` - the maximum number of steps to use for querying (default is 3)
+- `$wgWandaSMWMaxResults` - the maximum number of results to show (default is 50)
+
+To disable Semantic MediaWiki querying, add the following to `LocalSettings.php`:
+
+```php
+$wgWandaDisabledSources[] = 'smw';
+```
+
+## Wikidata Integration
+Wanda also includes, by default, the site [Wikidata](https://www.wikidata.org) as a source, allowing users to query its collection of billions of facts with natural-language queries.
+
+To disable Wikidata querying, add the following to `LocalSettings.php`:
+
+```php
+$wgWandaDisabledSources[] = 'wikidata';
+```
+
+## Text (RAG) querying
+
+Wanda can query local files (text, PDF, etc.) using retrieval-augmented generation (RAG). To add a group of files as a single source for querying, add something like the following to `LocalSettings.php`:
+
+```php
+$wgWandaRAGSources['Financial records'] = [ '2025 financials.txt', '2026 financials.pdf' ];
+```
+
+## Querying external wikis
+
+To add an external wiki as a data source, add something like the following to `LocalSettings.php`:
+
+```php
+$wgWandaExternalWikis['Ballotpedia'] = [ 'url' => 'https://ballotpedia.org', 'namespaces' => [0] ];
+```
+
+## Image Analysis
+
+The Wanda interface enables users to specify images that have been previously uploaded to the wiki and ask questions about them.
+
+The following configuration variables exist for image analysis:
+- `$wgWandaMaxImageSize` - the maxiumum size for an image that can be analyzed, in bytes (default is 5242880)
+- `$wgWandaMaxImageCount` - the maximum number of images that can be analyzed at one time (default is 10)
 
 ## Editing (experimental)
 
