@@ -71,7 +71,7 @@
 	"wanda-wikidata-multistep-max-reached": "Het maximale aantal Wikidata-zoekopdrachtstappen is bereikt ($1).",
 	"apihelp-wandachat-param-wikidataonly": "Sla de wiki- en Elasticsearch-context over; beantwoord uitsluitend met Wikidata-gegevens",
 	"apihelp-wandachat-param-wikidatalang": "BCP-47 taalcode voor Wikidata-labels (bijv. 'en', 'de', 'fr'). Standaard ingesteld op de ingestelde WandaWikidataLang.",
-	"apihelp-wandachat-param-sources": "Door sluistekens gescheiden lijst van bronnen die gebruikt moeten worden voor het ophalen van informatie (bv. ‘wiki|wikidata|cargo’). Ondersteunde waarden: wiki, wikidata, cargo, publicknowledge, externalwiki en alle geconfigureerde RAG-bronnamen. Standaardwaarde is ‘wiki’.",
+	"apihelp-wandachat-param-sources": "Door sluistekens gescheiden lijst van bronnen die gebruikt moeten worden voor het ophalen van informatie (bv. ‘wiki|wikidata|cargo|smw’). Ondersteunde waarden: wiki, wikidata, cargo, smw, externalwiki, publicknowledge en alle geconfigureerde RAG-bronnamen. Standaardwaarde is ‘wiki’.",
 	"right-wanda-edit": "AI-ondersteunde bewerkingen maken met Wanda",
 	"action-wanda-edit": "AI-ondersteunde bewerkingen te maken met Wanda",
 	"wanda-edit-card-heading": "AI-bewerking",
