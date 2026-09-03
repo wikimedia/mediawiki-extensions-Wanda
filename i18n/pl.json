@@ -1,0 +1,33 @@
+{
+	"@metadata": {
+		"authors": [
+			"PanWor"
+		]
+	},
+	"wanda": "Wanda",
+	"wanda-desc": "Czatbot dla MediaWiki",
+	"wanda-chat-welcometext": "Cześć! Jestem Wanda, Twoja asystentka SI.",
+	"wanda-chat-welcomedesc": "Zapytaj mnie o cokolwiek w Twojej wiki, a postaram się pomóc!",
+	"wanda-chat-instruction1": "Uzyskaj odpowiedzi na swoje pytania",
+	"wanda-chat-instruction2": "Odpowiedzi generowane przez sztuczną inteligencję",
+	"wanda-chat-pdftotext-error": "Upewnij się, że narzędzie pdftotext jest zainstalowane i gotowe do użycia.",
+	"wanda-floating-chat-title": "Porozmawiaj z Wandą",
+	"apihelp-wandachat-summary": "Wyślij pytanie lub prośbę do czatbota rozszerzenia Wanda",
+	"apihelp-wandachat-param-message": "Wiadomość, którą chcesz wysłać do czatbota",
+	"apihelp-wandachat-param-customprompt": "Tekst polecenia (promptu), który ma zastąpić domyślny",
+	"wanda-api-error-empty-question": "Wprowadź poprawne pytanie.",
+	"wanda-api-error-temperature-invalid": "Nieprawidłowa wartość temperatury. Wprowadź liczbę z przedziału od 0.0 do 1.0.",
+	"wanda-api-error-temperature-outofrange": "Wartość temperatury spoza przedziału. Wprowadź liczbę z przedziału od 0.0 do 1.0.",
+	"wanda-api-error-config-invalid": "Usługa czatu nie jest poprawnie skonfigurowana. Skontaktuj się z administratorem.",
+	"wanda-api-error-no-index": "Nie udało mi się znaleźć odpowiednich informacji w wiki, ponieważ nie znaleziono żadnych indeksów. Upewnij się, że treść została zindeksowana.",
+	"wanda-api-error-no-results": "Nie udało mi się znaleźć odpowiednich informacji na ten temat w wiki.",
+	"wanda-api-error-generation-failed": "Mam obecnie trudności z wygenerowaniem odpowiedzi. Spróbuj ponownie później.",
+	"wanda-api-error-openai-key": "Klucz API OpenAI nie został skonfigurowany.",
+	"wanda-api-error-anthropic-key": "Klucz API Anthropic nie został skonfigurowany.",
+	"wanda-api-error-azure-key": "Klucz API Azure nie został skonfigurowany.",
+	"wanda-api-error-gemini-key": "Klucz API Gemini nie został skonfigurowany.",
+	"wanda-api-error-fallback": "Nie mam co do tego pewności.",
+	"wanda-llm-response-nocontext": "Nie mam wystarczających informacji w kontekście wiki, aby na to odpowiedzieć.",
+	"wanda-toggle-public-knowledge-help": "Po włączeniu tej opcji asystent może korzystać ze swojej ogólnej wiedzy oprócz kontekstu wiki.",
+	"wanda-floating-chat-header": "Wanda – asystentka SI"
+}
