@@ -39,8 +39,6 @@ class APIChat extends ApiBase {
 	/** @var string */
 	private static $customPrompt;
 	/** @var bool */
-	private static $usePublicKnowledge = false;
-	/** @var bool */
 	private static $skipESQuery = false;
 	/** @var bool */
 	private static $useContentLang = false;
@@ -148,9 +146,7 @@ class APIChat extends ApiBase {
 	public function execute() {
 		$params = $this->extractRequestParams();
 		$userQuery = trim( $params['message'] );
-		$allowPublicKnowledge = !empty( $params['usepublicknowledge'] );
 		$imagesList = !empty( $params['images'] ) ? $params['images'] : '';
-		$wikidataOnly = !empty( $params['wikidataonly'] );
 		if ( !empty( $params['wikidatalang'] ) ) {
 			self::$wikidataLang = trim( $params['wikidatalang'] );
 		}
@@ -160,9 +156,7 @@ class APIChat extends ApiBase {
 		$requestedSources = !empty( $params['sources'] )
 			? array_filter( array_map( 'trim', explode( '|', $params['sources'] ) ) )
 			: [ 'wiki' ];
-		if ( in_array( 'publicknowledge', $requestedSources ) ) {
-			$allowPublicKnowledge = true;
-		}
+		$allowPublicKnowledge = in_array( 'publicknowledge', $requestedSources );
 		if ( !in_array( 'wiki', $requestedSources ) ) {
 			self::$skipESQuery = true;
 		}
@@ -215,8 +209,8 @@ class APIChat extends ApiBase {
 			return;
 		}
 
-		// If skipESQuery or wikidataonly is enabled, bypass Elasticsearch entirely
-		if ( self::$skipESQuery || $wikidataOnly ) {
+		// If skipESQuery is enabled, bypass Elasticsearch entirely
+		if ( self::$skipESQuery ) {
 			$contextStr = '';
 			$searchResults = null;
 		} else {
@@ -465,9 +459,6 @@ class APIChat extends ApiBase {
 		}
 		if ( isset( $params['timeout'] ) && is_numeric( $params['timeout'] ) ) {
 			self::$timeout = $params['timeout'];
-		}
-		if ( isset( $params['usepublicknowledge'] ) ) {
-			self::$usePublicKnowledge = $params['usepublicknowledge'];
 		}
 		if ( isset( $params['customprompt'] ) ) {
 			self::$customPrompt = trim( $params['customprompt'] );
@@ -2294,11 +2285,6 @@ class APIChat extends ApiBase {
 				ParamValidator::PARAM_DEFAULT => self::$temperature,
 				ParamValidator::PARAM_REQUIRED => false
 			],
-			"usepublicknowledge" => [
-				ParamValidator::PARAM_TYPE => 'boolean',
-				ParamValidator::PARAM_DEFAULT => self::$usePublicKnowledge,
-				ParamValidator::PARAM_REQUIRED => false
-			],
 			"skipesquery" => [
 				ParamValidator::PARAM_TYPE => 'boolean',
 				ParamValidator::PARAM_DEFAULT => self::$skipESQuery,
@@ -2315,11 +2301,6 @@ class APIChat extends ApiBase {
 				ParamValidator::PARAM_REQUIRED => false
 			],
 			"conversationmemoryenabled" => [
-				ParamValidator::PARAM_TYPE => 'boolean',
-				ParamValidator::PARAM_DEFAULT => false,
-				ParamValidator::PARAM_REQUIRED => false
-			],
-			"wikidataonly" => [
 				ParamValidator::PARAM_TYPE => 'boolean',
 				ParamValidator::PARAM_DEFAULT => false,
 				ParamValidator::PARAM_REQUIRED => false
