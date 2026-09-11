@@ -95,12 +95,12 @@ class APIChat extends ApiBase {
 		parent::__construct( $query, $moduleName );
 
 		// Fetch settings from MediaWiki config
-		self::$esHost = $this->getConfig()->get( 'WandaLLMElasticsearchUrl' ) ?? "http://localhost:9200";
+		self::$esHost = $this->getConfig()->get( 'WandaLLMElasticsearchUrl' );
 		self::$indexName = $this->detectElasticsearchIndex();
-		self::$llmProvider = strtolower( $this->getConfig()->get( 'WandaLLMProvider' ) ?? "ollama" );
-		self::$llmModel = $this->getConfig()->get( 'WandaLLMModel' ) ?? "gemma:2b";
-		self::$llmEmbeddingModel = $this->getConfig()->get( 'WandaLLMEmbeddingModel' ) ?? self::$llmModel;
-		self::$llmApiKey = $this->getConfig()->get( 'WandaLLMApiKey' ) ?? "";
+		self::$llmProvider = strtolower( $this->getConfig()->get( 'WandaLLMProvider' ) ?? '' );
+		self::$llmModel = $this->getConfig()->get( 'WandaLLMModel' );
+		self::$llmEmbeddingModel = $this->getConfig()->get( 'WandaLLMEmbeddingModel' );
+		self::$llmApiKey = $this->getConfig()->get( 'WandaLLMApiKey' );
 		self::$wgproxy = MediaWikiServices::getInstance()->getMainConfig()->get( 'HTTPProxy' ) ?? "";
 
 		// Set default endpoint based on provider
