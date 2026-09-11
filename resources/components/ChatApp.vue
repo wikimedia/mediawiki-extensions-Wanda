@@ -29,7 +29,7 @@
                   :class="'wanda-step wanda-step--' + ( s.type || 'query' )"
                 >
                   {{ formatStepDesc( s ) }}
-                  <pre v-if="s.source === 'wikidata' && s.sparql" class="wanda-sparql-query"><code>{{ s.sparql }}</code></pre>
+                  <pre v-if="s.source === 'wikibase' && s.sparql" class="wanda-sparql-query"><code>{{ s.sparql }}</code></pre>
                   <pre v-if="s.source === 'smw' && s.ask" class="wanda-sparql-query"><code>{{ s.ask }}</code></pre>
                 </li>
               </ol>
@@ -262,15 +262,17 @@ const { ref } = require( 'vue' );
 
 const BASE_SOURCE_OPTIONS = [
   { value: 'wiki', label: 'Wiki' },
-  { value: 'wikidata', label: 'Wikidata' },
   { value: 'publicknowledge', label: 'LLM Knowledge' },
   { value: 'cargo', label: 'Cargo' },
   { value: 'smw', label: 'Semantic MediaWiki' },
   { value: 'externalwiki', label: 'External Wiki' }
 ];
 
+const WIKIBASE_SOURCE_KEYS = mw.config.get( 'WandaWikibaseSourceKeys' );
+const WIKIBASE_SOURCE_OPTIONS = WIKIBASE_SOURCE_KEYS.map( ( key ) => ( { value: key, label: key.charAt( 0 ).toUpperCase() + key.slice( 1 ) } ) );
+
 const RAG_SOURCE_NAMES = mw.config.get( 'WandaRAGSourceNames' ) || [];
-const ALL_SOURCE_OPTIONS = BASE_SOURCE_OPTIONS.concat(
+const ALL_SOURCE_OPTIONS = BASE_SOURCE_OPTIONS.concat( WIKIBASE_SOURCE_OPTIONS ).concat(
   RAG_SOURCE_NAMES.map( ( name ) => ( { value: 'RAG:' + name, label: name } ) )
 );
 const DISABLED_SOURCES = mw.config.get( 'WandaDisabledSources' ) || [];
@@ -574,21 +576,26 @@ module.exports = exports = {
     return html;
   },
     sourceLabel( value ) {
-      const labels = { wiki: 'Wiki', wikidata: 'Wikidata', publicknowledge: 'LLM Knowledge', cargo: 'Cargo', smw: 'Semantic MediaWiki', externalwiki: 'External Wiki' };
+      const labels = { wiki: 'Wiki', publicknowledge: 'LLM Knowledge', cargo: 'Cargo', smw: 'Semantic MediaWiki', externalwiki: 'External Wiki' };
       if ( value && value.startsWith( 'RAG:' ) ) {
         return value.slice( 4 );
       }
-      return labels[ value ] || value;
+      if ( labels[ value ] ) {
+        return labels[ value ];
+      }
+      // Wikibase source key: capitalise for display
+      return value.charAt( 0 ).toUpperCase() + value.slice( 1 );
     },
     formatStepDesc( s ) {
       const stepLabel = s.step ? 'Step ' + s.step + ': ' : '';
-      if ( s.source === 'wikidata' ) {
+      if ( s.source === 'wikibase' ) {
+        const sourceDisplay = s.wbKey ? s.wbKey.charAt( 0 ).toUpperCase() + s.wbKey.slice( 1 ) : 'Wikibase';
         if ( s.type === 'error' ) {
-          let desc = stepLabel + 'Wikidata: ' + ( s.message || 'query failed' );
+          let desc = stepLabel + sourceDisplay + ': ' + ( s.message || 'query failed' );
           return desc;
         }
         const rowWord = s.rows === 1 ? 'row' : 'rows';
-        let desc = stepLabel + 'Wikidata (' + s.rows + ' ' + rowWord + ')';
+        let desc = stepLabel + sourceDisplay + ' (' + s.rows + ' ' + rowWord + ')';
         if ( s.reasoning ) {
           desc += ' \u2014 ' + s.reasoning;
         }
@@ -933,7 +940,7 @@ module.exports = exports = {
         const allSteps = [
           ...( ( data && data.cargoSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'cargo' } ) ),
           ...( ( data && data.smwSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'smw' } ) ),
-          ...( ( data && data.wikidataSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'wikidata' } ) ),
+          ...( ( data && data.wikibaseSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'wikibase', wbKey: s.sourceKey || '' } ) ),
           ...( ( data && data.externalWikiSteps ) || [] ).map( ( s ) => Object.assign( {}, s, { source: 'externalwiki' } ) ) 
         ];
         this.addMessage( 'bot', response, allSteps.length > 0 ? allSteps : null );

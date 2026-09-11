@@ -11,7 +11,7 @@ Wanda is a MediaWiki extension that provides an AI-powered chatbot interface for
 - **Editing**: Allowed users can additionally create and edit pages via natural-language queries
 - **Image Analysis**: Ask questions about images that have been uploaded to the wiki
 - **Additional Text Querying**: Query text data from local files, or external wikis
-- **Structured Data Querying**: Query structured data from the MediaWiki extensions Cargo and Semantic MediaWiki, or the site Wikidata
+- **Structured Data Querying**: Query structured data from the MediaWiki extensions Cargo and Semantic MediaWiki, or Wikibase installations (e.g. Wikidata)
 - **Special Page**: Dedicated chat interface at Special:Wanda
 - **Responsive Design**: Works on desktop and mobile devices
 - **Secure Configuration**: API key management and timeout controls
@@ -256,13 +256,19 @@ To disable Semantic MediaWiki querying, add the following to `LocalSettings.php`
 $wgWandaDisabledSources[] = 'smw';
 ```
 
-## Wikidata Integration
-Wanda also includes, by default, the site [Wikidata](https://www.wikidata.org) as a source, allowing users to query its collection of billions of facts with natural-language queries.
+## Wikibase Integration
+Wanda supports querying Wikibase installations (such as [Wikidata](https://www.wikidata.org)) as sources, allowing users to query facts with natural-language queries.
 
-To disable Wikidata querying, add the following to `LocalSettings.php`:
+By default, Wikidata is configured via `$wgWandaWikibaseSources`:
 
 ```php
-$wgWandaDisabledSources[] = 'wikidata';
+$wgWandaWikibaseSources = [
+	'wikidata' => [
+		'apiUrl' => 'https://www.wikidata.org/w/api.php',
+		'sparqlEndpoint' => 'https://query.wikidata.org/sparql',
+		'lang' => 'en',
+	],
+];
 ```
 
 ## Text (RAG) querying

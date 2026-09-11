@@ -2,18 +2,18 @@
 
 namespace MediaWiki\Extension\Wanda\Tests\Unit;
 
-use MediaWiki\Extension\Wanda\WikidataQueryHandler;
+use MediaWiki\Extension\Wanda\WikibaseQueryHandler;
 use MediaWikiUnitTestCase;
 use ReflectionClass;
 
 /**
- * @covers \MediaWiki\Extension\Wanda\WikidataQueryHandler
+ * @covers \MediaWiki\Extension\Wanda\WikibaseQueryHandler
  * @group Wanda
  */
-class WikidataQueryHandlerTest extends MediaWikiUnitTestCase {
+class WikibaseQueryHandlerTest extends MediaWikiUnitTestCase {
 
-	private function newHandler(): WikidataQueryHandler {
-		return new WikidataQueryHandler(
+	private function newHandler(): WikibaseQueryHandler {
+		return new WikibaseQueryHandler(
 			'ollama',
 			'gemma:2b',
 			'',
@@ -24,12 +24,12 @@ class WikidataQueryHandlerTest extends MediaWikiUnitTestCase {
 
 	/**
 	 * Invoke a private/protected method via reflection.
-	 * @param WikidataQueryHandler $handler
+	 * @param WikibaseQueryHandler $handler
 	 * @param string $method
 	 * @param array $args
 	 * @return mixed
 	 */
-	private function invoke( WikidataQueryHandler $handler, string $method, array $args ) {
+	private function invoke( WikibaseQueryHandler $handler, string $method, array $args ) {
 		$m = ( new ReflectionClass( $handler ) )->getMethod( $method );
 		return $m->invokeArgs( $handler, $args );
 	}
@@ -139,7 +139,7 @@ class WikidataQueryHandlerTest extends MediaWikiUnitTestCase {
 			[ 'item' => 'Q1', 'label' => 'a|b' ],
 			[ 'item' => 'Q2', 'label' => 'c' ],
 		] ] );
-		$this->assertStringContainsString( '--- Wikidata results (2 rows) ---', $out );
+		$this->assertStringContainsString( '--- Wikibase results [wikibase] (2 rows) ---', $out );
 		$this->assertStringContainsString( '| item | label |', $out );
 		// The pipe inside the value is escaped so it does not break the table.
 		$this->assertStringContainsString( 'a\\|b', $out );
@@ -159,12 +159,12 @@ class WikidataQueryHandlerTest extends MediaWikiUnitTestCase {
 			[
 				'title' => 'France (Q142)',
 				'href' => 'https://www.wikidata.org/wiki/Q142',
-				'type' => 'wikidata',
+				'type' => 'wikibase',
 			],
 			[
 				'title' => 'Q42',
 				'href' => 'https://www.wikidata.org/wiki/Q42',
-				'type' => 'wikidata',
+				'type' => 'wikibase',
 			],
 		], $sources );
 	}

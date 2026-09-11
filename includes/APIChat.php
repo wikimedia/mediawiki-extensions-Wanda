@@ -52,6 +52,8 @@ class APIChat extends ApiBase {
 	private static $enableCargoQueries = false;
 	/** @var array */
 	private static $cargoExcludedTables = [];
+	/** @var array List of disabled source identifiers */
+	private static $disabledSources = [];
 	/** @var int */
 	private static $cargoMaxQuerySteps = 3;
 	/** @var bool */
@@ -64,14 +66,10 @@ class APIChat extends ApiBase {
 	private static $smwMaxResults = 50;
 	/** @var bool */
 	private static $enableWikidataQueries = false;
-	/** @var string */
-	private static $sparqlEndpoint = 'https://query.wikidata.org/sparql';
-	/** @var string */
-	private static $wikidataApiEndpoint = 'https://www.wikidata.org/w/api.php';
-	/** @var string */
-	private static $wikidataLang = 'en';
+	/** @var array Configured Wikibase sources: key => [apiUrl, sparqlEndpoint, lang] */
+	private static $wikibaseSources = [];
 	/** @var int */
-	private static $wikidataMaxQuerySteps = 3;
+	private static $wikibaseMaxQuerySteps = 3;
 	/** @var int Seconds — separate from LLM timeout because WDQS has its own 60s server cap */
 	private static $sparqlTimeout = 60;
 	/** @var array */
@@ -120,18 +118,15 @@ class APIChat extends ApiBase {
 		self::$vectorSearchMinScore = $this->getConfig()->get( 'WandaVectorSearchMinScore' ) ?? 1.7;
 		self::$enableConversationMemory = true;
 		self::$conversationMaxChars = $this->getConfig()->get( 'WandaConversationMaxChars' ) ?? 6000;
+		self::$disabledSources = (array)( $this->getConfig()->get( 'WandaDisabledSources' ) ?? [] );
 		self::$cargoExcludedTables = $this->getConfig()->get( 'WandaCargoExcludedTables' ) ?? [];
 		self::$cargoMaxQuerySteps = $this->getConfig()->get( 'WandaCargoMaxQuerySteps' ) ?? 3;
 		self::$smwExcludedProperties = $this->getConfig()->get( 'WandaSMWExcludedProperties' ) ?? [];
 		self::$smwMaxQuerySteps = $this->getConfig()->get( 'WandaSMWMaxQuerySteps' ) ?? 3;
 		self::$smwMaxResults = $this->getConfig()->get( 'WandaSMWMaxResults' ) ?? 50;
-		self::$sparqlEndpoint = $this->getConfig()->get( 'WandaSparqlEndpoint' ) ??
-			'https://query.wikidata.org/sparql';
-		self::$wikidataApiEndpoint = $this->getConfig()->get( 'WandaWikidataApiEndpoint' ) ??
-			'https://www.wikidata.org/w/api.php';
-		self::$wikidataLang = $this->getConfig()->get( 'WandaWikidataLang' ) ?? 'en';
-		self::$wikidataMaxQuerySteps = $this->getConfig()->get( 'WandaWikidataMaxQuerySteps' ) ?? 3;
 		self::$sparqlTimeout = $this->getConfig()->get( 'WandaSparqlTimeout' ) ?? 60;
+		self::$wikibaseSources = $this->getConfig()->get( 'WandaWikibaseSources' ) ?? [];
+		self::$wikibaseMaxQuerySteps = $this->getConfig()->get( 'WandaWikibaseMaxQuerySteps' ) ?? 3;
 		self::$ragSources = $this->getConfig()->get( 'WandaRAGSources' ) ?? [];
 		self::$externalWikis = $this->getConfig()->get( 'WandaExternalWikis' ) ?? [];
 		self::$externalWikiMaxResults = (int)( $this->getConfig()->get( 'WandaExternalWikiMaxResults' ) ?? 3 );
@@ -146,20 +141,27 @@ class APIChat extends ApiBase {
 		$params = $this->extractRequestParams();
 		$userQuery = trim( $params['message'] );
 		$imagesList = !empty( $params['images'] ) ? $params['images'] : '';
-		if ( !empty( $params['wikidatalang'] ) ) {
-			self::$wikidataLang = trim( $params['wikidatalang'] );
-		}
 		$this->overrideLlmParameters( $params );
 
 		// Parse per-request source selection
 		$requestedSources = !empty( $params['sources'] )
 			? array_filter( array_map( 'trim', explode( '|', $params['sources'] ) ) )
 			: [ 'wiki' ];
+		if ( !empty( self::$disabledSources ) ) {
+			$requestedSources = array_values( array_diff( $requestedSources, self::$disabledSources ) );
+		}
 		$allowPublicKnowledge = in_array( 'publicknowledge', $requestedSources );
 		if ( !in_array( 'wiki', $requestedSources ) ) {
 			self::$skipESQuery = true;
 		}
-		self::$enableWikidataQueries = in_array( 'wikidata', $requestedSources );
+		self::$enableWikidataQueries = false;
+		$selectedWikibaseSources = [];
+		foreach ( array_keys( self::$wikibaseSources ) as $wbKey ) {
+			if ( in_array( $wbKey, $requestedSources, true ) ) {
+				$selectedWikibaseSources[] = $wbKey;
+				self::$enableWikidataQueries = true;
+			}
+		}
 		self::$enableCargoQueries = in_array( 'cargo', $requestedSources );
 		self::$enableSMWQueries = in_array( 'smw', $requestedSources );
 		self::$enableExternalWikiSearch = in_array( 'externalwiki', $requestedSources );
@@ -291,32 +293,40 @@ class APIChat extends ApiBase {
 			}
 		}
 
-		// Wikidata knowledge graph retrieval
+		// Wikibase knowledge graph retrieval (one handler per configured+selected source)
 		$wikidataSources = [];
 		$wikidataSteps = [];
 		$wikidataEntities = [];
 		$wikidataContext = '';
-		if ( self::$enableWikidataQueries ) {
-			$wikidataHandler = new WikidataQueryHandler(
-				self::$llmProvider,
-				self::$llmModel,
-				self::$llmApiKey,
-				self::$llmApiEndpoint,
-				self::$timeout,
-				self::$wikidataLang,
-				self::$wikidataMaxQuerySteps,
-				self::$sparqlEndpoint,
-				self::$wikidataApiEndpoint,
-				self::$sparqlTimeout
-			);
-			$wikidataResult = $wikidataHandler->query( $userQuery );
-			$wikidataSteps = $wikidataResult['steps'] ?? [];
-			$wikidataEntities = $wikidataResult['entities'] ?? [];
-			if ( !empty( $wikidataResult['content'] ) ) {
-				$wikidataContext = $wikidataResult['content'];
-				$wikidataSources = $wikidataResult['sources'] ?? [];
-				wfDebugLog( 'Wanda', "Wikidata query returned " .
-					$wikidataResult['num_results'] . " results" );
+		if ( self::$enableWikidataQueries && !empty( $selectedWikibaseSources ) ) {
+			foreach ( $selectedWikibaseSources as $wbKey ) {
+				$wbConfig = self::$wikibaseSources[ $wbKey ] ?? [];
+				$wbApiUrl = $wbConfig['apiUrl'] ?? 'https://www.wikidata.org/w/api.php';
+				$wbSparql = $wbConfig['sparqlEndpoint'] ?? 'https://query.wikidata.org/sparql';
+				$wbLang = $wbConfig['lang'] ?? 'en';
+
+				$wikibaseHandler = new WikibaseQueryHandler(
+					self::$llmProvider,
+					self::$llmModel,
+					self::$llmApiKey,
+					self::$llmApiEndpoint,
+					self::$timeout,
+					$wbLang,
+					self::$wikibaseMaxQuerySteps,
+					$wbSparql,
+					$wbApiUrl,
+					self::$sparqlTimeout,
+					$wbKey
+				);
+				$wbResult = $wikibaseHandler->query( $userQuery );
+				$wikidataSteps = array_merge( $wikidataSteps, $wbResult['steps'] ?? [] );
+				$wikidataEntities = array_merge( $wikidataEntities, $wbResult['entities'] ?? [] );
+				if ( !empty( $wbResult['content'] ) ) {
+					$wikidataContext .= ( $wikidataContext !== '' ? "\n\n" : '' ) . $wbResult['content'];
+					$wikidataSources = array_merge( $wikidataSources, $wbResult['sources'] ?? [] );
+					wfDebugLog( 'Wanda', "WikibaseQueryHandler [{$wbKey}] returned " .
+						$wbResult['num_results'] . " results" );
+				}
 			}
 		}
 
@@ -418,14 +428,14 @@ class APIChat extends ApiBase {
 			$this->getResult()->addValue( null, "smwSteps", $smwSteps );
 		}
 		if ( !empty( $wikidataSteps ) ) {
-			$this->getResult()->addValue( null, "wikidataSteps", $wikidataSteps );
+			$this->getResult()->addValue( null, "wikibaseSteps", $wikidataSteps );
 		}
 		if ( !empty( $externalWikiSteps ) ) {
 			$this->getResult()->addValue( null, "externalWikiSteps", $externalWikiSteps );
 		}
 		$this->getResult()->addValue( null, "requestedSources", array_values( $requestedSources ) );
 		if ( !empty( $wikidataEntities ) ) {
-			$this->getResult()->addValue( null, "wikidataEntities", $wikidataEntities );
+			$this->getResult()->addValue( null, "wikibaseEntities", $wikidataEntities );
 		}
 	}
 
@@ -2095,7 +2105,7 @@ class APIChat extends ApiBase {
 
 		$contextBlock = '';
 		if ( $wikidataContext !== '' ) {
-			$contextBlock .= "Structured data from Wikidata:\n" . $wikidataContext;
+			$contextBlock .= "Structured data from Wikibase:\n" . $wikidataContext;
 		}
 		if ( $cargoContext !== '' ) {
 			$contextBlock .= ( $contextBlock !== '' ? "\n\n" : '' )
@@ -2302,11 +2312,6 @@ class APIChat extends ApiBase {
 			"conversationmemoryenabled" => [
 				ParamValidator::PARAM_TYPE => 'boolean',
 				ParamValidator::PARAM_DEFAULT => false,
-				ParamValidator::PARAM_REQUIRED => false
-			],
-			"wikidatalang" => [
-				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_DEFAULT => self::$wikidataLang,
 				ParamValidator::PARAM_REQUIRED => false
 			],
 			"sources" => [

@@ -50,6 +50,7 @@ class SpecialAIChat extends SpecialPage {
 			'WandaMaxImageCount' => $config->get( 'WandaMaxImageCount' ),
 			'WandaShowConfidenceScore' => $config->get( 'WandaShowConfidenceScore' ),
 			'WandaRAGSourceNames' => array_keys( $config->get( 'WandaRAGSources' ) ?? [] ),
+			'WandaWikibaseSourceKeys' => array_keys( $config->get( 'WandaWikibaseSources' ) ?? [] ),
 			'WandaCanEdit' => $config->get( 'WandaEnableEditing' )
 				&& $this->getUser()->isAllowed( 'wanda-edit' )
 		] );

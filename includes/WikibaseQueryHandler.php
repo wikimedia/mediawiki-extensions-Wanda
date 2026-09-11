@@ -4,7 +4,7 @@ namespace MediaWiki\Extension\Wanda;
 
 use MediaWiki\Extension\Wanda\Prompts\PromptTemplate;
 
-class WikidataQueryHandler {
+class WikibaseQueryHandler {
 	private const USER_AGENT = 'Wanda-MediaWiki-Extension/2.0 (https://www.mediawiki.org/wiki/Extension:Wanda)';
 	private const MAX_USER_QUERY_LEN = 8192;
 	private const SPARQL_SERVER_TIMEOUT_MS = 60000;
@@ -24,14 +24,16 @@ class WikidataQueryHandler {
 	private $timeout;
 	/** @var int Seconds — applies to SPARQL HTTP calls only */
 	private $sparqlTimeout;
-	/** @var string BCP-47 language code for Wikidata labels */
+	/** @var string BCP-47 language code for entity labels */
 	private $lang;
 	/** @var int Maximum number of sequential query steps */
 	private $maxQuerySteps;
 	/** @var string SPARQL endpoint URL */
 	private $sparqlEndpoint;
-	/** @var string Wikidata API endpoint URL */
-	private $wikidataApiEndpoint;
+	/** @var string Wikibase API endpoint URL */
+	private $apiUrl;
+	/** @var string Key identifying this Wikibase source (e.g. 'wikidata') */
+	private $sourceKey;
 
 	/**
 	 * Common Wikidata SPARQL prefixes injected automatically into every query.
@@ -62,7 +64,9 @@ class WikidataQueryHandler {
 	 * @param string $lang
 	 * @param int $maxQuerySteps
 	 * @param string $sparqlEndpoint
-	 * @param string $wikidataApiEndpoint
+	 * @param string $apiUrl
+	 * @param int $sparqlTimeout
+	 * @param string $sourceKey
 	 */
 	public function __construct(
 		string $llmProvider,
@@ -73,8 +77,9 @@ class WikidataQueryHandler {
 		string $lang = 'en',
 		int $maxQuerySteps = 3,
 		string $sparqlEndpoint = 'https://query.wikidata.org/sparql',
-		string $wikidataApiEndpoint = 'https://www.wikidata.org/w/api.php',
-		int $sparqlTimeout = 60
+		string $apiUrl = 'https://www.wikidata.org/w/api.php',
+		int $sparqlTimeout = 60,
+		string $sourceKey = 'wikibase'
 	) {
 		$this->llmProvider = $llmProvider;
 		$this->llmModel = $llmModel;
@@ -84,8 +89,9 @@ class WikidataQueryHandler {
 		$this->lang = $lang ?: 'en';
 		$this->maxQuerySteps = max( 1, min( $maxQuerySteps, 10 ) );
 		$this->sparqlEndpoint = $sparqlEndpoint ?: 'https://query.wikidata.org/sparql';
-		$this->wikidataApiEndpoint = $wikidataApiEndpoint ?: 'https://www.wikidata.org/w/api.php';
+		$this->apiUrl = $apiUrl ?: 'https://www.wikidata.org/w/api.php';
 		$this->sparqlTimeout = max( 1, $sparqlTimeout );
+		$this->sourceKey = $sourceKey ?: 'wikibase';
 	}
 
 	/**
@@ -121,7 +127,7 @@ class WikidataQueryHandler {
 			$stepNum = $step + 1;
 
 			if ( $step === 0 ) {
-				$llmResult = $this->generateWikidataQuery( $userQuery );
+				$llmResult = $this->generateWikibaseQuery( $userQuery );
 			} else {
 				$llmResult = $this->generateFollowUpQuery(
 					$userQuery, $allEntities, $previousResults, $stepNum
@@ -130,10 +136,10 @@ class WikidataQueryHandler {
 
 			if ( $llmResult === null ) {
 				if ( $step === 0 ) {
-					wfDebugLog( 'Wanda', 'WikidataQueryHandler: LLM determined no Wikidata query is relevant' );
+					wfDebugLog( 'Wanda', 'WikibaseQueryHandler: LLM determined no Wikidata query is relevant' );
 					return $empty;
 				}
-				wfDebugLog( 'Wanda', 'WikidataQueryHandler: multi-step — no further query at step ' . $stepNum );
+				wfDebugLog( 'Wanda', 'WikibaseQueryHandler: multi-step — no further query at step ' . $stepNum );
 				break;
 			}
 
@@ -156,7 +162,7 @@ class WikidataQueryHandler {
 
 			// Safety validation
 			if ( !$this->validateSparql( $sparql ) ) {
-				wfDebugLog( 'Wanda', 'WikidataQueryHandler: SPARQL failed safety validation at step ' . $stepNum );
+				wfDebugLog( 'Wanda', 'WikibaseQueryHandler: SPARQL failed safety validation at step ' . $stepNum );
 				$steps[] = [
 					'type' => 'error',
 					'step' => $stepNum,
@@ -176,7 +182,7 @@ class WikidataQueryHandler {
 				$errMsg = $rows === null
 					? 'SPARQL execution error' . ( $queryError !== null ? ': ' . $queryError : '' )
 					: 'Query returned no results';
-				wfDebugLog( 'Wanda', 'WikidataQueryHandler: ' . $errMsg . ' at step ' . $stepNum );
+				wfDebugLog( 'Wanda', 'WikibaseQueryHandler: ' . $errMsg . ' at step ' . $stepNum );
 				$steps[] = [
 					'type' => 'error',
 					'step' => $stepNum,
@@ -217,7 +223,7 @@ class WikidataQueryHandler {
 
 			wfDebugLog(
 				'Wanda',
-				'WikidataQueryHandler: step ' . $stepNum . ' returned ' . count( $rows ) .
+				'WikibaseQueryHandler: step ' . $stepNum . ' returned ' . count( $rows ) .
 				' rows (status: ' . $status . ')'
 			);
 
@@ -228,7 +234,7 @@ class WikidataQueryHandler {
 			if ( $step === $this->maxQuerySteps - 1 ) {
 				wfDebugLog(
 					'Wanda',
-					'WikidataQueryHandler: reached maximum query steps (' . $this->maxQuerySteps . ')'
+					'WikibaseQueryHandler: reached maximum query steps (' . $this->maxQuerySteps . ')'
 				);
 			}
 		}
@@ -273,7 +279,7 @@ class WikidataQueryHandler {
 		}
 
 		if ( !empty( $needed ) ) {
-			$this->batchSearchWikidata( $needed );
+			$this->batchSearchWikibase( $needed );
 		}
 
 		// Build resolved list in original mention order, applying type-prefix validation
@@ -289,7 +295,7 @@ class WikidataQueryHandler {
 
 			$hit = self::$entityCache[$this->cacheKey( $label, $type, $this->lang )] ?? null;
 			if ( $hit === null ) {
-				wfDebugLog( 'Wanda', 'WikidataQueryHandler: could not resolve entity "' . $label . '"' );
+				wfDebugLog( 'Wanda', 'WikibaseQueryHandler: could not resolve entity "' . $label . '"' );
 				continue;
 			}
 
@@ -297,7 +303,7 @@ class WikidataQueryHandler {
 			if ( strncmp( $hit['id'], $expected, 1 ) !== 0 ) {
 				wfDebugLog(
 					'Wanda',
-					'WikidataQueryHandler: type mismatch for "' . $label . '" — expected ' .
+					'WikibaseQueryHandler: type mismatch for "' . $label . '" — expected ' .
 					$expected . '-id, got ' . $hit['id']
 				);
 				continue;
@@ -325,7 +331,7 @@ class WikidataQueryHandler {
 	 *
 	 * @param array $needed map of cacheKey => [label, type]
 	 */
-	private function batchSearchWikidata( array $needed ): void {
+	private function batchSearchWikibase( array $needed ): void {
 		$results = $this->multiSearch( $needed, $this->lang );
 
 		$missing = [];
@@ -397,7 +403,7 @@ class WikidataQueryHandler {
 			'limit'    => 5,
 			'type'     => $type,
 		] );
-		$url = rtrim( $this->wikidataApiEndpoint, '/' ) . '?' . $params;
+		$url = rtrim( $this->apiUrl, '/' ) . '?' . $params;
 
 		$ch = curl_init( $url );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
@@ -489,7 +495,7 @@ class WikidataQueryHandler {
 		$forbidden = [ 'INSERT', 'DELETE', 'DROP', 'CLEAR', 'LOAD', 'CREATE', 'ADD', 'MOVE', 'COPY' ];
 		foreach ( $forbidden as $keyword ) {
 			if ( preg_match( '/\b' . $keyword . '\b/', $upper ) ) {
-				wfDebugLog( 'Wanda', 'WikidataQueryHandler: forbidden SPARQL keyword "' . $keyword . '"' );
+				wfDebugLog( 'Wanda', 'WikibaseQueryHandler: forbidden SPARQL keyword "' . $keyword . '"' );
 				return false;
 			}
 		}
@@ -497,7 +503,7 @@ class WikidataQueryHandler {
 		// Must contain a read-form keyword. ASK/CONSTRUCT/DESCRIBE are intentionally
 		// excluded — the prompt promises SELECT and the rest of the pipeline assumes it.
 		if ( !preg_match( '/\bSELECT\b/i', $stripped ) ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler: SPARQL lacks SELECT' );
+			wfDebugLog( 'Wanda', 'WikibaseQueryHandler: SPARQL lacks SELECT' );
 			return false;
 		}
 
@@ -561,7 +567,7 @@ class WikidataQueryHandler {
 		$data = json_decode( $response, true );
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			$error = 'Invalid JSON from SPARQL endpoint: ' . json_last_error_msg();
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler: ' . $error );
+			wfDebugLog( 'Wanda', 'WikibaseQueryHandler: ' . $error );
 			return null;
 		}
 
@@ -604,13 +610,13 @@ class WikidataQueryHandler {
 	 * @param string $userQuery
 	 * @return array|null {sparql, status, reasoning, entities} or null if NO_QUERY
 	 */
-	private function generateWikidataQuery( string $userQuery ): ?array {
+	private function generateWikibaseQuery( string $userQuery ): ?array {
 		$prompt = PromptTemplate::render( 'wikidata-query', [
 			'question' => $userQuery,
 			'lang'     => $this->lang,
 		] );
 
-		return $this->callAndParseWikidataLLM( $prompt );
+		return $this->callAndParseWikibaseLLM( $prompt );
 	}
 
 	/**
@@ -643,7 +649,7 @@ class WikidataQueryHandler {
 			'previous_results' => $previousResults,
 		] );
 
-		return $this->callAndParseWikidataLLM( $prompt );
+		return $this->callAndParseWikibaseLLM( $prompt );
 	}
 
 	/**
@@ -673,15 +679,15 @@ class WikidataQueryHandler {
 	 * @param string $prompt
 	 * @return array|null {sparql, status, reasoning, entities} or null
 	 */
-	private function callAndParseWikidataLLM( string $prompt ): ?array {
+	private function callAndParseWikibaseLLM( string $prompt ): ?array {
 		$response = $this->callLLM( $prompt );
 		if ( $response === null ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler: LLM call failed' );
+			wfDebugLog( 'Wanda', 'WikibaseQueryHandler: LLM call failed' );
 			return null;
 		}
 
 		$response = trim( $response );
-		wfDebugLog( 'Wanda', 'WikidataQueryHandler LLM response: ' . substr( $response, 0, 600 ) );
+		wfDebugLog( 'Wanda', 'WikibaseQueryHandler LLM response: ' . substr( $response, 0, 600 ) );
 
 		if ( stripos( $response, 'NO_QUERY' ) !== false ) {
 			return null;
@@ -700,13 +706,13 @@ class WikidataQueryHandler {
 		}
 
 		if ( $parsed === null || !is_array( $parsed ) ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler: failed to parse LLM response as JSON' );
+			wfDebugLog( 'Wanda', 'WikibaseQueryHandler: failed to parse LLM response as JSON' );
 			return null;
 		}
 
 		$sparql = trim( $parsed['sparql'] ?? '' );
 		if ( $sparql === '' ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler: LLM response missing "sparql" field' );
+			wfDebugLog( 'Wanda', 'WikibaseQueryHandler: LLM response missing "sparql" field' );
 			return null;
 		}
 
@@ -717,7 +723,7 @@ class WikidataQueryHandler {
 
 		$reasoning = $parsed['reasoning'] ?? '';
 		if ( $reasoning !== '' ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler reasoning: ' . $reasoning );
+			wfDebugLog( 'Wanda', 'WikibaseQueryHandler reasoning: ' . $reasoning );
 		}
 
 		return [
@@ -742,7 +748,7 @@ class WikidataQueryHandler {
 		$maxContextChars = intdiv( APIChat::$maxContextChars, 4 );
 		$headers = array_keys( $rows[0] );
 
-		$output = '--- Wikidata results (' . count( $rows ) . ' rows) ---' . "\n";
+		$output = '--- Wikibase results [' . $this->sourceKey . '] (' . count( $rows ) . ' rows) ---' . "\n";
 		$output .= '| ' . implode( ' | ', $headers ) . " |\n";
 		$output .= '| ' . implode( ' | ', array_fill( 0, count( $headers ), '---' ) ) . " |\n";
 
@@ -764,7 +770,18 @@ class WikidataQueryHandler {
 	}
 
 	/**
-	 * Build source citation objects for Wikidata results.
+	 * Retrieve the base wiki URL from the Wikibase source's API URL.
+	 *
+	 * @return string
+	 */
+	private function entityBaseUrl(): string {
+		// Strip /w/api.php or /api.php suffix to get the wiki root
+		$base = preg_replace( '#/w(?:/api\.php)?$|/api\.php$#', '', rtrim( $this->apiUrl, '/' ) );
+		return rtrim( $base, '/' ) . '/wiki/';
+	}
+
+	/**
+	 * Build source citation objects for Wikibase results.
 	 *
 	 * @param array $rows Result rows
 	 * @param array $entities Resolved entities for this step
@@ -773,6 +790,7 @@ class WikidataQueryHandler {
 	public function buildSources( array $rows, array $entities ): array {
 		$sources = [];
 		$seenIds = [];
+		$entityBase = $this->entityBaseUrl();
 
 		// Cite each resolved entity as a source
 		foreach ( $entities as $entity ) {
@@ -784,8 +802,8 @@ class WikidataQueryHandler {
 			$label = $entity['label'] ?? $id;
 			$sources[] = [
 				'title' => $label . ' (' . $id . ')',
-				'href'  => 'https://www.wikidata.org/wiki/' . rawurlencode( $id ),
-				'type'  => 'wikidata',
+				'href'  => $entityBase . rawurlencode( $id ),
+				'type'  => 'wikibase',
 			];
 		}
 
@@ -796,8 +814,8 @@ class WikidataQueryHandler {
 					$seenIds[$value] = true;
 					$sources[] = [
 						'title' => $value,
-						'href'  => 'https://www.wikidata.org/wiki/' . rawurlencode( $value ),
-						'type'  => 'wikidata',
+						'href'  => $entityBase . rawurlencode( $value ),
+						'type'  => 'wikibase',
 					];
 				}
 			}
@@ -828,7 +846,7 @@ class WikidataQueryHandler {
 			case 'gemini':
 				return $this->callGemini( $prompt, $maxTokens, $temperature );
 			default:
-				wfDebugLog( 'Wanda', 'WikidataQueryHandler: unknown LLM provider: ' . $this->llmProvider );
+				wfDebugLog( 'Wanda', 'WikibaseQueryHandler: unknown LLM provider: ' . $this->llmProvider );
 				return null;
 		}
 	}
@@ -1074,11 +1092,11 @@ class WikidataQueryHandler {
 		unset( $ch );
 
 		if ( $curlError ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler cURL POST error: ' . $curlError );
+			wfDebugLog( 'Wanda', 'WikibaseQueryHandler cURL POST error: ' . $curlError );
 			return null;
 		}
 		if ( $outHttpCode !== 200 ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler POST HTTP ' . $outHttpCode . ': ' .
+			wfDebugLog( 'Wanda', 'WikibaseQueryHandler POST HTTP ' . $outHttpCode . ': ' .
 				substr( (string)$response, 0, 300 ) );
 			return null;
 		}
@@ -1109,11 +1127,11 @@ class WikidataQueryHandler {
 		unset( $ch );
 
 		if ( $curlError ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler cURL GET error: ' . $curlError );
+			wfDebugLog( 'Wanda', 'WikibaseQueryHandler cURL GET error: ' . $curlError );
 			return null;
 		}
 		if ( $outHttpCode !== 200 ) {
-			wfDebugLog( 'Wanda', 'WikidataQueryHandler GET HTTP ' . $outHttpCode . ' for: ' . $url );
+			wfDebugLog( 'Wanda', 'WikibaseQueryHandler GET HTTP ' . $outHttpCode . ' for: ' . $url );
 			return null;
 		}
 		return $response;
