@@ -235,7 +235,6 @@
 		"WandaLLMTimeout": 30,
 		"WandaMaxContextChars": 10000,
 		"WandaAutoReindex": true,
-		"WandaSkipESQuery": false,
 		"WandaUseContentLang": false,
 		"WandaMaxImageSize": 5242880,
 		"WandaMaxImageCount": 10,

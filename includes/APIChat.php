@@ -116,7 +116,6 @@ class APIChat extends ApiBase {
 		self::$maxContextChars = (int)( $this->getConfig()->get( 'WandaMaxContextChars' ) ?? 10000 );
 		self::$customPromptTitle = $this->getConfig()->get( 'WandaCustomPromptTitle' ) ?? "";
 		self::$customPrompt = $this->getConfig()->get( 'WandaCustomPrompt' ) ?? "";
-		self::$skipESQuery = $this->getConfig()->get( 'WandaSkipESQuery' ) ?? false;
 		self::$useContentLang = $this->getConfig()->get( 'WandaUseContentLang' ) ?? false;
 		self::$vectorSearchMinScore = $this->getConfig()->get( 'WandaVectorSearchMinScore' ) ?? 1.7;
 		self::$enableConversationMemory = true;
