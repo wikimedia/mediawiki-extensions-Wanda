@@ -25,7 +25,6 @@
 	"apihelp-wandachat-param-apikey": "클라우드 제공자용 API 키",
 	"apihelp-wandachat-param-apiendpoint": "클라우드 제공자용 사용자 지정 API 종단점",
 	"apihelp-wandachat-param-timeout": "API 요청에 대한 타임아웃 시간(초)",
-	"apihelp-wandachat-param-usepublicknowledge": "챗봇이 위키 맥락 외에 LLM 정보도 활용할 수 있도록 허용할지 여부 (true/false)",
 	"apihelp-wandachat-param-skipesquery": "일래스틱서치 쿼리를 건너뛸지 여부",
 	"wanda-api-error-empty-question": "올바른 질문을 제공하세요.",
 	"wanda-api-error-temperature-invalid": "잘못된 온도 값입니다. 0.0에서 1.0 사이의 숫자를 입력해 주세요.",
@@ -71,7 +70,6 @@
 	"wanda-wikidata-no-results": "위키데이터 쿼리에서 아무 결과도 반환되지 않았습니다.",
 	"wanda-wikidata-sparql-error": "SPARQL 쿼리를 실행할 수 없습니다.",
 	"wanda-wikidata-multistep-max-reached": "위키데이터 쿼리 단계의 최대 횟수($1)에 도달했습니다.",
-	"apihelp-wandachat-param-wikidataonly": "위키 및 엘라스틱서치 맥락을 생략합니다, 위키데이터 데이터만을 사용하여 답변합니다",
 	"apihelp-wandachat-param-wikidatalang": "위키데이터 레이블용 BCP-47 언어 코드(예: 'en', 'de', 'fr')입니다. 기본값은 구성된 WandaWikidataLang 입니다.",
 	"apihelp-wandachat-param-sources": "파이프로 구분된 검색에 사용할 소스 목록 (예: 'wiki|wikidata|cargo|smw'). 지원되는 값: wiki, wikidata, cargo, smw, externalwiki, publicknowledge 및 구성된 RAG 소스 이름입니다. 기본값은 'wiki' 입니다."
 }

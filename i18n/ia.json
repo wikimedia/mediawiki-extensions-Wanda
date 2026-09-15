@@ -22,7 +22,6 @@
 	"apihelp-wandachat-param-apikey": "Clave API pro le fornitor de computation in nube",
 	"apihelp-wandachat-param-apiendpoint": "Puncto final API personalisate pro le fornitor de computation in nube",
 	"apihelp-wandachat-param-timeout": "Tempore limite in secundas pro le requesta API",
-	"apihelp-wandachat-param-usepublicknowledge": "Si le chatbot debe esser autorisate a usar su cognoscentia public in addition al contexto del wiki (ver/false)",
 	"apihelp-wandachat-param-skipesquery": "Si se debe ignorar le consulta Elasticsearch",
 	"wanda-api-error-empty-question": "Per favor insere un question valide.",
 	"wanda-api-error-temperature-invalid": "Valor de temperatura non valide. Forni un numero inter 0,0 e 1,0.",
@@ -68,7 +67,6 @@
 	"wanda-wikidata-no-results": "Le consulta Wikidata non ha restituite resultatos.",
 	"wanda-wikidata-sparql-error": "Le consulta SPARQL non poteva esser executate.",
 	"wanda-wikidata-multistep-max-reached": "Le numero maxime de passos de consulta Wikidata ($1) ha essite attingite.",
-	"apihelp-wandachat-param-wikidataonly": "Saltar le contexto wiki e Elasticsearch; responder usante solmente le datos de Wikidata",
 	"apihelp-wandachat-param-wikidatalang": "Codice de lingua BCP-47 pro etiquettas Wikidata (p.ex. ‘en’, ‘de’, ‘fr’). Le valor predefinite es le valor configurate de WandaWikidataLang.",
 	"apihelp-wandachat-param-sources": "Lista de fontes, separate per barras vertical, a usar pro le recuperation (p.ex. ‘wiki|wikidata|cargo’). Valores acceptate: wiki, wikidata, cargo, publicknowledge, e omne nomine de fonte RAG configurate. Le valor predefinite es ‘wiki’."
 }

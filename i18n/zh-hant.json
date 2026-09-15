@@ -23,7 +23,6 @@
 	"apihelp-wandachat-param-apikey": "雲端提供者的 API 金鑰",
 	"apihelp-wandachat-param-apiendpoint": "雲端提供者的自訂 API 端點",
 	"apihelp-wandachat-param-timeout": "API 請求逾時時間（秒）",
-	"apihelp-wandachat-param-usepublicknowledge": "是否允許聊天機器人除了使用wiki內容外，還使用其LLM知識（true/false）",
 	"apihelp-wandachat-param-skipesquery": "是否跳過 Elasticsearch 查詢",
 	"wanda-api-error-empty-question": "請提供一個有效的問題。",
 	"wanda-api-error-temperature-invalid": "溫度值無效。請提供一個介於 0.0 與 1.0 之間的數字。",
@@ -69,7 +68,6 @@
 	"wanda-wikidata-no-results": "維基數據查詢未回傳任何結果。",
 	"wanda-wikidata-sparql-error": "SPARQL查詢無法執行。",
 	"wanda-wikidata-multistep-max-reached": "已達到維基數據查詢步驟的最大數量（$1）。",
-	"apihelp-wandachat-param-wikidataonly": "忽略wiki和Elasticsearch上下文，僅使用維基數據資料作答。",
 	"apihelp-wandachat-param-wikidatalang": "維基數據標籤的BCP-47語言代碼（例如：en、de、fr）。預設為配置的 WandaWikidataLang。",
 	"apihelp-wandachat-param-sources": "以垂直線分隔，用於檢索的來源清單（例如：「wiki|wikidata|cargo」）。支援的值包括：wiki、wikidata、cargo、publicknowledge、externalwiki，以及任何已配置的RAG來源名稱。預設值為：wiki。"
 }
