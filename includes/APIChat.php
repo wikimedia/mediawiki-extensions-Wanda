@@ -11,7 +11,7 @@ use WikiPage;
 
 class APIChat extends ApiBase {
 	/** @var string */
-	private static $esHost;
+	private static $searchHost;
 	/** @var string */
 	private static $indexName;
 	/** @var string */
@@ -93,7 +93,7 @@ class APIChat extends ApiBase {
 		parent::__construct( $query, $moduleName );
 
 		// Fetch settings from MediaWiki config
-		self::$esHost = $this->getConfig()->get( 'WandaLLMElasticsearchUrl' );
+		self::$searchHost = $this->getConfig()->get( 'WandaSearchEngineUrl' );
 		self::$indexName = $this->detectElasticsearchIndex();
 		self::$llmProvider = strtolower( $this->getConfig()->get( 'WandaLLMProvider' ) ?? '' );
 		self::$llmModel = $this->getConfig()->get( 'WandaLLMModel' );
@@ -904,7 +904,7 @@ class APIChat extends ApiBase {
 	 * Detects the most recent Elasticsearch index dynamically.
 	 */
 	protected function detectElasticsearchIndex() {
-		$ch = curl_init( self::$esHost . "/_cat/indices?v&format=json" );
+		$ch = curl_init( self::$searchHost . "/_cat/indices?v&format=json" );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		curl_setopt( $ch, CURLOPT_TIMEOUT, 5 );
 		$response = curl_exec( $ch );
@@ -963,14 +963,14 @@ class APIChat extends ApiBase {
 	}
 
 	/**
-	 * Filter Elasticsearch hits down to the pages the requesting user may read.
+	 * Filter search engine hits down to the pages the requesting user may read.
 	 *
 	 * Each indexed document corresponds to a single wiki page (keyed by its
 	 * prefixed title in {@see PageIndexUpdater}), so a read check on the title
 	 * fully gates the document. Hits whose title is empty or cannot be resolved
 	 * are dropped (treated as unreadable).
 	 *
-	 * @param array $hits Raw Elasticsearch hits (each with _source.title)
+	 * @param array $hits Raw search engine hits (each with _source.title)
 	 * @param callable $canRead fn( string $title ): bool — true if readable
 	 * @return array Filtered list of hits, preserving original order
 	 */
@@ -1050,8 +1050,8 @@ class APIChat extends ApiBase {
 			"min_score" => self::$vectorSearchMinScore
 		];
 
-		$searchUrl = self::$esHost . "/" . self::$indexName . "/_search";
-		wfDebugLog( 'Wanda', "Vector searching Elasticsearch at: " . $searchUrl );
+		$searchUrl = self::$searchHost . "/" . self::$indexName . "/_search";
+		wfDebugLog( 'Wanda', "Vector searching search engine at: " . $searchUrl );
 
 		$ch = curl_init( $searchUrl );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
@@ -1159,7 +1159,7 @@ class APIChat extends ApiBase {
 	private function textSearch( $queryText ) {
 		// Check if index is set
 		if ( empty( self::$indexName ) ) {
-			wfDebugLog( 'Wanda', "Cannot search: index name is empty. ES Host: " . self::$esHost );
+			wfDebugLog( 'Wanda', "Cannot search: index name is empty. ES Host: " . self::$searchHost );
 			return null;
 		}
 
@@ -1177,8 +1177,8 @@ class APIChat extends ApiBase {
 			"min_score" => 1.0
 		];
 
-		$searchUrl = self::$esHost . "/" . self::$indexName . "/_search";
-		wfDebugLog( 'Wanda', "Searching Elasticsearch at: " . $searchUrl . " for query: " . $queryText );
+		$searchUrl = self::$searchHost . "/" . self::$indexName . "/_search";
+		wfDebugLog( 'Wanda', "Searching engine at: " . $searchUrl . " for query: " . $queryText );
 
 		$ch = curl_init( $searchUrl );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
@@ -1192,19 +1192,19 @@ class APIChat extends ApiBase {
 		$curlError = curl_error( $ch );
 
 		if ( $curlError ) {
-			wfDebugLog( 'Wanda', "Elasticsearch cURL error: " . $curlError );
+			wfDebugLog( 'Wanda', "Search engine cURL error: " . $curlError );
 			return null;
 		}
 
 		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', "Elasticsearch search failed with HTTP " . $httpCode . ": " . $response );
+			wfDebugLog( 'Wanda', "Search failed with HTTP " . $httpCode . ": " . $response );
 			return null;
 		}
 
 		$data = json_decode( $response, true );
 
 		if ( empty( $data['hits']['hits'] ) ) {
-			wfDebugLog( 'Wanda', "Elasticsearch returned no results for query: " . $queryText );
+			wfDebugLog( 'Wanda', "Search returned no results for query: " . $queryText );
 			return null;
 		}
 

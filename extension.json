@@ -236,7 +236,7 @@
 		"WandaLLMApiKey": null,
 		"WandaLLMModel": null,
 		"WandaLLMEmbeddingModel": null,
-		"WandaLLMElasticsearchUrl": null,
+		"WandaSearchEngineUrl": null,
 		"WandaVectorSearchMinScore": 1.7,
 		"WandaLLMMaxTokens": 1000,
 		"WandaLLMTemperature": "0.7",

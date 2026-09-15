@@ -16,7 +16,7 @@ use WikiPage;
 
 class PageIndexUpdater {
 	/** @var string */
-	private static $esHost;
+	private static $searchHost;
 	/** @var string */
 	private static $indexName;
 	/** @var string */
@@ -37,11 +37,11 @@ class PageIndexUpdater {
 	private static $pendingTitles = [];
 
 	/**
-	 * Initializes Elasticsearch settings from MediaWiki config.
+	 * Initializes LLM and search engine settings from MediaWiki config.
 	 */
 	public static function initialize() {
 		$config = MediaWikiServices::getInstance()->getMainConfig();
-		self::$esHost = $config->get( 'WandaLLMElasticsearchUrl' ) ?? "http://localhost:9200";
+		self::$searchHost = $config->get( 'WandaSearchEngineUrl' ) ?? "http://localhost:9200";
 
 		self::$llmProvider = strtolower( $config->get( 'WandaLLMProvider' ) ?? 'ollama' );
 		self::$llmModel = $config->get( 'WandaLLMModel' ) ?? 'gemma:2b';
@@ -51,25 +51,25 @@ class PageIndexUpdater {
 		self::$llmApiEndpoint = $config->get( 'WandaLLMApiEndpoint' ) ?? 'http://ollama:11434/api/';
 		self::$timeout = $config->get( 'WandaLLMTimeout' ) ?? 30;
 
-		self::$indexName = self::detectOrCreateElasticsearchIndex();
+		self::$indexName = self::detectOrCreateSearchEngineIndex();
 
 		if ( !self::$indexName ) {
-			wfDebugLog( 'Wanda', "No valid Elasticsearch index found. Skipping indexing." );
+			wfDebugLog( 'Wanda', "No valid search engine index found. Skipping indexing." );
 		}
 	}
 
 	/**
-	 * Detects or creates an Elasticsearch index dynamically.
+	 * Detects or creates a search engine index dynamically.
 	 */
-	private static function detectOrCreateElasticsearchIndex() {
-		$ch = curl_init( self::$esHost . "/_cat/indices?v&format=json" );
+	private static function detectOrCreateSearchEngineIndex() {
+		$ch = curl_init( self::$searchHost . "/_cat/indices?v&format=json" );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		$response = curl_exec( $ch );
 
 		$indices = json_decode( $response, true );
 		if ( !$indices || !is_array( $indices ) ) {
-			wfDebugLog( 'Wanda', "Failed to retrieve Elasticsearch indices." );
-			return self::createElasticsearchIndex();
+			wfDebugLog( 'Wanda', "Failed to retrieve search engine indices." );
+			return self::createSearchEngineIndex();
 		}
 
 		// Filter indices related to Wanda content
@@ -85,8 +85,8 @@ class PageIndexUpdater {
 		$selectedIndex = $validIndices[0]['index'] ?? null;
 
 		if ( !$selectedIndex ) {
-			wfDebugLog( 'Wanda', "No valid Elasticsearch index found. Creating a new one." );
-			return self::createElasticsearchIndex();
+			wfDebugLog( 'Wanda', "No valid search engine index found. Creating a new one." );
+			return self::createSearchEngineIndex();
 		}
 
 		self::verifyIndexMapping( $selectedIndex );
@@ -94,9 +94,9 @@ class PageIndexUpdater {
 	}
 
 	/**
-	 * Creates a new Elasticsearch index if none exists.
+	 * Creates a new search engine index if none exists.
 	 */
-	private static function createElasticsearchIndex() {
+	private static function createSearchEngineIndex() {
 		$newIndex = "mediawiki_content_" . time();
 
 		wfDebugLog( 'Wanda', "Creating index with provider: " . self::$llmProvider );
@@ -126,7 +126,7 @@ class PageIndexUpdater {
 			]
 		];
 
-		$ch = curl_init( self::$esHost . "/$newIndex" );
+		$ch = curl_init( self::$searchHost . "/$newIndex" );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "PUT" );
 		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $mapping ) );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
@@ -136,7 +136,7 @@ class PageIndexUpdater {
 
 		wfDebugLog(
 			'Wanda',
-			"Created new Elasticsearch index: $newIndex with embedding dimensions: $dimensions. Response: $response"
+			"Created new search engine index: $newIndex with embedding dimensions: $dimensions. Response: $response"
 		);
 		return $newIndex;
 	}
@@ -145,7 +145,7 @@ class PageIndexUpdater {
 	 * Verifies and updates the index mapping if needed.
 	 */
 	private static function verifyIndexMapping( $indexName ) {
-		$ch = curl_init( self::$esHost . "/$indexName/_mapping" );
+		$ch = curl_init( self::$searchHost . "/$indexName/_mapping" );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		$response = curl_exec( $ch );
 
@@ -153,7 +153,7 @@ class PageIndexUpdater {
 	}
 
 	/**
-	 * Updates or adds a wiki page's content to Elasticsearch.
+	 * Updates or adds a wiki page's content to the search engine.
 	 */
 	public static function updateIndex( Title $title, WikiPage $wikiPage ) {
 		self::initialize();
@@ -216,7 +216,8 @@ class PageIndexUpdater {
 			);
 		}
 
-		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_doc/" . urlencode( $title->getPrefixedText() ) );
+		$ch = curl_init( self::$searchHost . "/" . self::$indexName . "/_doc/" .
+			urlencode( $title->getPrefixedText() ) );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
 		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $document ) );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
@@ -266,7 +267,8 @@ class PageIndexUpdater {
 	}
 
 	private static function deleteDocument( Title $title ) {
-		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_doc/" . urlencode( $title->getPrefixedText() ) );
+		$ch = curl_init( self::$searchHost . "/" . self::$indexName . "/_doc/" .
+			urlencode( $title->getPrefixedText() ) );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "DELETE" );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 

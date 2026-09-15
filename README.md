@@ -47,8 +47,8 @@ $wgWandaLLMModel = 'gemma:2b'; // Model name to use for the LLM provider
 
 $wgWandaLLMApiEndpoint = 'http://localhost:11434/api/'; // API endpoint URL for the LLM provider
 
-// Elasticsearch configuration
-$wgWandaLLMElasticsearchUrl = 'http://elasticsearch:9200';
+// Search engine (Elasticsearch or OpenSearch) configuration
+$wgWandaSearchEngineUrl = 'http://localhost:9200';
 
 // Embedding model configuration (for semantic search)
 $wgWandaLLMEmbeddingModel = 'text-embedding-004'; // Model for generating embeddings
