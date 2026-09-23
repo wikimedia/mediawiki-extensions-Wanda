@@ -76,8 +76,6 @@ class APIChat extends ApiBase {
 	private static $ragSources = [];
 	/** @var int Daily token budget per user (0 = disabled) */
 	private static $dailyTokenBudget = 0;
-	/** @var bool */
-	private static $enableExternalWikiSearch = false;
 	/** @var array */
 	private static $externalWikis = [];
 	/** @var int */
@@ -167,12 +165,17 @@ class APIChat extends ApiBase {
 		}
 		self::$enableCargoQueries = in_array( 'cargo', $requestedSources );
 		self::$enableSMWQueries = in_array( 'smw', $requestedSources );
-		self::$enableExternalWikiSearch = in_array( 'externalwiki', $requestedSources );
 
 		$selectedRAGNames = [];
 		foreach ( $requestedSources as $src ) {
 			if ( strpos( $src, 'RAG:' ) === 0 ) {
 				$selectedRAGNames[] = substr( $src, 4 );
+			}
+		}
+		$selectedExternalWikiNames = [];
+		foreach ( $requestedSources as $src ) {
+			if ( strpos( $src, 'External wiki:' ) === 0 ) {
+				$selectedExternalWikiNames[] = substr( $src, 14 );
 			}
 		}
 		$conversationMemoryEnabled = $params['conversationmemoryenabled'] ?? true;
@@ -356,7 +359,7 @@ class APIChat extends ApiBase {
 		$externalWikiSources = [];
 		$externalWikiSteps   = [];
 		$externalWikiContext = '';
-		if ( self::$enableExternalWikiSearch && !empty( self::$externalWikis ) ) {
+		if ( !empty( $selectedExternalWikiNames ) && !empty( self::$externalWikis ) ) {
 			$externalWikiHandler = new ExternalWikiSearchHandler(
 				self::$externalWikis,
 				self::$externalWikiMaxResults,

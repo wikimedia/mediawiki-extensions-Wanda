@@ -274,16 +274,19 @@ const BASE_SOURCE_OPTIONS = [
   { value: 'wiki', label: 'Wiki' },
   { value: 'publicknowledge', label: 'LLM Knowledge' },
   { value: 'cargo', label: 'Cargo' },
-  { value: 'smw', label: 'Semantic MediaWiki' },
-  { value: 'externalwiki', label: 'External Wiki' }
+  { value: 'smw', label: 'Semantic MediaWiki' }
 ];
 
 const WIKIBASE_SOURCE_KEYS = mw.config.get( 'WandaWikibaseSourceKeys' );
-const WIKIBASE_SOURCE_OPTIONS = WIKIBASE_SOURCE_KEYS.map( ( key ) => ( { value: key, label: key } ) );
-
 const RAG_SOURCE_NAMES = mw.config.get( 'WandaRAGSourceNames' ) || [];
-const ALL_SOURCE_OPTIONS = BASE_SOURCE_OPTIONS.concat( WIKIBASE_SOURCE_OPTIONS ).concat(
+const EXTERNAL_WIKI_NAMES = mw.config.get( 'WandaExternalWikiNames' ) || [];
+
+const ALL_SOURCE_OPTIONS = BASE_SOURCE_OPTIONS.concat(
+  WIKIBASE_SOURCE_KEYS.map( ( key ) => ( { value: key, label: key } ) )
+).concat(
   RAG_SOURCE_NAMES.map( ( name ) => ( { value: 'RAG:' + name, label: name } ) )
+).concat(
+  EXTERNAL_WIKI_NAMES.map( ( name ) => ( { value: 'External wiki:' + name, label: name } ) )
 );
 const DISABLED_SOURCES = mw.config.get( 'WandaDisabledSources' ) || [];
 const AVAILABLE_SOURCE_OPTIONS = ALL_SOURCE_OPTIONS.filter(
@@ -624,9 +627,12 @@ module.exports = exports = {
     return html;
   },
     sourceLabel( value ) {
-      const labels = { wiki: 'Wiki', publicknowledge: 'LLM Knowledge', cargo: 'Cargo', smw: 'Semantic MediaWiki', externalwiki: 'External Wiki' };
+      const labels = { wiki: 'Wiki', publicknowledge: 'LLM Knowledge', cargo: 'Cargo', smw: 'Semantic MediaWiki' };
       if ( value && value.startsWith( 'RAG:' ) ) {
         return value.slice( 4 );
+      }
+      if ( value && value.startsWith( 'External wiki:' ) ) {
+        return value.slice( 14 );
       }
       return labels[ value ] || value;
     },
