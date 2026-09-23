@@ -2276,12 +2276,12 @@ class APIChat extends ApiBase {
 			],
 			"apikey" => [
 				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_DEFAULT => self::$llmApiKey,
+				ParamValidator::PARAM_DEFAULT => '',
 				ParamValidator::PARAM_REQUIRED => false
 			],
 			"apiendpoint" => [
 				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_DEFAULT => self::$llmApiEndpoint,
+				ParamValidator::PARAM_DEFAULT => '',
 				ParamValidator::PARAM_REQUIRED => false
 			],
 			"timeout" => [
