@@ -628,7 +628,6 @@ module.exports = exports = {
       if ( value && value.startsWith( 'RAG:' ) ) {
         return value.slice( 4 );
       }
-      return labels[ value ] || value;
       if ( labels[ value ] ) {
         return labels[ value ];
       }
