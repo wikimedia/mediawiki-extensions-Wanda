@@ -63,10 +63,6 @@
 	"wanda-cargo-query-failed": "Le consulta de datos structurate non ha restituite alcun resultato.",
 	"wanda-cargo-multistep-max-reached": "Le numero maxime de passos de consulta Cargo ($1) ha essite attingite.",
 	"wanda-thinking-label": "Monstrar rationamento",
-	"wanda-wikidata-query-error": "Impossibile recuperar informationes Wikidata pro iste question.",
-	"wanda-wikidata-no-results": "Le consulta Wikidata non ha restituite resultatos.",
-	"wanda-wikidata-sparql-error": "Le consulta SPARQL non poteva esser executate.",
-	"wanda-wikidata-multistep-max-reached": "Le numero maxime de passos de consulta Wikidata ($1) ha essite attingite.",
-	"apihelp-wandachat-param-wikidatalang": "Codice de lingua BCP-47 pro etiquettas Wikidata (p.ex. ‘en’, ‘de’, ‘fr’). Le valor predefinite es le valor configurate de WandaWikidataLang.",
+	"wanda-wikibase-sparql-error": "Le consulta SPARQL non poteva esser executate.",
 	"apihelp-wandachat-param-sources": "Lista de fontes, separate per barras vertical, a usar pro le recuperation (p.ex. ‘wiki|wikidata|cargo’). Valores acceptate: wiki, wikidata, cargo, publicknowledge, e omne nomine de fonte RAG configurate. Le valor predefinite es ‘wiki’."
 }

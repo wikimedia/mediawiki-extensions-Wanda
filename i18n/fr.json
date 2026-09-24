@@ -1,6 +1,7 @@
 {
 	"@metadata": {
 		"authors": [
+			"NClara",
 			"WillyM"
 		]
 	},
@@ -50,5 +51,8 @@
 	"wanda-image-too-large": "Cette image est trop volumineuse. La taille maximale du fichier est $1 .",
 	"wanda-image-limit-reached": "Un maximum de {{PLURAL:$1| $1 image| $1 images}} peut être joint.",
 	"wanda-close": "Fermer",
-	"apihelp-wandachat-param-images": "Liste de titres d'images à joindre, séparés par des barres verticales (ex. : « Fichier:Example.jpg|Fichier:Image2.png »)."
+	"apihelp-wandachat-param-images": "Liste de titres d'images à joindre, séparés par des barres verticales (ex. : « Fichier:Example.jpg|Fichier:Image2.png »).",
+	"wanda-wikibase-query-error": "Impossible de récupérer les informations de Wikibase pour cette question.",
+	"wanda-wikibase-no-results": "La requête Wikibase n'a renvoyé aucun résultat.",
+	"wanda-wikibase-multistep-max-reached": "Nombre maximal d'étapes de requête Wikibase atteint ($1)."
 }
