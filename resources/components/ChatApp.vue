@@ -269,7 +269,7 @@ const BASE_SOURCE_OPTIONS = [
 ];
 
 const WIKIBASE_SOURCE_KEYS = mw.config.get( 'WandaWikibaseSourceKeys' );
-const WIKIBASE_SOURCE_OPTIONS = WIKIBASE_SOURCE_KEYS.map( ( key ) => ( { value: key, label: key.charAt( 0 ).toUpperCase() + key.slice( 1 ) } ) );
+const WIKIBASE_SOURCE_OPTIONS = WIKIBASE_SOURCE_KEYS.map( ( key ) => ( { value: key, label: key } ) );
 
 const RAG_SOURCE_NAMES = mw.config.get( 'WandaRAGSourceNames' ) || [];
 const ALL_SOURCE_OPTIONS = BASE_SOURCE_OPTIONS.concat( WIKIBASE_SOURCE_OPTIONS ).concat(
@@ -580,16 +580,12 @@ module.exports = exports = {
       if ( value && value.startsWith( 'RAG:' ) ) {
         return value.slice( 4 );
       }
-      if ( labels[ value ] ) {
-        return labels[ value ];
-      }
-      // Wikibase source key: capitalise for display
-      return value.charAt( 0 ).toUpperCase() + value.slice( 1 );
+      return labels[ value ] || value;
     },
     formatStepDesc( s ) {
       const stepLabel = s.step ? 'Step ' + s.step + ': ' : '';
       if ( s.source === 'wikibase' ) {
-        const sourceDisplay = s.wbKey ? s.wbKey.charAt( 0 ).toUpperCase() + s.wbKey.slice( 1 ) : 'Wikibase';
+        const sourceDisplay = s.wbKey ? s.wbKey : 'Wikibase';
         if ( s.type === 'error' ) {
           let desc = stepLabel + sourceDisplay + ': ' + ( s.message || 'query failed' );
           return desc;
