@@ -1,7 +1,8 @@
 {
 	"@metadata": {
 		"authors": [
-			"WillyM"
+			"WillyM",
+			"NClara"
 		]
 	},
 	"wanda-desc": "Chatbot pour MediaWiki",
