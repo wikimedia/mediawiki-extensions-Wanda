@@ -23,5 +23,7 @@
 	"wanda-edit-success": "Fatto! La pagina è stata aggiornata:",
 	"wanda-edit-created": "Fatto! La pagina è stata creata:",
 	"wanda-api-error-edit-permission": "Non si dispone dei permessi necessari per modificare le pagine con Wanda.",
-	"wanda-api-error-edit-failed": "La modifica non può essere salvata."
+	"wanda-api-error-edit-failed": "La modifica non può essere salvata.",
+	"wanda-api-error-rate-limit": "Hai inviato troppe richieste. Attendi qualche istante prima di riprovare.",
+	"wanda-api-error-budget-exceeded": "Hai raggiunto il limite giornaliero di $1 token. Oggi ti restano ancora $2 token. Il limite si azzererà a mezzanotte UTC."
 }

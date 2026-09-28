@@ -2,7 +2,8 @@
 	"@metadata": {
 		"authors": [
 			"Addonian1123",
-			"Kly"
+			"Kly",
+			"LowensteinYang"
 		]
 	},
 	"wanda-desc": "MediaWiki 的聊天機器人",
@@ -65,5 +66,5 @@
 	"wanda-cargo-multistep-max-reached": "已達到Cargo查詢步驟的最大數量（$1）。",
 	"wanda-thinking-label": "顯示思考流程",
 	"wanda-wikibase-sparql-error": "SPARQL查詢無法執行。",
-	"apihelp-wandachat-param-sources": "以垂直線分隔，用於檢索的來源清單（例如：「wiki|wikidata|cargo」）。支援的值包括：wiki、wikidata、cargo、publicknowledge、externalwiki，以及任何已配置的RAG來源名稱。預設值為：wiki。"
+	"apihelp-wandachat-param-sources": "以垂直線分隔，用於檢索的來源清單（例如：「wiki|wikidata|cargo|smw」）。支援的值包括：wiki、cargo、smw、externalwiki、publicknowledge、以及已配置的Wikibas來源健、和任何已配置的RAG來源名稱。預設值為：wiki。"
 }
