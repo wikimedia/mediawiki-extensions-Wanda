@@ -103,5 +103,7 @@
 	"apihelp-wandaedit-param-apiendpoint": "Ka gudub barta API-ga LLM ee loo habeeyey codsigan.",
 	"apihelp-wandaedit-param-timeout": "Ka gudub wakhtiga xaddidan ee codsiga (ilbiriqsiyo) ee loo habeeyey codsigan.",
 	"apihelp-wandaedit-param-maxtokens": "Ka gudub tirada ugu badan ee calaamadaha ee jawaabta LLM.",
-	"apihelp-wandaedit-example-preview": "Horudhac u eeg wax-ka-beddelka goobta sanduuqa macluumaadka ee bogga 'John Smith'."
+	"apihelp-wandaedit-example-preview": "Horudhac u eeg wax-ka-beddelka goobta sanduuqa macluumaadka ee bogga 'John Smith'.",
+	"wanda-api-error-rate-limit": "Waxaad dirtay codsiyo aad u badan. Fadlan wax yar sug ka hor intaadan mar kale isku dayin.",
+	"wanda-api-error-budget-exceeded": "Waxaad gaartay xadkaaga maalinlaha ah ee calaamadaha $1. $2 calaamado ayaa kuu haray maanta. Xadkaaga wuxuu dib u cusboonaysmaa saqda dhexe ee UTC."
 }

@@ -103,5 +103,7 @@
 	"apihelp-wandaedit-param-apiendpoint": "Sobrescribir o punto final da API do LLM para esta solicitude.",
 	"apihelp-wandaedit-param-timeout": "Sobrescribir o tempo de espera da solicitude (segundos) para esta solicitude.",
 	"apihelp-wandaedit-param-maxtokens": "Sobrescribir o número máximo de tokens na resposta do LLM.",
-	"apihelp-wandaedit-example-preview": "Previsualizar un cambio nun campo da caixa de información da páxina «John Smith»."
+	"apihelp-wandaedit-example-preview": "Previsualizar un cambio nun campo da caixa de información da páxina «John Smith».",
+	"wanda-api-error-rate-limit": "Enviaches demasiadas solicitudes. Agarda uns intres antes de intentalo de novo.",
+	"wanda-api-error-budget-exceeded": "Alcanzaches o teu límite diario de $1 tokens. Hoxe quedan $2 tokens. O teu límite restablecerase á medianoite no fuso horario UTC."
 }
