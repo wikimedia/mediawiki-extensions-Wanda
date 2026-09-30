@@ -42,7 +42,7 @@ global.resetMwMocks = () => {
 	Object.keys( configStore ).forEach( ( key ) => {
 		delete configStore[ key ];
 	} );
-	configStore[ 'WandaWikibaseSourceKeys' ] = [ 'wikidata' ];
+	configStore[ 'WandaWikibaseSourceNames' ] = [ 'wikidata' ];
 	if ( global.sessionStorage ) {
 		global.sessionStorage.clear();
 	}

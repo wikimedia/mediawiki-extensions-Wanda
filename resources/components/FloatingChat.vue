@@ -277,12 +277,12 @@ const BASE_SOURCE_OPTIONS = [
   { value: 'smw', label: 'Semantic MediaWiki' }
 ];
 
-const WIKIBASE_SOURCE_KEYS = mw.config.get( 'WandaWikibaseSourceKeys' );
+const WIKIBASE_SOURCE_NAMES = mw.config.get( 'WandaWikibaseSourceNames' );
 const RAG_SOURCE_NAMES = mw.config.get( 'WandaRAGSourceNames' ) || [];
 const EXTERNAL_WIKI_NAMES = mw.config.get( 'WandaExternalWikiNames' ) || [];
 
 const ALL_SOURCE_OPTIONS = BASE_SOURCE_OPTIONS.concat(
-  WIKIBASE_SOURCE_KEYS.map( ( key ) => ( { value: key, label: key } ) )
+  WIKIBASE_SOURCE_NAMES.map( ( name ) => ( { value: name, label: name } ) )
 ).concat(
   RAG_SOURCE_NAMES.map( ( name ) => ( { value: 'RAG:' + name, label: name } ) )
 ).concat(

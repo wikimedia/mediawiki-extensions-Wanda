@@ -316,7 +316,7 @@ describe( 'ChatApp - conversation persistence', () => {
 describe( 'ChatApp - configurable sources', () => {
 	test( 'omits disabled sources from the default and includes RAG sources', () => {
 		global.mw.config.set( 'WandaRAGSourceNames', [ 'Handbook' ] );
-		global.mw.config.set( 'WandaWikibaseSourceKeys', [ 'wikidata' ] );
+		global.mw.config.set( 'WandaWikibaseSourceNames', [ 'wikidata' ] );
 		global.mw.config.set( 'WandaDisabledSources', [ 'wiki' ] );
 		jest.isolateModules( () => {
 			// Re-require both within the isolated registry so the component and
