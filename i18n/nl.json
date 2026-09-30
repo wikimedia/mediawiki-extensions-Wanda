@@ -64,7 +64,10 @@
 	"wanda-cargo-query-failed": "De zoekopdracht voor gestructureerde gegevens leverde geen resultaten op.",
 	"wanda-cargo-multistep-max-reached": "Het maximale aantal Cargo-zoekopdrachtstappen is bereikt ($1).",
 	"wanda-thinking-label": "Redenering weergeven",
+	"wanda-wikibase-query-error": "Het lukte niet om Wikibase-gegevens voor deze vraag op te halen.",
+	"wanda-wikibase-no-results": "De Wikibase-zoekopdracht leverde geen resultaten op.",
 	"wanda-wikibase-sparql-error": "De SPARQL-zoekopdracht kon niet worden uitgevoerd.",
+	"wanda-wikibase-multistep-max-reached": "Het maximale aantal Wikibase-zoekstappen is bereikt ($1).",
 	"wanda-smw-query-error": "Het lukt niet om Semantic MediaWiki-gegevens voor deze vraag op te halen.",
 	"wanda-smw-not-available": "Semantic MediaWiki is niet geïnstalleerd op deze wiki.",
 	"wanda-smw-no-properties": "Er zijn geen Semantic MediaWiki-eigenschappen beschikbaar om op te vragen.",
@@ -101,5 +104,7 @@
 	"apihelp-wandaedit-param-apiendpoint": "Voor dit verzoek moet het LLM API-eindpunt worden overschreven.",
 	"apihelp-wandaedit-param-timeout": "Voor dit verzoek moet de time-out (in seconden) worden overschreven.",
 	"apihelp-wandaedit-param-maxtokens": "Overschrijf het maximale aantal tokens in het LLM-antwoord.",
-	"apihelp-wandaedit-example-preview": "Bekijk een voorbeeld van een wijziging in een infoboxveld op de pagina 'John Smith'."
+	"apihelp-wandaedit-example-preview": "Bekijk een voorbeeld van een wijziging in een infoboxveld op de pagina 'John Smith'.",
+	"wanda-api-error-rate-limit": "U hebt te veel verzoeken verzonden. Wacht even voordat u het opnieuw probeert.",
+	"wanda-api-error-budget-exceeded": "U hebt uw dagelijkse limiet van $1 tokens bereikt. Er zijn vandaag nog $2 tokens over. Uw limiet wordt om middernacht UTC opnieuw ingesteld."
 }
