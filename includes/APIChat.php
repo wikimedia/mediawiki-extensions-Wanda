@@ -1082,23 +1082,33 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
-		// Get top 3 results and combine them
+		// Get top 3 results and combine them.
+		// Only treat a page as a cited source if its score is at least 50% of
+		// the top hit's score — this prevents padding references with weakly
+		// matching pages when one page clearly dominates.
 		$topHits = array_slice( $readableHits, 0, 3 );
 		$combinedContent = [];
 		$sources = [];
 		$seenTitles = [];
+		$topScore = !empty( $topHits ) ? ( $topHits[0]['_score'] ?? 0 ) : 0;
 
 		foreach ( $topHits as $hit ) {
 			$source = $hit['_source'];
 			$title = $source['title'] ?? 'Unknown';
 			$content = $source['content'] ?? $source['text'] ?? '';
+			$score = $hit['_score'] ?? 0;
 
-			if ( !empty( $content ) && !empty( $title ) ) {
-				$combinedContent[] = "--- From page: " . $title .
-					" (Similarity: " . round( $hit['_score'], 2 ) .
-					") ---\n" . trim( $content );
-				$sources[] = $title;
+			if ( empty( $content ) || empty( $title ) || isset( $seenTitles[$title] ) ) {
+				continue;
 			}
+			if ( $topScore > 0 && $score < $topScore * 0.5 ) {
+				continue;
+			}
+			$combinedContent[] = "--- From page: " . $title .
+				" (Similarity: " . round( $score, 2 ) .
+				") ---\n" . trim( $content );
+			$sources[] = $title;
+			$seenTitles[$title] = true;
 		}
 
 		if ( empty( $combinedContent ) ) {
@@ -1199,23 +1209,32 @@ class APIChat extends ApiBase {
 			return null;
 		}
 
-		// Get top 3 results and combine them
+		// Get top 3 results and combine them.
+		// Only include a page (content + citation) if its score is within 50 %
+		// of the top hit's score — keeps cited sources and LLM context in sync.
 		$topHits = array_slice( $readableHits, 0, 3 );
 		$combinedContent = [];
 		$sources = [];
 		$seenTitles = [];
+		$topScore = !empty( $topHits ) ? ( $topHits[0]['_score'] ?? 0 ) : 0;
 
 		foreach ( $topHits as $hit ) {
 			$source = $hit['_source'];
 			$title = $source['title'] ?? 'Unknown';
 			$content = $source['content'] ?? $source['text'] ?? '';
+			$score = $hit['_score'] ?? 0;
 
-			if ( !empty( $content ) && !empty( $title ) ) {
-				$combinedContent[] = "--- From page: " . $title .
-					" (Score: " . round( $hit['_score'], 2 )
-					. ") ---\n" . trim( $content );
-				$sources[] = $title;
+			if ( empty( $content ) || empty( $title ) || isset( $seenTitles[$title] ) ) {
+				continue;
 			}
+			if ( $topScore > 0 && $score < $topScore * 0.5 ) {
+				continue;
+			}
+			$combinedContent[] = "--- From page: " . $title .
+				" (Score: " . round( $score, 2 ) .
+				") ---\n" . trim( $content );
+			$sources[] = $title;
+			$seenTitles[$title] = true;
 		}
 
 		if ( empty( $combinedContent ) ) {
