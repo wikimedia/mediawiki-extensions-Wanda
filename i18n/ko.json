@@ -67,5 +67,5 @@
 	"wanda-cargo-multistep-max-reached": "카고 쿼리 단계의 최대 횟수($1)에 도달했습니다.",
 	"wanda-thinking-label": "생각 표시",
 	"wanda-wikibase-sparql-error": "SPARQL 쿼리를 실행할 수 없습니다.",
-	"apihelp-wandachat-param-sources": "파이프로 구분된 검색에 사용할 소스 목록 (예: 'wiki|wikidata|cargo|smw'). 지원되는 값: wiki, wikidata, cargo, smw, externalwiki, publicknowledge 및 구성된 RAG 소스 이름입니다. 기본값은 'wiki' 입니다."
+	"apihelp-wandachat-param-sources": "파이프로 구분된 검색에 사용할 소스 목록 (예: 'wiki|wikidata|cargo|smw'). 지원되는 값: wiki, wikidata, cargo, smw, externalwiki, publicknowledge, 구성된 위키베이스 소스 이름 및 구성된 RAG 소스 이름입니다. 기본값은 'wiki' 입니다."
 }
