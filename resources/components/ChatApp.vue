@@ -926,7 +926,7 @@ module.exports = exports = {
           } );
           response += '</ul>';
         } else if ( data && data.source ) {
-          const sources = data.source.split( ', ' ).filter( ( s ) => s.trim() );
+          const sources = data.source.split( ' | ' ).filter( ( s ) => s.trim() );
           const label = sources.length === 1 ? 'Source' : 'Sources';
           const sourceLinks = sources.map( ( title ) => {
             const href = mw.util.getUrl( title.trim() );

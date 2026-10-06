@@ -439,7 +439,7 @@ class APIChat extends ApiBase {
 
 		$allSources = [];
 		if ( $searchResults && isset( $searchResults['source'] ) && $searchResults['source'] !== '' ) {
-			$wikiTitles = array_map( 'trim', explode( ',', $searchResults['source'] ) );
+			$wikiTitles = array_map( 'trim', explode( ' | ', $searchResults['source'] ) );
 			$wikiTitles = array_values( array_filter( $wikiTitles ) );
 			$allSources = $wikiTitles;
 		}
@@ -1122,7 +1122,7 @@ class APIChat extends ApiBase {
 
 		return [
 			"content" => implode( "\n\n", $combinedContent ),
-			"source" => implode( ', ', array_unique( $sources ) ),
+			"source" => implode( ' | ', array_unique( $sources ) ),
 			"num_results" => count( $sources )
 		];
 	}
@@ -1245,7 +1245,7 @@ class APIChat extends ApiBase {
 
 		return [
 			"content" => implode( "\n\n", $combinedContent ),
-			"source" => implode( ', ', array_unique( $sources ) ),
+			"source" => implode( ' | ', array_unique( $sources ) ),
 			"num_results" => count( $sources )
 		];
 	}
