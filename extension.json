@@ -213,6 +213,10 @@
 	},
 	"Hooks": {
 		"PageSaveComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onPageSaveComplete",
+		"PageDeleteComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onPageDeleteComplete",
+		"PageMoveComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onPageMoveComplete",
+		"ApprovedRevsRevisionApproved": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onApprovedRevsRevisionApproved",
+		"ApprovedRevsRevisionUnapproved": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onApprovedRevsRevisionUnapproved",
 		"UploadComplete": "MediaWiki\\Extension\\Wanda\\Hooks\\PageIndexUpdater::onUploadComplete",
 		"BeforePageDisplay": "MediaWiki\\Extension\\Wanda\\Hooks\\FloatingChatHook::onBeforePageDisplay",
 		"LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\Wanda\\Hooks\\SchemaUpdates::onLoadExtensionSchemaUpdates"
@@ -235,6 +239,7 @@
 		"WandaLLMTimeout": 30,
 		"WandaMaxContextChars": 10000,
 		"WandaAutoReindex": true,
+		"WandaIndexApprovedOnly": false,
 		"WandaUseContentLang": false,
 		"WandaMaxImageSize": 5242880,
 		"WandaMaxImageCount": 10,

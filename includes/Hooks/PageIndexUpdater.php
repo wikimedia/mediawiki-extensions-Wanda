@@ -2,8 +2,14 @@
 
 namespace MediaWiki\Extension\Wanda\Hooks;
 
+use ApprovedRevs;
+use Content;
+use DeferredUpdates;
+use ExtensionRegistry;
+use IDBAccessObject;
 use MediaWiki\Extension\Wanda\EmbeddingGenerator;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Revision\SlotRecord;
 use MediaWiki\Title\Title;
 use UploadBase;
 use WikiPage;
@@ -27,6 +33,8 @@ class PageIndexUpdater {
 	private static $llmApiEndpoint;
 	/** @var int */
 	private static $timeout;
+	/** @var bool[] */
+	private static $pendingTitles = [];
 
 	/**
 	 * Initializes Elasticsearch settings from MediaWiki config.
@@ -154,9 +162,10 @@ class PageIndexUpdater {
 			return;
 		}
 
-		$content = $wikiPage->getContent();
+		$content = self::resolveIndexableContent( $title, $wikiPage );
 		if ( !$content ) {
-			wfDebugLog( 'Wanda', "Skipping indexing for empty content: " . $title->getPrefixedText() );
+			wfDebugLog( 'Wanda', "No indexable content, removing from index: " . $title->getPrefixedText() );
+			self::deleteDocument( $title );
 			return;
 		}
 
@@ -219,6 +228,78 @@ class PageIndexUpdater {
 	}
 
 	/**
+	 * Returns the content that should be indexed for a page, or null if the page
+	 * should not be in the index.
+	 */
+	public static function resolveIndexableContent( Title $title, WikiPage $wikiPage ): ?Content {
+		if ( !self::usesApprovedRevisions( $title ) ) {
+			return $wikiPage->getContent();
+		}
+
+		$revId = ApprovedRevs::getApprovedRevID( $title );
+		if ( !$revId ) {
+			return null;
+		}
+
+		$revision = MediaWikiServices::getInstance()->getRevisionLookup()->getRevisionById( $revId );
+		return $revision ? $revision->getContent( SlotRecord::MAIN ) : null;
+	}
+
+	private static function usesApprovedRevisions( Title $title ): bool {
+		return self::isApprovedOnlyEnabled() && ApprovedRevs::pageIsApprovable( $title );
+	}
+
+	private static function isApprovedOnlyEnabled(): bool {
+		return MediaWikiServices::getInstance()->getMainConfig()->get( 'WandaIndexApprovedOnly' )
+			&& ExtensionRegistry::getInstance()->isLoaded( 'ApprovedRevs' );
+	}
+
+	/**
+	 * Removes a page from the Elasticsearch index.
+	 */
+	public static function deleteFromIndex( Title $title ) {
+		self::initialize();
+		if ( !self::$indexName ) {
+			return;
+		}
+		self::deleteDocument( $title );
+	}
+
+	private static function deleteDocument( Title $title ) {
+		$ch = curl_init( self::$esHost . "/" . self::$indexName . "/_doc/" . urlencode( $title->getPrefixedText() ) );
+		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "DELETE" );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+
+		$response = curl_exec( $ch );
+
+		wfDebugLog( 'Wanda', "Removed page from index: " . $title->getPrefixedText() . " Response: " . $response );
+	}
+
+	/**
+	 * Reindexes a page once the current request has finished its updates.
+	 */
+	private static function scheduleReindex( Title $title ) {
+		$key = $title->getPrefixedDBkey();
+		if ( isset( self::$pendingTitles[$key] ) ) {
+			return;
+		}
+		self::$pendingTitles[$key] = true;
+
+		DeferredUpdates::addCallableUpdate( static function () use ( $title, $key ) {
+			unset( self::$pendingTitles[$key] );
+			$wikiPage = MediaWikiServices::getInstance()->getWikiPageFactory()->newFromTitle( $title );
+			$wikiPage->loadPageData( IDBAccessObject::READ_LATEST );
+			self::updateIndex( $title, $wikiPage );
+		} );
+	}
+
+	private static function scheduleRemoval( Title $title ) {
+		DeferredUpdates::addCallableUpdate( static function () use ( $title ) {
+			self::deleteFromIndex( $title );
+		} );
+	}
+
+	/**
 	 * Extracts text from an attached PDF using pdftotext.
 	 */
 	private static function extractTextFromPDF( Title $title ) {
@@ -259,7 +340,30 @@ class PageIndexUpdater {
 	 * Hooks to trigger indexing.
 	 */
 	public static function onPageSaveComplete( $wikiPage, $user, $summary, $flags, $revision, $editResult ) {
-		self::updateIndex( $wikiPage->getTitle(), $wikiPage );
+		self::scheduleReindex( $wikiPage->getTitle() );
+	}
+
+	public static function onPageDeleteComplete(
+		$page, $deleter, $reason, $pageID, $deletedRev, $logEntry, $archivedRevisionCount
+	) {
+		self::scheduleRemoval( Title::castFromPageIdentity( $page ) );
+	}
+
+	public static function onPageMoveComplete( $old, $new, $user, $pageid, $redirid, $reason, $revision ) {
+		self::scheduleRemoval( Title::newFromLinkTarget( $old ) );
+		self::scheduleReindex( Title::newFromLinkTarget( $new ) );
+	}
+
+	public static function onApprovedRevsRevisionApproved( $output, $title, $revId, $content ) {
+		if ( self::isApprovedOnlyEnabled() ) {
+			self::scheduleReindex( Title::castFromPageIdentity( $title ) );
+		}
+	}
+
+	public static function onApprovedRevsRevisionUnapproved( $output, $title, $content ) {
+		if ( self::isApprovedOnlyEnabled() ) {
+			self::scheduleReindex( Title::castFromPageIdentity( $title ) );
+		}
 	}
 
 	/**

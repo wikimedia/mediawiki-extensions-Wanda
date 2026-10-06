@@ -256,6 +256,21 @@ To disable Semantic MediaWiki querying, add the following to `LocalSettings.php`
 $wgWandaDisabledSources[] = 'smw';
 ```
 
+## Approved Revs Integration
+If the [Approved Revs](https://www.mediawiki.org/wiki/Extension:Approved_Revs) extension is installed, Wanda can index only the approved revision of each approvable page, so that answers are never based on unreviewed content. To enable this, add the following to `LocalSettings.php`:
+
+```php
+$wgWandaIndexApprovedOnly = true;
+```
+
+When enabled:
+
+- Approvable pages are indexed using their approved revision; approving a different revision reindexes the page.
+- Approvable pages with no approved revision are removed from the index.
+- Pages that are not approvable (including files) are indexed using their latest revision, as before.
+
+After changing this setting, run `ReindexAllPages.php` to bring the existing index in line.
+
 ## Wikibase Integration
 Wanda supports querying Wikibase installations (such as [Wikidata](https://www.wikidata.org)) as sources, allowing users to query facts with natural-language queries.
 
