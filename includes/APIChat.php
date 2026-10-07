@@ -139,6 +139,7 @@ class APIChat extends ApiBase {
 	}
 
 	public function execute() {
+		$this->checkUserRightsAny( 'wanda-chat' );
 		$params = $this->extractRequestParams();
 		$userQuery = trim( $params['message'] );
 		$imagesList = !empty( $params['images'] ) ? $params['images'] : '';
@@ -221,6 +222,12 @@ class APIChat extends ApiBase {
 			$processedImages = $this->processAttachedImages( $imagesList );
 			$imageContext = $processedImages['context'];
 			$imageData = $processedImages['images'];
+			if ( !empty( $params['skipesquery'] ) && !empty( $imageData ) &&
+				trim( $params['customprompt'] ?? '' ) === ''
+			) {
+				self::$customPrompt = 'Answer only based on the attached ' .
+					( count( $imageData ) > 1 ? 'images.' : 'image.' );
+			}
 		}
 
 		// Validate provider configuration
@@ -492,9 +499,6 @@ class APIChat extends ApiBase {
 		if ( isset( $params['apikey'] ) && !empty( $params['apikey'] ) ) {
 			self::$llmApiKey = trim( $params['apikey'] );
 		}
-		if ( isset( $params['apiendpoint'] ) && !empty( $params['apiendpoint'] ) ) {
-			self::$llmApiEndpoint = trim( $params['apiendpoint'] );
-		}
 		if ( isset( $params['maxtokens'] ) && is_numeric( $params['maxtokens'] ) ) {
 			self::$maxTokens = $params['maxtokens'];
 		}
@@ -506,11 +510,18 @@ class APIChat extends ApiBase {
 		if ( isset( $params['timeout'] ) && is_numeric( $params['timeout'] ) ) {
 			self::$timeout = $params['timeout'];
 		}
-		if ( isset( $params['customprompt'] ) ) {
+		if ( isset( $params['customprompt'] ) && trim( $params['customprompt'] ) !== '' ) {
 			self::$customPrompt = trim( $params['customprompt'] );
 		}
-		if ( isset( $params['customprompttitle'] ) ) {
-			self::$customPromptTitle = trim( $params['customprompttitle'] );
+		if ( isset( $params['customprompttitle'] ) && trim( $params['customprompttitle'] ) !== '' ) {
+			$promptTitle = trim( $params['customprompttitle'] );
+			if ( !$this->canUserReadTitle( $promptTitle ) ) {
+				$this->dieWithError( [ 'apierror-cannotviewtitle', wfEscapeWikiText( $promptTitle ) ] );
+			}
+			if ( !Title::newFromText( $promptTitle )->exists() ) {
+				$this->dieWithError( 'apierror-missingtitle' );
+			}
+			self::$customPromptTitle = $promptTitle;
 		}
 		if ( isset( $params['skipesquery'] ) ) {
 			self::$skipESQuery = $params['skipesquery'];
@@ -2559,6 +2570,11 @@ class APIChat extends ApiBase {
 		];
 	}
 
+	/** @inheritDoc */
+	public function mustBePosted() {
+		return true;
+	}
+
 	public function getAllowedParams() {
 		return [
 			"message" => [
@@ -2568,12 +2584,12 @@ class APIChat extends ApiBase {
 			],
 			"customprompt" => [
 				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_DEFAULT => self::$customPrompt,
+				ParamValidator::PARAM_DEFAULT => '',
 				ParamValidator::PARAM_REQUIRED => false
 			],
 			"customprompttitle" => [
 				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_DEFAULT => self::$customPromptTitle,
+				ParamValidator::PARAM_DEFAULT => '',
 				ParamValidator::PARAM_REQUIRED => false
 			],
 			"maxtokens" => [
@@ -2594,12 +2610,8 @@ class APIChat extends ApiBase {
 			"apikey" => [
 				ParamValidator::PARAM_TYPE => 'string',
 				ParamValidator::PARAM_DEFAULT => '',
-				ParamValidator::PARAM_REQUIRED => false
-			],
-			"apiendpoint" => [
-				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_DEFAULT => '',
-				ParamValidator::PARAM_REQUIRED => false
+				ParamValidator::PARAM_REQUIRED => false,
+				ParamValidator::PARAM_SENSITIVE => true
 			],
 			"timeout" => [
 				ParamValidator::PARAM_TYPE => 'integer',

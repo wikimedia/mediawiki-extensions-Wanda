@@ -99,19 +99,18 @@ The Wanda extension provides a MediaWiki API module called `wandachat` for progr
 3. `format` (string) - Response format, recommended: `json`
 4. `sources` (string) - A pipe-delimited list of sources to query (default: `wiki`)
 
-**Optional LLM Override Parameters:**
+5. `temperature` (float) - Creativity/randomness setting for this request (0.0-1.0)
 
-These parameters allow you to override the default configuration settings for individual API calls:
+The module must be called with POST and requires the `wanda-chat` user right, which is
+granted to everyone by default. To restrict the chatbot to logged-in users:
 
-5. `provider` (string) - Override LLM provider (`ollama`, `openai`, `anthropic`, `azure`, `gemini`)
-6. `model` (string) - Override the model name for the request
-7. `apikey` (string) - Override API key for the request
-8. `apiendpoint` (string) - Override API endpoint URL
-9. `maxtokens` (integer) - Override maximum tokens in the response
-10. `temperature` (float) - Override creativity/randomness setting (0.0-1.0)
-11. `timeout` (integer) - Override request timeout in seconds
-12. `customprompt` (string) - Override the default prompt template
-13. `customprompttitle` (string) - Override using content from a wiki page as prompt template
+```php
+$wgGroupPermissions['*']['wanda-chat'] = false;
+$wgGroupPermissions['user']['wanda-chat'] = true;
+```
+
+The LLM provider, model, API key, endpoint, token limit, timeout and custom prompt are
+taken only from the wiki configuration and cannot be overridden per request.
 
 ### Provider Examples
 
@@ -352,9 +351,6 @@ A write API module `wandaedit` powers the feature (requires a CSRF token and POS
 | `title` | Page to edit (created if it does not exist) |
 | `confirm` | `false` (default) returns a preview diff without saving; `true` saves `newtext` |
 | `newtext` | The previewed wikitext to save (required when `confirm=true`) |
-
-The module also accepts the same per-request LLM overrides as `wandachat`
-(`provider`, `model`, `apikey`, `apiendpoint`, `timeout`, `maxtokens`).
 
 ## Requirements
 

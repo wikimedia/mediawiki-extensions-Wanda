@@ -19,7 +19,14 @@ use SpecialPage;
 class SpecialAIChat extends SpecialPage {
 
 	public function __construct() {
-		parent::__construct( 'Wanda' );
+		parent::__construct( 'Wanda', 'wanda-chat' );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getRestriction(): string {
+		return 'wanda-chat';
 	}
 
 	/**
@@ -29,6 +36,7 @@ class SpecialAIChat extends SpecialPage {
 	 */
 	public function execute( $query ) {
 		$this->setHeaders();
+		$this->checkPermissions();
 
 		$out = $this->getOutput();
 		$config = $this->getConfig();

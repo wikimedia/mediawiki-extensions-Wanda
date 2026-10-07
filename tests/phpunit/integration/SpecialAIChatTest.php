@@ -7,6 +7,7 @@ use MediaWiki\Extension\Wanda\Specials\SpecialAIChat;
 use MediaWiki\Title\Title;
 use MediaWikiIntegrationTestCase;
 use OutputPage;
+use PermissionsError;
 use ReflectionMethod;
 
 /**
@@ -41,5 +42,22 @@ class SpecialAIChatTest extends MediaWikiIntegrationTestCase {
 		$this->assertArrayHasKey( 'WandaEnableAttachments', $jsVars );
 		$this->assertArrayHasKey( 'WandaMaxImageCount', $jsVars );
 		$this->assertArrayHasKey( 'WandaRAGSourceNames', $jsVars );
+	}
+
+	public function testExecuteRequiresChatRight() {
+		$this->setGroupPermissions( '*', 'wanda-chat', false );
+
+		$user = $this->getServiceContainer()->getUserFactory()->newAnonymous();
+		$this->overrideUserPermissions( $user, [] );
+
+		$special = new SpecialAIChat();
+		$context = new RequestContext();
+		$context->setTitle( Title::newFromText( 'Special:Wanda' ) );
+		$context->setUser( $user );
+		$context->setOutput( new OutputPage( $context ) );
+		$special->setContext( $context );
+
+		$this->expectException( PermissionsError::class );
+		$special->execute( null );
 	}
 }

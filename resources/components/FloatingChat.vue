@@ -926,7 +926,6 @@ module.exports = exports = {
 
         if ( imagesToSend.length > 0 ) {
           postData.images = imagesToSend.map( img => img.title ).join( '|' );
-          postData.customprompt = 'Answer only based on the attached ' + ( imagesToSend.length > 1 ? 'images.' : 'image.' );
           postData.skipesquery = true;
         } else if ( this.conversationMemoryEnabled && this.conversationImages.length > 0 ) {
           // Re-include images from earlier in the conversation

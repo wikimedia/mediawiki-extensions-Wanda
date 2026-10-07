@@ -105,7 +105,7 @@ describe( 'FloatingChat - sendMessage', () => {
 		expect( vm.inputText ).toBe( '' );
 	} );
 
-	test( 'sends skipesquery and a custom prompt when an image is attached', async () => {
+	test( 'sends skipesquery without a custom prompt when an image is attached', async () => {
 		global.__mwApiMock.post.mockResolvedValue( { response: 'Answer' } );
 		const vm = factory().vm;
 		vm.attachedImages.push( { title: 'File:Pic.png', url: 'u', size: 100 } );
@@ -114,6 +114,6 @@ describe( 'FloatingChat - sendMessage', () => {
 		const postData = global.__mwApiMock.post.mock.calls[ 0 ][ 0 ];
 		expect( postData.images ).toBe( 'File:Pic.png' );
 		expect( postData.skipesquery ).toBe( true );
-		expect( postData.customprompt ).toContain( 'image' );
+		expect( postData.customprompt ).toBeUndefined();
 	} );
 } );

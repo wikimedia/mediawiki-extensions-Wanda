@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\Wanda\Tests\Integration;
 
 use ApiMain;
+use ApiUsageException;
 use MediaWiki\Extension\Wanda\APIChat;
 use MediaWikiIntegrationTestCase;
 use RequestContext;
@@ -56,5 +57,28 @@ class APIChatTest extends MediaWikiIntegrationTestCase {
 		$this->assertTrue(
 			$this->apiChatWrapper->canUserReadTitle( 'Talk:Main Page', [] )
 		);
+	}
+
+	/**
+	 * @covers \MediaWiki\Extension\Wanda\APIChat::getAllowedParams
+	 */
+	public function testLlmConfigIsNotOverridableByRequest() {
+		$this->assertArrayNotHasKey( 'apiendpoint', $this->apiChat->getAllowedParams() );
+	}
+
+	/**
+	 * @covers \MediaWiki\Extension\Wanda\APIChat::mustBePosted
+	 */
+	public function testMustBePosted() {
+		$this->assertTrue( $this->apiChat->mustBePosted() );
+	}
+
+	/**
+	 * @covers \MediaWiki\Extension\Wanda\APIChat::execute
+	 */
+	public function testExecuteRequiresChatRight() {
+		$this->setGroupPermissions( '*', 'wanda-chat', false );
+		$this->expectException( ApiUsageException::class );
+		$this->apiChat->execute();
 	}
 }

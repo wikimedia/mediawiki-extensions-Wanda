@@ -32,6 +32,10 @@ class FloatingChatHook {
 			return;
 		}
 
+		if ( !$out->getUser()->isAllowed( 'wanda-chat' ) ) {
+			return;
+		}
+
 		$config = MediaWikiServices::getInstance()->getMainConfig();
 
 		// Hide structured-data sources whose backing extension is not installed, so

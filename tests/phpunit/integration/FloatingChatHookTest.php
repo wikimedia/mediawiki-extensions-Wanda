@@ -4,6 +4,7 @@ namespace MediaWiki\Extension\Wanda\Tests\Integration;
 
 use MediaWiki\Extension\Wanda\Hooks\FloatingChatHook;
 use MediaWiki\Title\Title;
+use MediaWiki\User\User;
 use MediaWikiIntegrationTestCase;
 use OutputPage;
 use Skin;
@@ -30,13 +31,33 @@ class FloatingChatHookTest extends MediaWikiIntegrationTestCase {
 		$title = $this->createMock( Title::class );
 		$title->method( 'isSpecial' )->willReturn( false );
 
+		$user = $this->createMock( User::class );
+		$user->method( 'isAllowed' )->willReturn( true );
+
 		$out = $this->createMock( OutputPage::class );
 		$out->method( 'getTitle' )->willReturn( $title );
+		$out->method( 'getUser' )->willReturn( $user );
 		$out->expects( $this->once() )
 			->method( 'addModules' )
 			->with( 'ext.wanda.floating' );
 		$out->expects( $this->atLeastOnce() )
 			->method( 'addJsConfigVars' );
+
+		FloatingChatHook::onBeforePageDisplay( $out, $this->createMock( Skin::class ) );
+	}
+
+	public function testSkipsFloatingChatWithoutChatRight() {
+		$title = $this->createMock( Title::class );
+		$title->method( 'isSpecial' )->willReturn( false );
+
+		$user = $this->createMock( User::class );
+		$user->method( 'isAllowed' )->willReturn( false );
+
+		$out = $this->createMock( OutputPage::class );
+		$out->method( 'getTitle' )->willReturn( $title );
+		$out->method( 'getUser' )->willReturn( $user );
+		$out->expects( $this->never() )->method( 'addModules' );
+		$out->expects( $this->never() )->method( 'addJsConfigVars' );
 
 		FloatingChatHook::onBeforePageDisplay( $out, $this->createMock( Skin::class ) );
 	}

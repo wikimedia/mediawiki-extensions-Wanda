@@ -261,9 +261,6 @@ class APIEdit extends ApiBase {
 		if ( !empty( $params['apikey'] ) ) {
 			$this->llmApiKey = trim( $params['apikey'] );
 		}
-		if ( !empty( $params['apiendpoint'] ) ) {
-			$this->llmApiEndpoint = trim( $params['apiendpoint'] );
-		}
 		if ( isset( $params['timeout'] ) && is_numeric( $params['timeout'] ) ) {
 			$this->timeout = (int)$params['timeout'];
 		}
@@ -305,10 +302,7 @@ class APIEdit extends ApiBase {
 			'apikey' => [
 				ParamValidator::PARAM_TYPE => 'string',
 				ParamValidator::PARAM_REQUIRED => false,
-			],
-			'apiendpoint' => [
-				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_REQUIRED => false,
+				ParamValidator::PARAM_SENSITIVE => true,
 			],
 			'timeout' => [
 				ParamValidator::PARAM_TYPE => 'integer',

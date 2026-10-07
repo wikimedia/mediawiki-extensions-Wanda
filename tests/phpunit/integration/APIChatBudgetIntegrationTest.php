@@ -265,7 +265,7 @@ class APIChatBudgetIntegrationTest extends MediaWikiIntegrationTestCase {
 		$main = new ApiMain( $context, true );
 
 		$user = $this->getTestUser()->getUser();
-		$this->overrideUserPermissions( $user, [ 'noratelimit' ] );
+		$this->overrideUserPermissions( $user, [ 'noratelimit', 'wanda-chat' ] );
 		$context->setUser( $user );
 
 		$rp = ( new \ReflectionClass( APIChat::class ) )->getProperty( 'dailyTokenBudget' );

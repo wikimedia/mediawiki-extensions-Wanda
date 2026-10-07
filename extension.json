@@ -36,9 +36,13 @@
 		"wandaedit": "MediaWiki\\Extension\\Wanda\\APIEdit"
 	},
 	"AvailableRights": [
+		"wanda-chat",
 		"wanda-edit"
 	],
 	"GroupPermissions": {
+		"*": {
+			"wanda-chat": true
+		},
 		"sysop": {
 			"wanda-edit": true
 		}
