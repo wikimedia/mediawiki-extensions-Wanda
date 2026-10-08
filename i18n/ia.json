@@ -20,7 +20,6 @@
 	"apihelp-wandachat-param-model": "Modello de linguage a usar pro generar le responsa",
 	"apihelp-wandachat-param-provider": "Fornitor de computation in nube a usar pro le modello de linguage",
 	"apihelp-wandachat-param-apikey": "Clave API pro le fornitor de computation in nube",
-	"apihelp-wandachat-param-apiendpoint": "Puncto final API personalisate pro le fornitor de computation in nube",
 	"apihelp-wandachat-param-timeout": "Tempore limite in secundas pro le requesta API",
 	"apihelp-wandachat-param-skipesquery": "Si se debe ignorar le consulta Elasticsearch",
 	"wanda-api-error-empty-question": "Per favor insere un question valide.",

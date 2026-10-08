@@ -21,7 +21,6 @@
 	"apihelp-wandachat-param-model": "Modèle de langage à utiliser pour générer la réponse",
 	"apihelp-wandachat-param-provider": "Fournisseur de cloud à utiliser pour le modèle de langage",
 	"apihelp-wandachat-param-apikey": "Clé API pour le fournisseur de cloud",
-	"apihelp-wandachat-param-apiendpoint": "Endpoint d'API personnalisé pour le fournisseur de cloud",
 	"apihelp-wandachat-param-timeout": "Délai d'expiration en secondes pour la requête API",
 	"apihelp-wandachat-param-skipesquery": "S'il faut ignorer la requête Elasticsearch",
 	"wanda-api-error-empty-question": "Veuillez fournir une question valide.",

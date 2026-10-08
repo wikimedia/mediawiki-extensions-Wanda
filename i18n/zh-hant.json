@@ -22,7 +22,6 @@
 	"apihelp-wandachat-param-model": "用於產生回應的語言模型",
 	"apihelp-wandachat-param-provider": "用於語言模型的雲端提供者",
 	"apihelp-wandachat-param-apikey": "雲端提供者的 API 金鑰",
-	"apihelp-wandachat-param-apiendpoint": "雲端提供者的自訂 API 端點",
 	"apihelp-wandachat-param-timeout": "API 請求逾時時間（秒）",
 	"apihelp-wandachat-param-skipesquery": "是否跳過 Elasticsearch 查詢",
 	"wanda-api-error-empty-question": "請提供一個有效的問題。",

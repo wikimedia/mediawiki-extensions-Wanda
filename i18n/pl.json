@@ -53,6 +53,8 @@
 	"wanda-wikibase-query-error": "Nie udało się pobrać informacji z Wikibase dotyczących tego pytania.",
 	"wanda-wikibase-no-results": "Zapytanie do Wikibase nie zwróciło żadnych wyników.",
 	"wanda-wikibase-sparql-error": "Nie udało się wykonać zapytania SPARQL.",
+	"right-wanda-chat": "Zadawanie pytań za pomocą czatbota Wandy",
+	"action-wanda-chat": "zadawania pytań za pomocą czatbota Wandy",
 	"right-wanda-edit": "Dokonywanie edycji wspomaganych przez SI przy użyciu czatbota Wandy",
 	"action-wanda-edit": "dokonywania edycji wspomaganych przez SI przy użyciu czatbota Wandy",
 	"wanda-edit-card-heading": "Edycje SI",

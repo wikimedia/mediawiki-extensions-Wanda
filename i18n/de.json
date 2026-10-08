@@ -19,7 +19,6 @@
 	"apihelp-wandachat-param-model": "Sprachenmodell zur Erstellung der Antwort",
 	"apihelp-wandachat-param-provider": "Für das Sprachmodell zu verwendender Cloud-Anbieter",
 	"apihelp-wandachat-param-apikey": "API-Schlüssel für den Cloud-Anbieter",
-	"apihelp-wandachat-param-apiendpoint": "Benutzerdefinierter API-Endpunkt für den Cloud-Anbieter",
 	"apihelp-wandachat-param-timeout": "Timeout in Sekunden für die API-Anforderung",
 	"apihelp-wandachat-param-skipesquery": "Ob die Elasticsearch-Abfrage übersprungen werden soll",
 	"wanda-api-error-empty-question": "Bitte gib eine gültige Frage ein.",

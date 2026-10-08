@@ -23,7 +23,6 @@
 	"apihelp-wandachat-param-model": "응답 생성에 사용할 언어 모델",
 	"apihelp-wandachat-param-provider": "언어 모델에 사용할 클라우드 제공자",
 	"apihelp-wandachat-param-apikey": "클라우드 제공자용 API 키",
-	"apihelp-wandachat-param-apiendpoint": "클라우드 제공자용 사용자 지정 API 종단점",
 	"apihelp-wandachat-param-timeout": "API 요청에 대한 타임아웃 시간(초)",
 	"apihelp-wandachat-param-skipesquery": "일래스틱서치 쿼리를 건너뛸지 여부",
 	"wanda-api-error-empty-question": "올바른 질문을 제공하세요.",

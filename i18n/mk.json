@@ -21,7 +21,6 @@
 	"apihelp-wandachat-param-model": "Кој јазичен модел да се користи во создавањето на одговорот",
 	"apihelp-wandachat-param-provider": "Кој облачен услужник да се користи за јазичниот модел",
 	"apihelp-wandachat-param-apikey": "Приложнички клуч за облачниот услужник",
-	"apihelp-wandachat-param-apiendpoint": "Прилагодена приложничка завршница за облачниот услужник",
 	"apihelp-wandachat-param-timeout": "Истек на време во секунди за барањето до приложникот",
 	"apihelp-wandachat-param-skipesquery": "Дали да се прескокне барањето со Elasticsearch",
 	"wanda-api-error-empty-question": "Внесете важечко прашање.",
