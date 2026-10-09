@@ -1355,12 +1355,10 @@ class APIChat extends ApiBase {
 		$payload = [
 			'contents' => $contents,
 			'generationConfig' => [
-				'temperature' => self::$temperature,
 				'maxOutputTokens' => self::$maxTokens,
-				'thinkingConfig' => [
-					// Conservative budget to avoid MAX_TOKENS errors
-					'thinkingBudget' => 2048
-				]
+				'thinkingConfig' => strpos( $model, 'gemini-2.5' ) === 0
+					? [ 'thinkingBudget' => 2048 ]
+					: [ 'thinkingLevel' => 'low' ]
 			]
 		];
 

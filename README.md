@@ -99,7 +99,7 @@ The Wanda extension provides a MediaWiki API module called `wandachat` for progr
 3. `format` (string) - Response format, recommended: `json`
 4. `sources` (string) - A pipe-delimited list of sources to query (default: `wiki`)
 
-5. `temperature` (float) - Creativity/randomness setting for this request (0.0-1.0)
+5. `temperature` (float) - Creativity/randomness setting for this request (0.0-1.0). Ignored when the provider is `gemini`, which no longer accepts sampling parameters
 
 The module must be called with POST and requires the `wanda-chat` user right, which is
 granted to everyone by default. To restrict the chatbot to logged-in users:

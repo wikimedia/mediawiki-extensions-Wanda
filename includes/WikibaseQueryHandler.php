@@ -844,7 +844,7 @@ class WikibaseQueryHandler {
 			case 'azure':
 				return $this->callAzure( $prompt, $maxTokens, $temperature );
 			case 'gemini':
-				return $this->callGemini( $prompt, $maxTokens, $temperature );
+				return $this->callGemini( $prompt, $maxTokens );
 			default:
 				wfDebugLog( 'Wanda', 'WikibaseQueryHandler: unknown LLM provider: ' . $this->llmProvider );
 				return null;
@@ -1024,10 +1024,9 @@ class WikibaseQueryHandler {
 	/**
 	 * @param string $prompt
 	 * @param int $maxTokens
-	 * @param float $temperature
 	 * @return string|null
 	 */
-	private function callGemini( string $prompt, int $maxTokens, float $temperature ): ?string {
+	private function callGemini( string $prompt, int $maxTokens ): ?string {
 		if ( empty( $this->llmApiKey ) ) {
 			return null;
 		}
@@ -1046,7 +1045,6 @@ class WikibaseQueryHandler {
 		$payload = [
 			'contents'        => [ [ 'role' => 'user', 'parts' => [ [ 'text' => $prompt ] ] ] ],
 			'generationConfig' => [
-				'temperature'    => $temperature,
 				'maxOutputTokens' => $maxTokens,
 			],
 		];

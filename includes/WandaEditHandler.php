@@ -218,7 +218,7 @@ class WandaEditHandler {
 			case 'azure':
 				return $this->callAzure( $prompt, $this->maxTokens, $temperature );
 			case 'gemini':
-				return $this->callGemini( $prompt, $this->maxTokens, $temperature );
+				return $this->callGemini( $prompt, $this->maxTokens );
 			default:
 				wfDebugLog( 'Wanda', 'WandaEditHandler: unknown LLM provider: ' . $this->llmProvider );
 				return null;
@@ -409,10 +409,9 @@ class WandaEditHandler {
 	/**
 	 * @param string $prompt
 	 * @param int $maxTokens
-	 * @param float $temperature
 	 * @return string|null
 	 */
-	private function callGemini( string $prompt, int $maxTokens, float $temperature ): ?string {
+	private function callGemini( string $prompt, int $maxTokens ): ?string {
 		if ( empty( $this->llmApiKey ) ) {
 			return null;
 		}
@@ -433,7 +432,6 @@ class WandaEditHandler {
 				[ 'role' => 'user', 'parts' => [ [ 'text' => $prompt ] ] ]
 			],
 			'generationConfig' => [
-				'temperature' => $temperature,
 				'maxOutputTokens' => $maxTokens
 			]
 		];
