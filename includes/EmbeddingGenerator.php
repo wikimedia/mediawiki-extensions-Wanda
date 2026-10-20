@@ -304,12 +304,16 @@ class EmbeddingGenerator {
 	 */
 	private static function generateGeminiEmbedding( $text, $apiKey, $model, $timeout, $wgproxy ) {
 		$url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:embedContent?key={$apiKey}";
+		// Gemini models (such as gemini-embedding-001) default to 3072 dimensions unless
+		// constrained. outputDimensionality ensures the embedding vector matches the 768
+		// dimensions defined in getDimensions() and expected by the search engine index.
 		$data = [
 			'content' => [
 				'parts' => [
 					[ 'text' => $text ]
 				]
-			]
+			],
+			'outputDimensionality' => self::getDimensions( 'gemini' ),
 		];
 
 		$ch = curl_init( $url );

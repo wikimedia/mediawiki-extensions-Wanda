@@ -109,6 +109,7 @@ class PageIndexUpdater {
 				"properties" => [
 					"title" => [ "type" => "text" ],
 					"content" => [ "type" => "text" ],
+					"content_hash" => [ "type" => "keyword", "index" => false ],
 					"content_chunks" => [ "type" => "text" ],
 					"content_vectors" => [
 						"type" => "nested",
@@ -173,6 +174,17 @@ class PageIndexUpdater {
 		$pdfText = self::extractTextFromPDF( $title );
 		$fullText = trim( $text . "\n" . $pdfText );
 
+		// Hash the page content together with the provider and embedding model.
+		// If an identical fingerprint is already indexed, the stored vector is
+		// mathematically identical to the vector we would generate now: we can
+		// safely skip both the expensive embedding API call and the ES update.
+		$contentHash = sha1( self::$llmProvider . "\0" . self::$llmEmbeddingModel . "\0" . $fullText );
+		$docId = $title->getPrefixedText();
+		if ( self::fetchIndexedHash( $docId ) === $contentHash ) {
+			wfDebugLog( 'Wanda', "Skipping unchanged page in index: " . $docId );
+			return;
+		}
+
 		// Chunk the text semantically
 		$chunks = EmbeddingGenerator::chunkText( $fullText, 5000 );
 		$logMsg = "[WANDA INDEXING] Split " . $title->getPrefixedText() . " into " . count( $chunks ) . " chunks";
@@ -192,7 +204,8 @@ class PageIndexUpdater {
 		$document = [
 			"title" => $title->getPrefixedText(),
 			"content" => $fullText,
-			"content_chunks" => $chunks
+			"content_chunks" => $chunks,
+			"content_hash" => $contentHash
 		];
 
 		if ( !empty( $embeddings ) ) {
@@ -275,6 +288,32 @@ class PageIndexUpdater {
 		$response = curl_exec( $ch );
 
 		wfDebugLog( 'Wanda', "Removed page from index: " . $title->getPrefixedText() . " Response: " . $response );
+	}
+
+	/**
+	 * Fetch the content fingerprint stored on an already-indexed document, if any.
+	 *
+	 * Used to short-circuit re-embedding when a page's content, provider and embedding
+	 * model are all unchanged. Any transport error, missing document, or absent field
+	 * yields null, which simply forces a normal (re)index rather than a skip.
+	 *
+	 * @param string $docId Search engine document id (the page's prefixed title).
+	 * @return string|null The stored content_hash, or null when unavailable.
+	 */
+	private static function fetchIndexedHash( $docId ) {
+		$url = self::$searchHost . "/" . self::$indexName . "/_doc/" . urlencode( $docId )
+			. "?_source_includes=content_hash";
+		$ch = curl_init( $url );
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt( $ch, CURLOPT_TIMEOUT, 5 );
+		$raw = curl_exec( $ch );
+		$code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		if ( curl_errno( $ch ) || $code !== 200 || !is_string( $raw ) ) {
+			return null;
+		}
+		$data = json_decode( $raw, true );
+		$hash = $data['_source']['content_hash'] ?? null;
+		return is_string( $hash ) ? $hash : null;
 	}
 
 	/**

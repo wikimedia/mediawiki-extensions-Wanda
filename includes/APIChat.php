@@ -901,65 +901,37 @@ class APIChat extends ApiBase {
 	}
 
 	/**
-	 * Detects the most recent Elasticsearch index dynamically.
+	 * Detects the most recent search engine index dynamically.
 	 */
 	protected function detectElasticsearchIndex() {
-		$ch = curl_init( self::$searchHost . "/_cat/indices?v&format=json" );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, 5 );
-		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', "Failed to get Elasticsearch indices. HTTP code: " . $httpCode );
+		try {
+			if ( empty( self::$searchHost ) ) {
+				return null;
+			}
+			$discovery = new WandaSemanticDiscovery( $this->getContext() );
+			return $discovery->detectIndex( self::$searchHost );
+		} catch ( \Exception $e ) {
+			wfDebugLog( 'Wanda', 'detectElasticsearchIndex: ' . $e->getMessage() );
 			return null;
 		}
-
-		$indices = json_decode( $response, true );
-		if ( !$indices || !is_array( $indices ) ) {
-			wfDebugLog( 'Wanda', "Invalid response from Elasticsearch indices endpoint" );
-			return null;
-		}
-
-		// Filter indices related to Wanda content
-		$validIndices = array_filter( $indices, static function ( $index ) {
-			return strpos( $index['index'], 'mediawiki_content_' ) === 0;
-		} );
-
-		if ( empty( $validIndices ) ) {
-			wfDebugLog(
-				'Wanda',
-				"No mediawiki_content_* indices found. Available indices: " .
-				implode( ', ', array_column( $indices, 'index' ) )
-			);
-			return null;
-		}
-
-		// Sort by index creation order and return the most recent one
-		usort( $validIndices, static function ( $a, $b ) {
-			return strcmp( $b['index'], $a['index'] );
-		} );
-
-		$selectedIndex = $validIndices[0]['index'] ?? null;
-		wfDebugLog( 'Wanda', "Selected Elasticsearch index: " . $selectedIndex );
-
-		return $selectedIndex;
 	}
 
 	/**
-	 * Elastic search gets conducted here. First, it attempts a vector search using embeddings.
-	 * If that fails or returns no results, it falls back to a traditional text search.
+	 * Search the wiki's indexed content using hybrid vector and keyword search.
+	 * Delegates to WandaSemanticDiscovery with Reciprocal Rank Fusion.
+	 *
+	 * @param string $queryText
+	 * @return array|null [ 'content' => string, 'source' => string, 'num_results' => int ]
 	 */
 	protected function queryElasticsearch( $queryText ) {
-		$vectorResult = $this->vectorSearch( $queryText );
-		if ( $vectorResult !== null ) {
-			wfDebugLog( 'Wanda', "Using vector search results" );
-			return $vectorResult;
-		}
-
-		// Fallback to text search
-		wfDebugLog( 'Wanda', "Falling back to text search" );
-		return $this->textSearch( $queryText );
+		$allowedNamespaces = (array)( $this->getConfig()->get( 'WandaAllowedNamespaces' ) ?? [] );
+		$discovery = new WandaSemanticDiscovery( $this->getContext() );
+		return $discovery->queryChat(
+			$queryText,
+			3,
+			$allowedNamespaces,
+			fn ( $titleText ) => $this->canUserReadTitle( $titleText, $allowedNamespaces )
+		);
 	}
 
 	/**
@@ -994,9 +966,10 @@ class APIChat extends ApiBase {
 	 * any of those checks.
 	 *
 	 * @param string $titleText Prefixed page title as stored in the index
+	 * @param array $allowedNamespaces
 	 * @return bool
 	 */
-	private function canUserReadTitle( string $titleText, array $allowedNamespaces = [] ): bool {
+	protected function canUserReadTitle( string $titleText, array $allowedNamespaces = [] ): bool {
 		$title = Title::newFromText( $titleText );
 		if ( !$title ) {
 			return false;
@@ -1006,259 +979,6 @@ class APIChat extends ApiBase {
 		}
 		return MediaWikiServices::getInstance()->getPermissionManager()
 			->userCan( 'read', $this->getUser(), $title );
-	}
-
-	/**
-	 * Vector-based semantic search using embeddings
-	 */
-	private function vectorSearch( $queryText ) {
-		if ( empty( self::$indexName ) ) {
-			return null;
-		}
-
-		$embedding = $this->generateEmbedding( $queryText );
-		if ( $embedding === null ) {
-			wfDebugLog( 'Wanda', "Failed to generate embedding for query" );
-			return null;
-		}
-
-		// Perform kNN search across all chunks using nested query
-		$queryData = [
-			"size" => 5,
-			"query" => [
-				"nested" => [
-					"path" => "content_vectors",
-					"score_mode" => "max",
-					"query" => [
-						"script_score" => [
-							"query" => [ "match_all" => new \stdClass() ],
-							"script" => [
-								"source" => "cosineSimilarity(params.query_vector, 'content_vectors.vector') + 1.0",
-								"params" => [
-									"query_vector" => $embedding
-								]
-							]
-						]
-					],
-					"inner_hits" => [
-						"size" => 1,
-						"_source" => [ "chunk_index" ]
-					]
-				]
-			],
-			"_source" => [ "title", "content", "content_chunks" ],
-			"min_score" => self::$vectorSearchMinScore
-		];
-
-		$searchUrl = self::$searchHost . "/" . self::$indexName . "/_search";
-		wfDebugLog( 'Wanda', "Vector searching search engine at: " . $searchUrl );
-
-		$ch = curl_init( $searchUrl );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $queryData ) );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
-
-		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		$curlError = curl_error( $ch );
-
-		if ( $curlError ) {
-			wfDebugLog( 'Wanda', "Vector search cURL error: " . $curlError );
-			return null;
-		}
-
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', "Vector search failed with HTTP " . $httpCode . ": " . $response );
-			return null;
-		}
-
-		$data = json_decode( $response, true );
-
-		if ( empty( $data['hits']['hits'] ) ) {
-			wfDebugLog( 'Wanda', "Vector search returned no results" );
-			return null;
-		}
-
-		// Drop any pages the requesting user is not allowed to read before
-		// slicing, so a restricted page cannot crowd out a readable one.
-		$allowedNamespaces = $this->getConfig()->get( 'WandaAllowedNamespaces' ) ?? [];
-		$readableHits = self::filterReadableHits(
-			$data['hits']['hits'],
-			fn ( $titleText ) => $this->canUserReadTitle( $titleText, $allowedNamespaces )
-		);
-		if ( empty( $readableHits ) ) {
-			wfDebugLog( 'Wanda', "Vector search returned no results readable by the current user" );
-			return null;
-		}
-
-		// Get top 3 results and combine them.
-		// Only treat a page as a cited source if its score is at least 50% of
-		// the top hit's score — this prevents padding references with weakly
-		// matching pages when one page clearly dominates.
-		$topHits = array_slice( $readableHits, 0, 3 );
-		$combinedContent = [];
-		$sources = [];
-		$seenTitles = [];
-		$topScore = !empty( $topHits ) ? ( $topHits[0]['_score'] ?? 0 ) : 0;
-
-		foreach ( $topHits as $hit ) {
-			$source = $hit['_source'];
-			$title = $source['title'] ?? 'Unknown';
-			$content = $source['content'] ?? $source['text'] ?? '';
-			$score = $hit['_score'] ?? 0;
-
-			if ( empty( $content ) || empty( $title ) || isset( $seenTitles[$title] ) ) {
-				continue;
-			}
-			if ( $topScore > 0 && $score < $topScore * 0.5 ) {
-				continue;
-			}
-			$combinedContent[] = "--- From page: " . $title .
-				" (Similarity: " . round( $score, 2 ) .
-				") ---\n" . trim( $content );
-			$sources[] = $title;
-			$seenTitles[$title] = true;
-		}
-
-		if ( empty( $combinedContent ) ) {
-			return null;
-		}
-
-		wfDebugLog(
-			'Wanda',
-			"Vector search found " . count( $sources ) . " relevant pages: " . implode( ', ', $sources )
-		);
-
-		return [
-			"content" => implode( "\n\n", $combinedContent ),
-			"source" => implode( ' | ', array_unique( $sources ) ),
-			"num_results" => count( $sources )
-		];
-	}
-
-	/**
-	 * Generate embedding vector for text using configured provider
-	 */
-	private function generateEmbedding( $text ) {
-		return EmbeddingGenerator::generate(
-			$text,
-			self::$llmProvider,
-			self::$llmApiKey,
-			self::$llmApiEndpoint,
-			self::$llmEmbeddingModel,
-			self::$timeout,
-			self::$wgproxy
-		);
-	}
-
-	/**
-	 * Text-based search
-	 */
-	private function textSearch( $queryText ) {
-		// Check if index is set
-		if ( empty( self::$indexName ) ) {
-			wfDebugLog( 'Wanda', "Cannot search: index name is empty. ES Host: " . self::$searchHost );
-			return null;
-		}
-
-		$queryData = [
-			"query" => [
-				"multi_match" => [
-					"query" => $queryText,
-					"fields" => [ "title^3", "content^2", "text" ],
-					"type" => "best_fields",
-					"fuzziness" => "AUTO"
-				]
-			],
-			"size" => 5,
-			"_source" => [ "title", "content", "text" ],
-			"min_score" => 1.0
-		];
-
-		$searchUrl = self::$searchHost . "/" . self::$indexName . "/_search";
-		wfDebugLog( 'Wanda', "Searching engine at: " . $searchUrl . " for query: " . $queryText );
-
-		$ch = curl_init( $searchUrl );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $queryData ) );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
-
-		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		$curlError = curl_error( $ch );
-
-		if ( $curlError ) {
-			wfDebugLog( 'Wanda', "Search engine cURL error: " . $curlError );
-			return null;
-		}
-
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', "Search failed with HTTP " . $httpCode . ": " . $response );
-			return null;
-		}
-
-		$data = json_decode( $response, true );
-
-		if ( empty( $data['hits']['hits'] ) ) {
-			wfDebugLog( 'Wanda', "Search returned no results for query: " . $queryText );
-			return null;
-		}
-
-		// Drop any pages the requesting user is not allowed to read before
-		// slicing, so a restricted page cannot crowd out a readable one.
-		$allowedNamespaces = $this->getConfig()->get( 'WandaAllowedNamespaces' ) ?? [];
-		$readableHits = self::filterReadableHits(
-			$data['hits']['hits'],
-			fn ( $titleText ) => $this->canUserReadTitle( $titleText, $allowedNamespaces )
-		);
-		if ( empty( $readableHits ) ) {
-			wfDebugLog( 'Wanda', "Text search returned no results readable by the current user" );
-			return null;
-		}
-
-		// Get top 3 results and combine them.
-		// Only include a page (content + citation) if its score is within 50 %
-		// of the top hit's score — keeps cited sources and LLM context in sync.
-		$topHits = array_slice( $readableHits, 0, 3 );
-		$combinedContent = [];
-		$sources = [];
-		$seenTitles = [];
-		$topScore = !empty( $topHits ) ? ( $topHits[0]['_score'] ?? 0 ) : 0;
-
-		foreach ( $topHits as $hit ) {
-			$source = $hit['_source'];
-			$title = $source['title'] ?? 'Unknown';
-			$content = $source['content'] ?? $source['text'] ?? '';
-			$score = $hit['_score'] ?? 0;
-
-			if ( empty( $content ) || empty( $title ) || isset( $seenTitles[$title] ) ) {
-				continue;
-			}
-			if ( $topScore > 0 && $score < $topScore * 0.5 ) {
-				continue;
-			}
-			$combinedContent[] = "--- From page: " . $title .
-				" (Score: " . round( $score, 2 ) .
-				") ---\n" . trim( $content );
-			$sources[] = $title;
-			$seenTitles[$title] = true;
-		}
-
-		if ( empty( $combinedContent ) ) {
-			return null;
-		}
-
-		wfDebugLog( 'Wanda', "Found " . count( $sources ) . " relevant pages: " . implode( ', ', $sources ) );
-
-		return [
-			"content" => implode( "\n\n", $combinedContent ),
-			"source" => implode( ' | ', array_unique( $sources ) ),
-			"num_results" => count( $sources )
-		];
 	}
 
 	/**
