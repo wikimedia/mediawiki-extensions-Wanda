@@ -29,6 +29,11 @@ Rules:
 - If the current page wikitext below is empty, the page does not exist yet and you are
   creating it: write the complete wikitext for a new page that fulfils the instruction
   and set "changed" to true.
+- A "Supporting research" section may be provided below. It contains excerpts retrieved
+  specifically to help you fulfil this instruction (for example: facts to insert into the
+  page). You may use facts from it, but do not copy irrelevant material, and do not
+  fabricate facts beyond what the instruction and this research support. If the section is
+  empty, ignore it and rely only on the instruction and the current page wikitext.
 - Do NOT add commentary, explanations or markdown code fences.
 
 Respond with a single JSON object and nothing else, in exactly this form:
@@ -39,6 +44,9 @@ If the instruction cannot be applied or would not change anything, respond with:
 
 Editing instruction:
 {{instruction}}
+
+Supporting research (optional, may be empty):
+{{context}}
 
 Current page wikitext:
 {{wikitext}}

@@ -1,5 +1,6 @@
 /* eslint-env jest */
 const { mount } = require( '@vue/test-utils' );
+global.resetMwMocks();
 const ChatApp = require( '../../resources/components/ChatApp.vue' );
 
 function factory() {
@@ -29,7 +30,7 @@ describe( 'ChatApp - text helpers', () => {
 		expect( vm.stripFilePrefix( 'Profile:Cat.png' ) ).toBe( 'Profile:Cat.png' );
 	} );
 
-	test( 'sourceLabel maps known sources, strips RAG prefix, passes through unknown', () => {
+	test( 'sourceLabel maps known sources, strips RAG prefix, returns other keys as-is', () => {
 		const vm = factory().vm;
 		expect( vm.sourceLabel( 'wiki' ) ).toBe( 'Wiki' );
 		expect( vm.sourceLabel( 'publicknowledge' ) ).toBe( 'LLM Knowledge' );
@@ -119,7 +120,7 @@ describe( 'ChatApp - formatStepDesc', () => {
 	test( 'describes a wikibase query', () => {
 		const vm = factory().vm;
 		expect( vm.formatStepDesc( { source: 'wikibase', wbKey: 'wikidata', rows: 1 } ) )
-			.toBe( 'Wikidata (1 row)' );
+			.toBe( 'wikidata (1 row)' );
 	} );
 
 	test( 'describes an smw query with pluralised rows and reasoning', () => {
@@ -324,8 +325,8 @@ describe( 'ChatApp - configurable sources', () => {
 			const { mount: isoMount } = require( '@vue/test-utils' );
 			const Comp = require( '../../resources/components/ChatApp.vue' );
 			const vm = isoMount( Comp ).vm;
-			// 'wiki' is disabled, so the first available default is 'wikidata'.
-			expect( vm.selectedValues ).toEqual( [ 'wikidata' ] );
+			// 'wiki' is disabled, so the first available default is 'publicknowledge'.
+			expect( vm.selectedValues ).toEqual( [ 'publicknowledge' ] );
 			// Disabled sources are hidden from the checkbox area entirely, not
 			// merely deselected by default.
 			expect( vm.sourceOptions.some( ( o ) => o.value === 'wiki' ) ).toBe( false );
@@ -380,24 +381,29 @@ describe( 'ChatApp - applyEdit', () => {
 		const wrapper = factory();
 		const vm = wrapper.vm;
 		global.__mwApiMock.postWithToken.mockResolvedValue( response );
-		vm.editPreview = { title: 'Some page', message: 'do it', newtext: 'text' };
+		vm.editDialogOpen = true;
+		vm.editPlan = { batchid: 'batch', scope: 'single', truncated: false, maxpages: 10 };
+		vm.editPages = [ {
+			title: 'Some page', proposalid: 'proposal', selected: true, approved: true,
+			status: 'ready', sources: []
+		} ];
 		await vm.applyEdit();
-		return vm;
+		return wrapper;
 	}
 
 	test( 'reports a created page with the created message', async () => {
-		const vm = await applyWithResponse(
+		const wrapper = await applyWithResponse(
 			{ result: 'success', title: 'Some page', new: true, diffurl: '/w/diff' }
 		);
-		const last = vm.messages[ vm.messages.length - 1 ];
-		expect( last.content ).toContain( 'wanda-edit-created' );
+		expect( wrapper.text() ).toContain( 'wanda-edit-created' );
+		wrapper.unmount();
 	} );
 
 	test( 'reports an updated page with the success message', async () => {
-		const vm = await applyWithResponse(
+		const wrapper = await applyWithResponse(
 			{ result: 'success', title: 'Some page', new: false, diffurl: '/w/diff' }
 		);
-		const last = vm.messages[ vm.messages.length - 1 ];
-		expect( last.content ).toContain( 'wanda-edit-success' );
+		expect( wrapper.text() ).toContain( 'wanda-edit-success' );
+		wrapper.unmount();
 	} );
 } );

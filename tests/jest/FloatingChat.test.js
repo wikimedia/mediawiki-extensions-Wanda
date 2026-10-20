@@ -1,5 +1,6 @@
 /* eslint-env jest */
 const { mount } = require( '@vue/test-utils' );
+global.resetMwMocks();
 const FloatingChat = require( '../../resources/components/FloatingChat.vue' );
 
 function factory() {

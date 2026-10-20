@@ -10,11 +10,20 @@ const slotStub = ( name ) => ( {
 } );
 
 module.exports = {
-	CdxButton: slotStub( 'CdxButton' ),
+		CdxButton: {
+			name: 'CdxButton',
+			props: { disabled: Boolean },
+			template: '<button :disabled="disabled"><slot /></button>'
+		},
 	CdxTextArea: slotStub( 'CdxTextArea' ),
 	CdxProgressBar: slotStub( 'CdxProgressBar' ),
 	CdxCheckbox: slotStub( 'CdxCheckbox' ),
-	CdxDialog: slotStub( 'CdxDialog' ),
+	CdxDialog: {
+		name: 'CdxDialog',
+		props: { open: Boolean, title: String },
+		emits: [ 'update:open' ],
+		template: '<div v-if="open" role="dialog"><h2>{{ title }}</h2><slot /><slot name="footer" /></div>'
+	},
 	CdxTextInput: slotStub( 'CdxTextInput' ),
 	CdxIcon: slotStub( 'CdxIcon' ),
 	CdxAccordion: slotStub( 'CdxAccordion' ),

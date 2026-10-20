@@ -109,6 +109,7 @@
             class="wanda-edit-target-input"
             @input="searchEditTargets"
           ></cdx-lookup>
+          <p>{{ msg( 'wanda-edit-target-help' ) }}</p>
         </div>
       </div>
 
@@ -169,7 +170,7 @@
             placeholder="Type your message..."
             @keydown.enter.exact.prevent="sendMessage"
           ></cdx-text-area>
-          <cdx-button action="progressive" weight="primary" @click="sendMessage">Send</cdx-button>
+          <cdx-button action="progressive" weight="primary" :disabled="loading || editBusy" @click="sendMessage">Send</cdx-button>
         </div>
       </div>
     </div>
@@ -222,35 +223,23 @@
       </template>
     </cdx-dialog>
 
-    <cdx-dialog
-      v-model:open="editDialogOpen"
-      :title="msg('wanda-edit-preview-title')"
-      class="wanda-edit-preview-dialog"
-    >
-      <div class="wanda-edit-preview-content">
-        <p v-if="editPreview && editPreview.summary" class="wanda-edit-summary">
-          {{ editPreview.summary }}
-        </p>
-        <div
-          v-if="editPreview && editPreview.diff"
-          class="wanda-edit-diff"
-          v-html="editPreview.diff"
-        ></div>
-      </div>
-      <template #footer>
-        <cdx-button
-          action="progressive"
-          weight="primary"
-          :disabled="editApplying"
-          @click="applyEdit"
-        >
-          {{ msg('wanda-edit-apply') }}
-        </cdx-button>
-        <cdx-button :disabled="editApplying" @click="cancelEdit">
-          {{ msg('wanda-edit-cancel') }}
-        </cdx-button>
-      </template>
-    </cdx-dialog>
+    <edit-review
+      :open="editDialogOpen"
+      :plan="editPlan"
+      :pages="editPages"
+      :research="editResearch"
+      :busy="editBusy"
+      :operation="editOperation"
+      :stopped="editStopped"
+      :error="editError"
+      :can-generate="canGenerateEdits"
+      :can-apply="canApplyEdits"
+      @select="setEditSelection"
+      @generate="generateEditPreviews"
+      @apply="applyEdit"
+      @cancel="cancelEdit"
+      @dismiss="dismissEditReview"
+    />
   </div>
 
 </template>
@@ -259,6 +248,8 @@
 const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxLookup } = require( '../../codex.js' );
 const { cdxIconImage } = require( '../../icons.json' );
 const { ref } = require( 'vue' );
+const EditReview = require( './EditReview.vue' );
+const editWorkflow = require( '../editWorkflow.js' );
 
 const BASE_SOURCE_OPTIONS = [
   { value: 'wiki', label: 'Wiki' },
@@ -285,7 +276,8 @@ const AVAILABLE_SOURCE_OPTIONS = ALL_SOURCE_OPTIONS.filter(
 
 module.exports = exports = {
   name: 'ChatApp',
-  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxLookup },
+  mixins: [ editWorkflow ],
+  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxLookup, EditReview },
   setup() {
     const defaultSource = AVAILABLE_SOURCE_OPTIONS[0] || null;
     const selectedValues = ref( defaultSource ? [ defaultSource.value ] : [] );
@@ -327,18 +319,7 @@ module.exports = exports = {
       conversationMemoryEnabled: true,
       conversationHistory: [],
       conversationImages: [],
-      canEdit: !!mw.config.get( 'WandaCanEdit' ),
-      editModeEnabled: false,
-      // namespaces < 0 are virtual pages (e.g. special pages), which have no real title to default to
-      editTarget: ( mw.config.get( 'wgNamespaceNumber' ) >= 0 && mw.config.get( 'wgPageName' ) ) ?
-        mw.config.get( 'wgPageName' ).replace( /_/g, ' ' ) : '',
-      editTargetSelected: null,
-      editTargetSuggestions: [],
-      editTargetSearchTimeout: null,
-      editTargetAbortController: null,
-      editDialogOpen: false,
-      editApplying: false,
-      editPreview: null
+      canEdit: !!mw.config.get( 'WandaCanEdit' )
     };
   },
   mounted() {
@@ -783,68 +764,14 @@ module.exports = exports = {
         }
       }, delay );
     },
-    searchEditTargets() {
-      clearTimeout( this.editTargetSearchTimeout );
-
-      if ( this.editTargetAbortController ) {
-        this.editTargetAbortController.abort();
-        this.editTargetAbortController = null;
-      }
-
-      const query = this.editTarget.trim();
-
-      if ( !query ) {
-        this.editTargetSuggestions = [];
-        return;
-      }
-
-      const delay = query.length === 1 ? 0 : 150;
-
-      this.editTargetSearchTimeout = setTimeout( async () => {
-        this.editTargetAbortController = new AbortController();
-        const currentController = this.editTargetAbortController;
-
-        try {
-          const api = new mw.Api();
-          const searchResult = await api.get( {
-            action: 'query',
-            format: 'json',
-            list: 'allpages',
-            apprefix: query,
-            apnamespace: 0,
-            aplimit: 10
-          } );
-
-          if ( currentController !== this.editTargetAbortController ) {
-            return;
-          }
-
-          const pages = ( searchResult.query && searchResult.query.allpages ) || [];
-          this.editTargetSuggestions = pages.map( ( page ) => ( {
-            value: page.title,
-            label: page.title
-          } ) );
-        } catch ( e ) {
-          if ( e.name === 'AbortError' || currentController !== this.editTargetAbortController ) {
-            return;
-          }
-          this.editTargetSuggestions = [];
-        } finally {
-          if ( currentController === this.editTargetAbortController ) {
-            this.editTargetAbortController = null;
-          }
-        }
-      }, delay );
-    },
     async sendMessage() {
       const userText = this.inputText.trim();
-      if ( !userText || this.loading ) {
+      if ( !userText || this.loading || this.editBusy ) {
         return;
       }
 
       if ( this.canEdit && this.editModeEnabled ) {
-        this.requestEdit( userText );
-        return;
+        return this.requestEdit( userText );
       }
 
       const imagesToSend = [ ...this.attachedImages ];
@@ -965,99 +892,6 @@ module.exports = exports = {
       } finally {
         this.loading = false;
       }
-    },
-    async requestEdit( userText ) {
-      const target = this.editTarget.trim();
-      if ( !target ) {
-        mw.notify( this.msg( 'wanda-edit-notitle' ), { type: 'error' } );
-        return;
-      }
-
-      this.messages.push( {
-        role: 'user',
-        content: this.escapeHtml( userText )
-      } );
-      this.scrollToBottom();
-      this.inputText = '';
-      this.loading = true;
-
-      try {
-        const api = new mw.Api();
-        // No "confirm" here: API booleans are presence-based, so even
-        // confirm=0 would be parsed as true and skip the preview.
-        const data = await api.postWithToken( 'csrf', {
-          action: 'wandaedit',
-          format: 'json',
-          formatversion: 2,
-          message: userText,
-          title: target
-        } ).catch( ( code, result ) => {
-          const info = result && result.error && result.error.info;
-          throw new Error( info || '' );
-        } );
-
-        if ( data && data.changed ) {
-          this.editPreview = {
-            title: data.title || target,
-            message: userText,
-            newtext: data.newtext || '',
-            diff: data.diff || '',
-            summary: data.summary || ''
-          };
-          this.editDialogOpen = true;
-        } else {
-          const reason = data && data.explanation ? ' ' + data.explanation : '';
-          this.addMessage( 'bot', this.escapeHtml( this.msg( 'wanda-edit-no-change' ) + reason ) );
-        }
-      } catch ( e ) {
-        const errInfo = e && e.message ? e.message : this.msg( 'wanda-edit-error' );
-        this.addMessage( 'bot', this.escapeHtml( errInfo ) );
-      } finally {
-        this.loading = false;
-      }
-    },
-    async applyEdit() {
-      if ( !this.editPreview ) {
-        return;
-      }
-      this.editApplying = true;
-      try {
-        const api = new mw.Api();
-        const data = await api.postWithToken( 'csrf', {
-          action: 'wandaedit',
-          format: 'json',
-          formatversion: 2,
-          message: this.editPreview.message,
-          title: this.editPreview.title,
-          newtext: this.editPreview.newtext,
-          confirm: 1
-        } ).catch( ( code, result ) => {
-          const info = result && result.error && result.error.info;
-          throw new Error( info || '' );
-        } );
-
-        if ( data && data.result === 'success' ) {
-          const href = data.diffurl || mw.util.getUrl( data.title );
-          const link = '<a target="_blank" href="' + href + '">' +
-            this.escapeHtml( data.title ) + '</a>';
-          const successMsg = data.new ?
-            this.msg( 'wanda-edit-created' ) : this.msg( 'wanda-edit-success' );
-          this.addMessage( 'bot', successMsg + ' ' + link );
-        } else {
-          this.addMessage( 'bot', this.escapeHtml( this.msg( 'wanda-edit-error' ) ) );
-        }
-      } catch ( e ) {
-        const errInfo = e && e.message ? e.message : this.msg( 'wanda-edit-error' );
-        this.addMessage( 'bot', this.escapeHtml( errInfo ) );
-      } finally {
-        this.editApplying = false;
-        this.editDialogOpen = false;
-        this.editPreview = null;
-      }
-    },
-    cancelEdit() {
-      this.editDialogOpen = false;
-      this.editPreview = null;
     },
     clearConversation() {
       this.messages = [];

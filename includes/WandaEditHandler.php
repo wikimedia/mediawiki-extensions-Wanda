@@ -67,14 +67,18 @@ class WandaEditHandler {
 	 * @param string $instruction Natural-language editing instruction
 	 * @param string $currentWikitext Full current wikitext of the target page,
 	 *   or the empty string when the page is being created
+	 * @param string $context Optional bounded, provenance-carrying research
+	 *   context (e.g. retrieved wiki excerpts) the model may draw facts from
+	 *   when fulfilling the instruction. Empty when no research was requested.
 	 * @return array{changed:bool,newtext:string,explanation:string,failed?:bool}
 	 *   `failed` is set when the LLM call failed or returned an unusable
 	 *   response, as opposed to the model legitimately proposing no change.
 	 */
-	public function proposeEdit( string $instruction, string $currentWikitext ): array {
+	public function proposeEdit( string $instruction, string $currentWikitext, string $context = '' ): array {
 		$prompt = PromptTemplate::render( 'general-edit', [
 			'instruction' => $instruction,
 			'wikitext' => $currentWikitext,
+			'context' => trim( $context ),
 		] );
 
 		$response = $this->callLLM( $prompt );
@@ -465,31 +469,51 @@ class WandaEditHandler {
 	 * @return string|null Response body or null on failure
 	 */
 	private function curlPost( string $url, string $data, array $headers ): ?string {
-		$ch = curl_init( $url );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, 'POST' );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, $this->timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
-		if ( !empty( $this->proxy ) ) {
-			curl_setopt( $ch, CURLOPT_PROXY, $this->proxy );
+		// Transient upstream failures (overloaded/temporarily unavailable model,
+		// gateway hiccups, provider throttling) are common on shared LLM
+		// endpoints and would otherwise fail whole pages in a batch at random.
+		// Retry a bounded number of times with exponential backoff; never retry
+		// a definite client/permission error (4xx other than 429).
+		$attempts = 0;
+		$maxAttempts = 3;
+		while ( true ) {
+			$attempts++;
+			$ch = curl_init( $url );
+			curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, 'POST' );
+			curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
+			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+			curl_setopt( $ch, CURLOPT_TIMEOUT, $this->timeout );
+			curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
+			if ( !empty( $this->proxy ) ) {
+				curl_setopt( $ch, CURLOPT_PROXY, $this->proxy );
+			}
+
+			$response = curl_exec( $ch );
+			$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+			$curlError = curl_error( $ch );
+			// No curl_close(): the handle is freed when $ch goes out of scope
+			// (curl_close is a no-op on PHP 8+, which this extension requires).
+
+			if ( !$curlError && $httpCode === 200 ) {
+				return $response;
+			}
+
+			$transient = $curlError !== ''
+				|| in_array( $httpCode, [ 429, 500, 502, 503, 504 ], true );
+			if ( !$transient || $attempts >= $maxAttempts ) {
+				if ( $curlError ) {
+					wfDebugLog( 'Wanda', 'WandaEditHandler cURL error: ' . $curlError );
+				} else {
+					wfDebugLog( 'Wanda', 'WandaEditHandler HTTP ' . $httpCode . ': ' .
+						substr( (string)$response, 0, 500 ) );
+				}
+				return null;
+			}
+
+			wfDebugLog( 'Wanda', 'WandaEditHandler transient failure (attempt ' . $attempts .
+				'/' . $maxAttempts . '): ' . ( $curlError ?: 'HTTP ' . $httpCode ) . '; retrying' );
+			// 250ms, 500ms backoff; keeps a batch responsive while smoothing spikes.
+			usleep( 250000 * ( 1 << ( $attempts - 1 ) ) );
 		}
-
-		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		$curlError = curl_error( $ch );
-
-		if ( $curlError ) {
-			wfDebugLog( 'Wanda', 'WandaEditHandler cURL error: ' . $curlError );
-			return null;
-		}
-
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', 'WandaEditHandler HTTP ' . $httpCode . ': ' .
-				substr( (string)$response, 0, 500 ) );
-			return null;
-		}
-
-		return $response;
 	}
 }

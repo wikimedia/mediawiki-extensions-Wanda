@@ -3,316 +3,127 @@
 namespace MediaWiki\Extension\Wanda;
 
 use ApiBase;
-use MediaWiki\CommentStore\CommentStoreComment;
+use BagOStuff;
 use MediaWiki\MediaWikiServices;
-use MediaWiki\Revision\SlotRecord;
-use MediaWiki\Title\Title;
-use TextContent;
+use MediaWiki\WikiMap\WikiMap;
+use RuntimeException;
 use Wikimedia\ParamValidator\ParamValidator;
 
-/**
- * Write API module that lets authorised users ask Wanda to edit a wiki page.
- *
- * The module is two-phase so edits are always previewed before they are
- * applied (T409213):
- *
- *  - preview (confirm=false, the default): the editing instruction and the
- *    page's current wikitext are sent to the LLM, and the proposed new wikitext
- *    plus a rendered diff are returned. Nothing is saved.
- *  - confirm (confirm=true): the previously previewed wikitext (echoed back by
- *    the client) is saved as a new revision attributed to the requesting user.
- *
- * Editing is gated by both the WandaEnableEditing feature flag and the
- * `wanda-edit` user right, and additionally respects the target page's own edit
- * permissions so Wanda can never bypass protection or access-control extensions.
- *
- * Supports free-text/prose edits as well as infobox / template field edits on a
- * single page. If the target page does not exist yet, Wanda proposes the full
- * wikitext for the new page and creates it on confirmation.
- */
+/** Staged edit API: plan, context, preview, then confirm an opaque proposal ID. */
 class APIEdit extends ApiBase {
-	/** @var string */
-	private $llmProvider;
-	/** @var string */
-	private $llmModel;
-	/** @var string */
-	private $llmApiKey;
-	/** @var string */
-	private $llmApiEndpoint;
-	/** @var int */
-	private $timeout;
-	/** @var int */
-	private $maxTokens;
-	/** @var string */
-	private $proxy;
-
-	public function __construct( $query, $moduleName ) {
-		parent::__construct( $query, $moduleName );
-
-		$config = $this->getConfig();
-		$this->llmProvider = strtolower( $config->get( 'WandaLLMProvider' ) ?? 'ollama' );
-		$this->llmModel = $config->get( 'WandaLLMModel' ) ?? 'gemma:2b';
-		$this->llmApiKey = $config->get( 'WandaLLMApiKey' ) ?? '';
-
-		$defaultEndpoint = 'http://ollama:11434/api/';
-		if ( $this->llmProvider === 'gemini' ) {
-			$defaultEndpoint = 'https://generativelanguage.googleapis.com/v1';
-		}
-		$this->llmApiEndpoint = $config->get( 'WandaLLMApiEndpoint' ) ?? $defaultEndpoint;
-		$this->timeout = (int)( $config->get( 'WandaLLMTimeout' ) ?? 30 );
-		// Edits echo the whole page back, so allow far more tokens than the chat default.
-		$this->maxTokens = max( 4096, (int)( $config->get( 'WandaLLMMaxTokens' ) ?? 4096 ) );
-		$this->proxy = MediaWikiServices::getInstance()->getMainConfig()->get( 'HTTPProxy' ) ?? '';
-	}
 
 	public function execute() {
 		$params = $this->extractRequestParams();
-
-		// Feature flag + dedicated right.
-		if ( !$this->getConfig()->get( 'WandaEnableEditing' ) ) {
-			$this->dieWithError( 'wanda-api-error-edit-disabled', 'wanda-edit-disabled' );
+		try {
+			if ( !$this->config( 'WandaEnableEditing', false ) ) {
+				throw new RuntimeException( 'wanda-edit-disabled' );
+			}
+			if ( !$this->getUser()->isRegistered() || !$this->getAuthority()->isAllowed( 'wanda-edit' ) ) {
+				throw new RuntimeException( 'wanda-edit-permission' );
+			}
+			$service = $this->createService();
+			$service->checkAccess();
+			if ( $params['confirm'] ) {
+				$data = $service->confirm( $params['proposalid'] );
+			} elseif ( $params['stage'] === 'plan' ) {
+				$selected = array_map( 'trim', explode( '|', $params['sources'] ) );
+				$sources = array_values( array_unique( array_filter( $selected,
+					static function ( $source ) {
+						return $source !== '';
+					}
+				) ) );
+				$data = $service->plan( $params['message'], $params['title'], $sources );
+			} elseif ( $params['stage'] === 'context' ) {
+				$data = $service->retrieveContext( $params['batchid'], $params['source'] );
+			} elseif ( $params['batchid'] !== '' ) {
+				$data = $service->preview( $params['batchid'], $params['title'], $params['summary'] );
+			} else {
+				$data = $service->previewSingle( $params['message'], $params['title'], $params['summary'] );
+			}
+		} catch ( RuntimeException $e ) {
+			$code = $e->getMessage();
+			$messages = self::errorMessages();
+			if ( !isset( $messages[$code] ) ) {
+				$code = 'wanda-edit-generation-failed';
+			}
+			$this->dieWithError( $messages[$code], $code === 'wanda-edit-permission' ? 'permissiondenied' : $code );
 		}
-		if ( !$this->getUser()->isAllowed( 'wanda-edit' ) ) {
-			$this->dieWithError( 'wanda-api-error-edit-permission', 'permissiondenied' );
+		foreach ( $data as $key => $value ) {
+			$this->getResult()->addValue( null, $key, $value );
 		}
-
-		$instruction = trim( (string)$params['message'] );
-		$confirm = !empty( $params['confirm'] );
-
-		$title = Title::newFromText( (string)$params['title'] );
-		if ( !$title || !$title->canExist() ) {
-			$this->dieWithError( 'wanda-api-error-edit-notitle', 'wanda-edit-notitle' );
-		}
-		$pageExists = $title->exists();
-
-		// Respect the page's own edit/create permissions (protection, Lockdown, etc.).
-		$pm = MediaWikiServices::getInstance()->getPermissionManager();
-		if ( !$pm->userCan( 'edit', $this->getUser(), $title ) ||
-			( !$pageExists && !$pm->userCan( 'create', $this->getUser(), $title ) )
-		) {
-			$this->dieWithError( 'wanda-api-error-edit-permission', 'permissiondenied' );
-		}
-
-		$wikiPage = MediaWikiServices::getInstance()->getWikiPageFactory()->newFromTitle( $title );
-		if ( $pageExists ) {
-			$currentContent = $wikiPage->getContent();
-		} else {
-			$currentContent = MediaWikiServices::getInstance()->getContentHandlerFactory()
-				->getContentHandler( $title->getContentModel() )
-				->makeEmptyContent();
-		}
-		if ( !( $currentContent instanceof TextContent ) ) {
-			$this->dieWithError( 'wanda-api-error-edit-notitle', 'wanda-edit-notitle' );
-		}
-		$currentText = $currentContent->getText();
-
-		$this->overrideLlmParameters( $params );
-
-		if ( $confirm ) {
-			$this->doConfirm( $title, $wikiPage, $currentContent, $instruction, (string)$params['newtext'] );
-			return;
-		}
-
-		$this->doPreview( $title, $currentContent, $currentText, $instruction );
 	}
 
-	/**
-	 * Preview path: ask the LLM for the proposed wikitext and return a diff.
-	 *
-	 * @param Title $title
-	 * @param TextContent $currentContent
-	 * @param string $currentText
-	 * @param string $instruction
-	 * @return void
-	 */
-	private function doPreview( Title $title, TextContent $currentContent, string $currentText, string $instruction ) {
-		if ( $instruction === '' ) {
-			$this->dieWithError( 'wanda-api-error-empty-question', 'wanda-edit-empty' );
-		}
+	/** Protected seams for network-free tests; no request LLM overrides. */
+	protected function createService(): WandaEditService {
+		return new WandaEditService( $this->getContext(), $this->createStore(), $this->createHandler() );
+	}
 
-		$handler = new WandaEditHandler(
-			$this->llmProvider,
-			$this->llmModel,
-			$this->llmApiKey,
-			$this->llmApiEndpoint,
-			$this->timeout,
-			$this->maxTokens,
-			$this->proxy
+	protected function createStore(): WandaEditStore {
+		$cache = MediaWikiServices::getInstance()->getMainObjectStash();
+		if ( $cache->getQoS( BagOStuff::ATTR_DURABILITY ) < BagOStuff::QOS_DURABILITY_SERVICE ) {
+			throw new RuntimeException( 'wanda-edit-store-failed' );
+		}
+		return new WandaEditStore( $cache, WikiMap::getCurrentWikiId(),
+			(int)$this->config( 'WandaEditProposalTTL', 1800 ) );
+	}
+
+	protected function createHandler(): WandaEditHandler {
+		$provider = strtolower( (string)$this->config( 'WandaLLMProvider', 'ollama' ) );
+		$endpoint = $provider === 'gemini'
+			? 'https://generativelanguage.googleapis.com/v1' : 'http://ollama:11434/api/';
+		return new WandaEditHandler(
+			$provider, $this->config( 'WandaLLMModel', 'gemma:2b' ), $this->config( 'WandaLLMApiKey', '' ),
+			$this->config( 'WandaLLMApiEndpoint', $endpoint ), (int)$this->config( 'WandaLLMTimeout', 30 ),
+			max( 4096, (int)$this->config( 'WandaLLMMaxTokens', 4096 ) ), $this->config( 'HTTPProxy', '' )
 		);
-		$proposal = $handler->proposeEdit( $instruction, $currentText );
-
-		// A failed or unparseable LLM response is an error, not a "no change"
-		// answer from the model — tell the user to retry instead.
-		if ( !empty( $proposal['failed'] ) ) {
-			$this->dieWithError( 'wanda-api-error-generation-failed', 'wanda-edit-generation-failed' );
-		}
-
-		$result = $this->getResult();
-		if ( empty( $proposal['changed'] ) || trim( $proposal['newtext'] ) === $currentText ) {
-			$result->addValue( null, 'changed', false );
-			$result->addValue( null, 'explanation', $proposal['explanation'] ?? '' );
-			return;
-		}
-
-		$newText = $proposal['newtext'];
-		$contentHandler = $currentContent->getContentHandler();
-		$newContent = $contentHandler->unserializeContent( $newText );
-
-		$diff = $this->renderDiff( $currentContent, $newContent );
-
-		$result->addValue( null, 'changed', true );
-		$result->addValue( null, 'title', $title->getPrefixedText() );
-		$result->addValue( null, 'newtext', $newText );
-		$result->addValue( null, 'diff', $diff );
-		$result->addValue( null, 'summary', $this->buildSummary( $instruction ) );
-		$result->addValue( null, 'explanation', $proposal['explanation'] ?? '' );
 	}
 
-	/**
-	 * Confirm path: save the previously previewed wikitext as the requesting user.
-	 *
-	 * @param Title $title
-	 * @param \WikiPage $wikiPage
-	 * @param TextContent $currentContent
-	 * @param string $instruction
-	 * @param string $newText The exact wikitext the user previewed
-	 * @return void
-	 */
-	private function doConfirm(
-		Title $title,
-		$wikiPage,
-		TextContent $currentContent,
-		string $instruction,
-		string $newText
-	) {
-		if ( trim( $newText ) === '' ) {
-			$this->dieWithError( 'wanda-api-error-edit-failed', 'wanda-edit-nonewtext' );
-		}
-
-		$contentHandler = $currentContent->getContentHandler();
-		$newContent = $contentHandler->unserializeContent( $newText );
-
-		$isNew = !$title->exists();
-		$updater = $wikiPage->newPageUpdater( $this->getUser() );
-		$updater->setContent( SlotRecord::MAIN, $newContent );
-		$summary = CommentStoreComment::newUnsavedComment( $this->buildSummary( $instruction ) );
-		$newRev = $updater->saveRevision( $summary, $isNew ? EDIT_NEW : EDIT_UPDATE );
-
-		if ( !$updater->wasSuccessful() || $newRev === null ) {
-			$this->dieWithError( 'wanda-api-error-edit-failed', 'wanda-edit-failed' );
-		}
-
-		$diffurl = $isNew
-			? $title->getFullURL()
-			: $title->getFullURL( [ 'diff' => $newRev->getId() ] );
-
-		$result = $this->getResult();
-		$result->addValue( null, 'result', 'success' );
-		$result->addValue( null, 'title', $title->getPrefixedText() );
-		$result->addValue( null, 'new', $isNew );
-		$result->addValue( null, 'newrevid', $newRev->getId() );
-		$result->addValue( null, 'diffurl', $diffurl );
+	private function config( string $key, $default ) {
+		return $this->getConfig()->has( $key ) ? ( $this->getConfig()->get( $key ) ?? $default ) : $default;
 	}
 
-	/**
-	 * Render a standard MediaWiki diff table between two content objects.
-	 *
-	 * @param TextContent $oldContent
-	 * @param \Content $newContent
-	 * @return string HTML diff table (uses the mediawiki.diff.styles module)
-	 */
-	private function renderDiff( TextContent $oldContent, $newContent ): string {
-		$slotDiffRenderer = $oldContent->getContentHandler()->getSlotDiffRenderer( $this->getContext() );
-		$rows = $slotDiffRenderer->getDiff( $oldContent, $newContent );
-
-		return '<table class="diff diff-contentalign-left"><colgroup>' .
-			'<col class="diff-marker"><col class="diff-content">' .
-			'<col class="diff-marker"><col class="diff-content"></colgroup>' .
-			'<tbody>' . $rows . '</tbody></table>';
-	}
-
-	/**
-	 * Build the edit summary, crediting the user and noting the AI assistance.
-	 *
-	 * @param string $instruction
-	 * @return string
-	 */
-	private function buildSummary( string $instruction ): string {
-		$short = trim( $instruction );
-		if ( mb_strlen( $short ) > 200 ) {
-			$short = mb_substr( $short, 0, 200 ) . '…';
+	/** Explicit allowlist: backend exception text and credentials never escape. */
+	public static function errorMessages(): array {
+		$messages = [
+			'wanda-edit-empty' => 'wanda-api-error-empty-question',
+			'wanda-edit-generation-failed' => 'wanda-api-error-generation-failed',
+		];
+		foreach ( [
+			'disabled', 'permission', 'notitle', 'readonly', 'store-failed', 'invalid-record', 'busy',
+			'source-unsupported', 'context-required', 'no-candidates', 'context-failed', 'context-empty',
+			'not-candidate', 'preview-failed', 'stale', 'save-uncertain', 'namespace', 'too-large', 'rate-limited',
+		] as $suffix ) {
+			$messages['wanda-edit-' . $suffix] = 'wanda-api-error-edit-' . $suffix;
 		}
-		return $this->msg( 'wanda-edit-summary', $short )->inContentLanguage()->text();
-	}
-
-	/**
-	 * Apply per-request LLM overrides, mirroring APIChat behaviour.
-	 *
-	 * @param array $params
-	 * @return void
-	 */
-	private function overrideLlmParameters( array $params ) {
-		if ( !empty( $params['provider'] ) ) {
-			$this->llmProvider = strtolower( trim( $params['provider'] ) );
+		foreach ( [
+			'wanda-plan-invalid', 'wanda-plan-failed', 'wanda-plan-question', 'wanda-plan-ambiguous',
+			'wanda-plan-unsupported', 'wanda-plan-empty', 'wanda-plan-invalid-response',
+			'wanda-discovery-invalid-scope', 'wanda-discovery-invalid-category', 'wanda-discovery-category-unreadable',
+			'wanda-discovery-query-failed', 'wanda-discovery-invalid-namespaces',
+		] as $code ) {
+			$messages[$code] = 'wanda-api-error-edit-plan-failed';
 		}
-		if ( !empty( $params['model'] ) ) {
-			$this->llmModel = trim( $params['model'] );
+		foreach ( [
+			'invalid-query', 'query-failed', 'limit-too-small', 'source-disabled', 'source-unsupported',
+			'source-permissions-unavailable', 'source-unavailable', 'source-bounds-unavailable', 'source-invalid',
+		] as $suffix ) {
+			$messages['wanda-context-' . $suffix] = 'wanda-api-error-edit-context-failed';
 		}
-		if ( !empty( $params['apikey'] ) ) {
-			$this->llmApiKey = trim( $params['apikey'] );
-		}
-		if ( isset( $params['timeout'] ) && is_numeric( $params['timeout'] ) ) {
-			$this->timeout = (int)$params['timeout'];
-		}
-		if ( isset( $params['maxtokens'] ) && is_numeric( $params['maxtokens'] ) ) {
-			$this->maxTokens = max( 256, (int)$params['maxtokens'] );
-		}
+		return $messages;
 	}
 
 	/** @inheritDoc */
 	public function getAllowedParams() {
-		return [
-			'message' => [
-				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_DEFAULT => '',
-				ParamValidator::PARAM_REQUIRED => false,
-			],
-			'title' => [
-				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_REQUIRED => true,
-			],
-			'confirm' => [
-				ParamValidator::PARAM_TYPE => 'boolean',
-				ParamValidator::PARAM_DEFAULT => false,
-				ParamValidator::PARAM_REQUIRED => false,
-			],
-			'newtext' => [
-				ParamValidator::PARAM_TYPE => 'text',
-				ParamValidator::PARAM_DEFAULT => '',
-				ParamValidator::PARAM_REQUIRED => false,
-			],
-			'provider' => [
-				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_REQUIRED => false,
-			],
-			'model' => [
-				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_REQUIRED => false,
-			],
-			'apikey' => [
-				ParamValidator::PARAM_TYPE => 'string',
-				ParamValidator::PARAM_REQUIRED => false,
-				ParamValidator::PARAM_SENSITIVE => true,
-			],
-			'timeout' => [
-				ParamValidator::PARAM_TYPE => 'integer',
-				ParamValidator::PARAM_REQUIRED => false,
-			],
-			'maxtokens' => [
-				ParamValidator::PARAM_TYPE => 'integer',
-				ParamValidator::PARAM_REQUIRED => false,
-			],
+		$params = [];
+		foreach ( [ 'message', 'title', 'batchid', 'proposalid', 'source', 'summary' ] as $name ) {
+			$params[$name] = [ ParamValidator::PARAM_TYPE => 'string', ParamValidator::PARAM_DEFAULT => '' ];
+		}
+		$params['stage'] = [
+			ParamValidator::PARAM_TYPE => [ 'plan', 'context', 'preview' ], ParamValidator::PARAM_DEFAULT => 'preview',
 		];
+		$params['sources'] = [ ParamValidator::PARAM_TYPE => 'string', ParamValidator::PARAM_DEFAULT => 'wiki' ];
+		$params['confirm'] = [ ParamValidator::PARAM_TYPE => 'boolean', ParamValidator::PARAM_DEFAULT => false ];
+		return $params;
 	}
 
 	/** @inheritDoc */
