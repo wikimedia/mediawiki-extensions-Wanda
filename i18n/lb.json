@@ -30,5 +30,14 @@
 	"wanda-edit-target-label": "Säit fir z'änneren/unzeleeën:",
 	"wanda-edit-cancel": "Ofbriechen",
 	"wanda-edit-summary": "KI-assistéiert Ännerung mat Wanda: $1",
-	"wanda-api-error-edit-failed": "D'Ännerung konnt net gespäichert ginn."
+	"tag-wanda": "Wanda",
+	"wanda-api-error-edit-failed": "D'Ännerung konnt net gespäichert ginn.",
+	"wanda-api-error-edit-readonly": "D'Wiki ka fir den Ament nëmme gelies ginn.",
+	"wanda-api-error-edit-namespace": "Déi Säit ass net an engem Nummraum, an deem Wanda Ännerunge maachen däerf.",
+	"wanda-api-error-edit-too-large": "Déi Säit ass ze grouss, fir vu Wanda geännert ze ginn.",
+	"wanda-edit-candidates": "Säite fir z'änneren",
+	"wanda-edit-research-done": "fäerdeg",
+	"wanda-edit-view-result": "Versioun $1 vu(n) $2 weisen",
+	"wanda-edit-stop": "Stopp",
+	"wanda-edit-status-saving": "Gëtt gespäichert…"
 }
