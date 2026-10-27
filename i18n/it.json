@@ -17,13 +17,15 @@
 	"wanda-smw-not-available": "Semantic MediaWiki non è installato su questo wiki.",
 	"right-wanda-edit": "Effettua modifiche assistite dall'IA utilizzando Wanda",
 	"action-wanda-edit": "effettuare modifiche assistite dall'IA utilizzando Wanda",
-	"wanda-edit-target-label": "Pagina da modificare/creare:",
+	"wanda-edit-target-label": "Pagina da modificare/creare (lascia vuoto per modificare tutto il sito):",
 	"wanda-edit-apply": "Applica modifica",
 	"wanda-edit-cancel": "Annulla",
 	"wanda-edit-success": "Fatto! La pagina è stata aggiornata:",
 	"wanda-edit-created": "Fatto! La pagina è stata creata:",
 	"wanda-api-error-edit-permission": "Non si dispone dei permessi necessari per modificare le pagine con Wanda.",
 	"wanda-api-error-edit-failed": "La modifica non può essere salvata.",
+	"wanda-edit-candidates": "Pagine da modificare",
+	"wanda-edit-research-failed": "non riuscito",
 	"wanda-api-error-rate-limit": "Hai inviato troppe richieste. Attendi qualche istante prima di riprovare.",
 	"wanda-api-error-budget-exceeded": "Hai raggiunto il limite giornaliero di $1 token. Oggi ti restano ancora $2 token. Il limite si azzererà a mezzanotte UTC."
 }

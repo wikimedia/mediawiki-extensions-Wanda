@@ -1,0 +1,24 @@
+{
+	"@metadata": {
+		"authors": [
+			"Villager-bloc-h"
+		]
+	},
+	"wanda-api-error-edit-readonly": "此wiki目前为只读模式。",
+	"wanda-api-error-edit-invalid-record": "此修改建议已失效，请生成新的预览。",
+	"wanda-api-error-edit-plan-failed": "Wanda无法安排这项修改请求。请尝试重新措辞。",
+	"apihelp-wandaedit-param-proposalid": "“预览”阶段返回的不透明提案标识符，用于确认保存。",
+	"apihelp-wandaedit-param-source": "在“背景”阶段要检索的研究资料。",
+	"wanda-edit-scope": "范围： $1",
+	"wanda-edit-candidates": "待编辑页面",
+	"wanda-edit-research-pending": "待处理",
+	"wanda-edit-research-running": "正在检索…",
+	"wanda-edit-research-failed": "失败",
+	"wanda-edit-select-proposal": "将此修改应用于$1",
+	"wanda-edit-generate-previews": "生成预览",
+	"wanda-edit-stop": "停止",
+	"wanda-edit-status-pending": "待处理",
+	"wanda-edit-status-previewing": "正在生成预览…",
+	"wanda-edit-status-preview-failed": "预览失败",
+	"wanda-edit-status-saving": "正在保存…"
+}
