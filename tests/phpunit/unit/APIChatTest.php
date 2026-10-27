@@ -8,6 +8,7 @@ use MediaWikiUnitTestCase;
 /**
  * @covers \MediaWiki\Extension\Wanda\APIChat::getOpenAITokenKeyForModel
  * @covers \MediaWiki\Extension\Wanda\APIChat::filterReadableHits
+ * @covers \MediaWiki\Extension\Wanda\APIChat::extractCitedSources
  * @group Wanda
  */
 class APIChatTest extends MediaWikiUnitTestCase {
@@ -71,6 +72,81 @@ class APIChatTest extends MediaWikiUnitTestCase {
 	public function testFilterReadableHitsNoneReadable() {
 		$hits = [ self::hit( 'A' ), self::hit( 'B' ) ];
 		$this->assertSame( [], APIChat::filterReadableHits( $hits, static fn () => false ) );
+	}
+
+	private const PAGES = [ 'Alpha', 'Beta', 'Gamma' ];
+
+	public function testExtractCitedSourcesKeepsOnlyCitedPages() {
+		$result = APIChat::extractCitedSources( "Beta is a letter.\n<SOURCES>P2</SOURCES>", self::PAGES );
+		$this->assertSame( 'Beta is a letter.', $result['text'] );
+		$this->assertSame( [ 'Beta' ], $result['titles'] );
+	}
+
+	public function testExtractCitedSourcesIgnoresUnknownAndDuplicateIds() {
+		$result = APIChat::extractCitedSources( "Answer\n<SOURCES>P3, P9, P0, p3, P1</SOURCES>", self::PAGES );
+		$this->assertSame( [ 'Alpha', 'Gamma' ], $result['titles'] );
+	}
+
+	public function testExtractCitedSourcesAcceptsExactTitlesButNotInventedOnes() {
+		$result = APIChat::extractCitedSources( "Answer\n<SOURCES>gamma, Delta</SOURCES>", self::PAGES );
+		$this->assertSame( [ 'Gamma' ], $result['titles'] );
+	}
+
+	public function testExtractCitedSourcesNoneMeansNoPages() {
+		$result = APIChat::extractCitedSources( "I don't know.\n<SOURCES>none</SOURCES>", self::PAGES );
+		$this->assertSame( "I don't know.", $result['text'] );
+		$this->assertSame( [], $result['titles'] );
+	}
+
+	/**
+	 * @dataProvider provideLooseTrailers
+	 */
+	public function testExtractCitedSourcesToleratesLooseFormatting( string $body, ?array $expected ) {
+		$result = APIChat::extractCitedSources( "Answer\n<SOURCES>$body</SOURCES>", self::PAGES );
+		$this->assertSame( 'Answer', $result['text'] );
+		$this->assertSame( $expected, $result['titles'] );
+	}
+
+	public static function provideLooseTrailers() {
+		return [
+			'and-separated' => [ 'P1 and P3', [ 'Alpha', 'Gamma' ] ],
+			'semicolons' => [ 'P1; P3', [ 'Alpha', 'Gamma' ] ],
+			'trailing period' => [ 'P1, P3.', [ 'Alpha', 'Gamma' ] ],
+			'empty' => [ '', [] ],
+			'unresolvable text' => [ 'foo', null ],
+			'only unknown ids' => [ 'P7', null ],
+		];
+	}
+
+	public function testExtractCitedSourcesRemovesEmptyCodeFence() {
+		$result = APIChat::extractCitedSources( "Answer\n```\n<SOURCES>P1</SOURCES>\n```", self::PAGES );
+		$this->assertSame( 'Answer', $result['text'] );
+		$this->assertSame( [ 'Alpha' ], $result['titles'] );
+	}
+
+	public function testExtractCitedSourcesMissingTrailerReturnsNull() {
+		$result = APIChat::extractCitedSources( 'Plain answer', self::PAGES );
+		$this->assertSame( 'Plain answer', $result['text'] );
+		$this->assertNull( $result['titles'] );
+	}
+
+	public function testExtractCitedSourcesUnclosedTrailerIsStrippedButNotTrusted() {
+		$result = APIChat::extractCitedSources( "Answer\n<SOURCES>P1, P", self::PAGES );
+		$this->assertSame( 'Answer', $result['text'] );
+		$this->assertNull( $result['titles'] );
+	}
+
+	public function testExtractCitedSourcesUsesLastTrailerAndStripsDecoration() {
+		$text = "Alpha [P1] and Gamma [P1, P3].\n**Sources:** `<SOURCES>P2</SOURCES>`\n<SOURCES>[P1], [P3]</SOURCES>";
+		$result = APIChat::extractCitedSources( $text, self::PAGES );
+		$this->assertSame( 'Alpha and Gamma.', $result['text'] );
+		$this->assertSame( [ 'Alpha', 'Gamma' ], $result['titles'] );
+	}
+
+	public function testExtractCitedSourcesLeavesBracketsAloneWithoutWikiPages() {
+		$result = APIChat::extractCitedSources( 'Use slot [P1].', [] );
+		$this->assertSame( 'Use slot [P1].', $result['text'] );
+		$this->assertNull( $result['titles'] );
 	}
 
 	public static function provideModels() {

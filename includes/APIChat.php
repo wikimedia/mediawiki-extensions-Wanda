@@ -431,25 +431,33 @@ class APIChat extends ApiBase {
 			}
 		}
 
-		// Prepare source data only when we used wiki context
-		$sourceData = [];
-		if ( $searchResults && isset( $searchResults['source'] ) ) {
-			$sourceData[] = $searchResults['source'];
+		$wikiTitles = [];
+		if ( $searchResults && isset( $searchResults['titles'] ) ) {
+			$wikiTitles = array_values( $searchResults['titles'] );
+		} elseif ( $searchResults && isset( $searchResults['source'] ) && $searchResults['source'] !== '' ) {
+			$wikiTitles = array_values( array_filter(
+				array_map( 'trim', explode( ' | ', $searchResults['source'] ) )
+			) );
+		}
+		if ( isset( $llmResult['citablePages'] ) ) {
+			$wikiTitles = array_slice( $wikiTitles, 0, (int)$llmResult['citablePages'] );
+		}
+		$citation = self::extractCitedSources( $responseText, $wikiTitles );
+		$responseText = $citation['text'];
+		if ( $citation['titles'] !== null ) {
+			$wikiTitles = $citation['titles'];
+		} elseif ( $wikiTitles ) {
+			wfDebugLog( 'Wanda', 'No usable <SOURCES> trailer; listing all retrieved wiki pages' );
 		}
 
 		// Return response along with source attribution
 		$this->getResult()->addValue( null, "response", $responseText );
 		// Backwards-compatible single string of wiki sources
-		if ( $searchResults && isset( $searchResults['source'] ) && $searchResults['source'] !== '' ) {
-			$this->getResult()->addValue( null, "source", $searchResults['source'] );
+		if ( !empty( $wikiTitles ) ) {
+			$this->getResult()->addValue( null, "source", implode( ' | ', $wikiTitles ) );
 		}
 
-		$allSources = [];
-		if ( $searchResults && isset( $searchResults['source'] ) && $searchResults['source'] !== '' ) {
-			$wikiTitles = array_map( 'trim', explode( ' | ', $searchResults['source'] ) );
-			$wikiTitles = array_values( array_filter( $wikiTitles ) );
-			$allSources = $wikiTitles;
-		}
+		$allSources = $wikiTitles;
 		if ( !empty( $cargoSources ) ) {
 			$allSources = array_merge( $allSources, $cargoSources );
 		}
@@ -952,6 +960,61 @@ class APIChat extends ApiBase {
 			$allowedNamespaces,
 			fn ( $titleText ) => $this->canUserReadTitle( $titleText, $allowedNamespaces )
 		);
+	}
+
+	/**
+	 * Strip the model's <SOURCES> trailer and resolve it to the wiki pages it cited.
+	 *
+	 * Only IDs and titles of pages that were actually provided are accepted.
+	 * The returned titles are null when no complete, resolvable trailer is
+	 * present, so the caller can fall back to the full retrieved list.
+	 *
+	 * @param string $text LLM response text
+	 * @param string[] $titles Provided page titles; index 0 is ID P1
+	 * @return array{text:string,titles:string[]|null}
+	 */
+	public static function extractCitedSources( string $text, array $titles ): array {
+		$found = preg_match_all( '/<\s*SOURCES\s*>([^<]*)<\s*\/\s*SOURCES\s*>/i', $text, $matches );
+		$text = preg_replace( [
+			'/(?:\*{0,2}Sources\*{0,2}\s*:[\s*]*)?[`*]*<\s*SOURCES\s*>[^<]*(?:<\s*\/\s*SOURCES\s*>|$)[`*]*/i',
+			'/<\s*\/\s*SOURCES\s*>/i',
+			'/```[a-z]*\s*```/i',
+		], '', $text );
+		if ( $titles ) {
+			$text = preg_replace( '/ ?\[P\d+(?:\s*,\s*P\d+)*\]/', '', $text );
+		}
+		$text = trim( $text );
+		if ( !$found ) {
+			return [ 'text' => $text, 'titles' => null ];
+		}
+
+		$body = trim( end( $matches[1] ), " \t\n\r.\"'`*" );
+		if ( $body === '' || strcasecmp( $body, 'none' ) === 0 ) {
+			return [ 'text' => $text, 'titles' => [] ];
+		}
+
+		$indexes = [];
+		if ( preg_match_all( '/\bP(\d+)\b/i', $body, $ids ) ) {
+			foreach ( $ids[1] as $id ) {
+				$indexes[] = (int)$id - 1;
+			}
+		} else {
+			$titleIndex = array_flip( array_map( 'mb_strtolower', $titles ) );
+			foreach ( explode( ',', $body ) as $item ) {
+				$indexes[] = $titleIndex[mb_strtolower( trim( $item, " \t\n\r.\"'`*" ) )] ?? -1;
+			}
+		}
+		$cited = [];
+		foreach ( $indexes as $i ) {
+			if ( isset( $titles[$i] ) ) {
+				$cited[$i] = $titles[$i];
+			}
+		}
+		if ( !$cited ) {
+			return [ 'text' => $text, 'titles' => null ];
+		}
+		ksort( $cited );
+		return [ 'text' => $text, 'titles' => array_values( $cited ) ];
 	}
 
 	/**
@@ -2227,6 +2290,11 @@ class APIChat extends ApiBase {
 				. $languageInstruction;
 		}
 
+		$citablePages = $context !== '' ? preg_match_all( '/^--- \[P\d+\] From page: /m', $context ) : 0;
+		if ( $citablePages > 0 ) {
+			$systemPrompt .= "\n\n" . trim( PromptTemplate::render( 'wiki-citations' ) );
+		}
+
 		// Prepend language instruction if configured
 		if ( self::$useContentLang ) {
 			$contentLangCode = MediaWikiServices::getInstance()->getContentLanguage()->getCode();
@@ -2305,6 +2373,7 @@ class APIChat extends ApiBase {
 			'text'   => $clean,
 			'tokens' => (int)( $result['tokens'] ?? 0 ),
 			'error'  => (bool)( $result['error'] ?? false ),
+			'citablePages' => $citablePages,
 		];
 	}
 

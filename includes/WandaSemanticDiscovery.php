@@ -97,7 +97,7 @@ class WandaSemanticDiscovery {
 	 * @param int $limit Maximum number of pages to combine in the context
 	 * @param array $allowedNamespaces Optional namespace filter
 	 * @param callable|null $canRead Callback checking if user can read the title
-	 * @return array{content:string,source:string,num_results:int}|null
+	 * @return array{content:string,source:string,titles:string[],num_results:int}|null
 	 */
 	public function queryChat(
 		string $query,
@@ -204,8 +204,9 @@ class WandaSemanticDiscovery {
 			if ( !isset( $contentMap[$title] ) || $contentMap[$title] === '' ) {
 				continue;
 			}
-			$combinedContent[] = "--- From page: " . $title . " ---\n" . $contentMap[$title];
 			$sources[] = $title;
+			$combinedContent[] = "--- [P" . count( $sources ) . "] From page: " . $title . " ---\n"
+				. $contentMap[$title];
 		}
 
 		if ( empty( $combinedContent ) ) {
@@ -221,6 +222,7 @@ class WandaSemanticDiscovery {
 		return [
 			'content' => implode( "\n\n", $combinedContent ),
 			'source' => implode( ' | ', $sources ),
+			'titles' => $sources,
 			'num_results' => count( $sources ),
 		];
 	}

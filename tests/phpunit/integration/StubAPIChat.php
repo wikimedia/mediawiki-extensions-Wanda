@@ -14,6 +14,9 @@ class StubAPIChat extends APIChat {
 	/** @var \User|null */
 	private $testUser = null;
 
+	/** @var array|null */
+	private $searchResults = null;
+
 	/**
 	 * Set the LLM result that generateLLMResponse() will return.
 	 *
@@ -21,6 +24,15 @@ class StubAPIChat extends APIChat {
 	 */
 	public function setLlmResult( $result ): void {
 		$this->llmResult = $result;
+	}
+
+	/**
+	 * Set the wiki search results that queryElasticsearch() will return.
+	 *
+	 * @param array|null $results
+	 */
+	public function setSearchResults( ?array $results ): void {
+		$this->searchResults = $results;
 	}
 
 	/**
@@ -62,19 +74,19 @@ class StubAPIChat extends APIChat {
 	/**
 	 * Override to skip Elasticsearch index detection.
 	 *
-	 * @return null
+	 * @return string|null
 	 */
 	protected function detectElasticsearchIndex() {
-		return null;
+		return $this->searchResults !== null ? 'stub_index' : null;
 	}
 
 	/**
 	 * Override to skip Elasticsearch queries.
 	 *
 	 * @param string $queryText
-	 * @return null
+	 * @return array|null
 	 */
 	protected function queryElasticsearch( $queryText ) {
-		return null;
+		return $this->searchResults;
 	}
 }

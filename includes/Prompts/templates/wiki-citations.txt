@@ -1,0 +1,2 @@
+Each wiki page in the context is labelled with an ID such as [P1]. Do not mention these IDs anywhere in your answer. After your answer, add one final line listing the IDs of only those wiki pages whose content you actually used to write the answer, exactly in this form: <SOURCES>P1, P3</SOURCES>
+If you did not use any wiki page, write <SOURCES>none</SOURCES> instead. Always write this line in English exactly as shown, even when the answer is in another language.
