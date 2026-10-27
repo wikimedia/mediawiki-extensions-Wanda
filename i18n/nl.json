@@ -5,6 +5,7 @@
 			"Siebrand"
 		]
 	},
+	"wanda": "Wanda",
 	"wanda-desc": "Chatbot voor MediaWiki",
 	"wanda-chat-welcometext": "Hallo! Ik ben Wanda, uw AI-assistent.",
 	"wanda-chat-welcomedesc": "Stel mij gerust vragen over alles op uw wiki, dan probeer ik u te helpen!",
