@@ -53,6 +53,10 @@
 	"wanda-wikibase-query-error": "Nie udało się pobrać informacji z Wikibase dotyczących tego pytania.",
 	"wanda-wikibase-no-results": "Zapytanie do Wikibase nie zwróciło żadnych wyników.",
 	"wanda-wikibase-sparql-error": "Nie udało się wykonać zapytania SPARQL.",
+	"wanda-smw-query-error": "Nie udało się pobrać danych z Semantycznej MediaWiki dla tego pytania.",
+	"wanda-smw-not-available": "Semantyczna MediaWiki nie jest zainstalowana na tej wiki.",
+	"wanda-smw-no-properties": "Brak dostępnych właściwości Semantycznej MediaWiki, które można by przeszukać.",
+	"wanda-smw-query-failed": "Zapytanie Semantycznej MediaWiki nie zwróciło żadnych wyników.",
 	"right-wanda-chat": "Zadawanie pytań za pomocą czatbota Wandy",
 	"action-wanda-chat": "zadawania pytań za pomocą czatbota Wandy",
 	"right-wanda-edit": "Dokonywanie edycji wspomaganych przez SI przy użyciu czatbota Wandy",
@@ -73,5 +77,7 @@
 	"wanda-api-error-edit-disabled": "Edycje przy użyciu czatbota Wandy nie są włączone w tej wiki.",
 	"wanda-api-error-edit-permission": "Nie masz uprawnień do edytowania stron przy użyciu czatbota Wandy.",
 	"wanda-api-error-edit-notitle": "Do edycji wymagany jest prawidłowy tytuł strony docelowej.",
-	"wanda-api-error-edit-failed": "Nie udało się zapisać zmian."
+	"wanda-api-error-edit-failed": "Nie udało się zapisać zmian.",
+	"apihelp-wandaedit-summary": "Wyświetl podgląd lub wprowadź zmiany wspomagane sztuczną inteligencją na stronie wiki za pomocą rozszerzenia Wanda.",
+	"wanda-api-error-rate-limit": "Wysłano zbyt wiele próśb. Poczekaj chwilę, zanim spróbujesz ponownie."
 }
