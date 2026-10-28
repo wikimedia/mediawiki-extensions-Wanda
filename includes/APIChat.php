@@ -801,7 +801,11 @@ class APIChat extends ApiBase {
 
 				$body = $req->getContent();
 
-				$text = $this->extractReadableHtmlText( $body );
+				if ( substr( $url, -4 ) == '.pdf' ) {
+					$text = $this->extractTextFromPDF( $body );
+				} else {
+					$text = $this->extractReadableHtmlText( $body );
+				}
 				if ( strlen( $text ) > 4000 ) {
 					$text = substr( $text, 0, 4000 ) . "\n[...truncated...]";
 				}
@@ -814,6 +818,22 @@ class APIChat extends ApiBase {
 		}
 
 		return implode( "\n\n", $parts );
+	}
+
+	/**
+	 * Extract readable text from a fetched PDF for RAG context.
+	 *
+	 * @param string $pdfText PDF-encoded text
+	 * @return string Cleaned text content
+	 */
+	private function extractTextFromPDF( string $pdfText ): string {
+		$tmpFilePath = '/tmp/wanda-pdf-contents.txt';
+		file_put_contents( $tmpFilePath, $pdfText );
+		$output = [];
+		exec( "pdftotext -layout $tmpFilePath  -", $output );
+		unlink( $tmpFilePath );
+
+		return implode( "\n", $output );
 	}
 
 	/**
