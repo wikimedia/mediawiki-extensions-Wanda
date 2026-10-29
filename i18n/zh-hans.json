@@ -1,6 +1,7 @@
 {
 	"@metadata": {
 		"authors": [
+			"Anterdc99",
 			"Villager-bloc-h"
 		]
 	},
@@ -9,7 +10,7 @@
 	"wanda-api-error-edit-plan-failed": "Wanda无法安排这项修改请求。请尝试重新措辞。",
 	"apihelp-wandaedit-param-proposalid": "“预览”阶段返回的不透明提案标识符，用于确认保存。",
 	"apihelp-wandaedit-param-source": "在“背景”阶段要检索的研究资料。",
-	"wanda-edit-scope": "范围： $1",
+	"wanda-edit-scope": "范围：$1",
 	"wanda-edit-candidates": "待编辑页面",
 	"wanda-edit-research-pending": "待处理",
 	"wanda-edit-research-running": "正在检索…",

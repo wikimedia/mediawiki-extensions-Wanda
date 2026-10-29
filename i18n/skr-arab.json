@@ -4,5 +4,9 @@
 			"Saraiki"
 		]
 	},
-	"wanda-edit-research-failed": "ناکام تھیا"
+	"wanda-edit-research": "تحقیق",
+	"wanda-edit-research-pending": "وچار ہیٹھ",
+	"wanda-edit-research-done": "تھی ڳیا",
+	"wanda-edit-research-failed": "ناکام تھیا",
+	"wanda-edit-status-pending": "وچار ہیٹھ"
 }
