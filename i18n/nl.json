@@ -5,6 +5,8 @@
 			"Siebrand"
 		]
 	},
+	"wanda": "Wanda",
+	"wanda-name": "Wanda",
 	"wanda-desc": "Chatbot voor MediaWiki",
 	"wanda-chat-welcometext": "Hallo! Ik ben Wanda, uw AI-assistent.",
 	"wanda-chat-welcomedesc": "Stel mij gerust vragen over alles op uw wiki, dan probeer ik u te helpen!",
@@ -37,9 +39,9 @@
 	"wanda-api-error-azure-key": "De API-sleutel van Azure is niet geconfigureerd.",
 	"wanda-api-error-gemini-key": "De API-sleutel van Gemini is niet geconfigureerd.",
 	"wanda-api-error-fallback": "Dat weet ik niet zeker.",
-	"wanda-llm-response-nocontext": "Ik heb niet genoeg informatie in de wiki-context om die vraag te beantwoorden.",
+	"wanda-llm-response-nocontext": "Ik heb niet genoeg informatie in de wikicontext om die vraag te beantwoorden.",
 	"wanda-toggle-public-knowledge-label": "Gebruik daarnaast ook openbare kennis",
-	"wanda-toggle-public-knowledge-help": "Na inschakeling kan de assistent naast de wiki-context ook zijn algemene kennis gebruiken.",
+	"wanda-toggle-public-knowledge-help": "Na inschakeling kan de assistent naast de wikicontext ook zijn algemene kennis gebruiken.",
 	"wanda-toggle-public-knowledge-aria": "Gebruik van openbare kennis in-/uitschakelen",
 	"wanda-floating-chat-header": "Wanda AI-assistent"
 }
