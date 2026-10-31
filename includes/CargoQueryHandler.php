@@ -10,16 +10,11 @@ use MediaWiki\Title\Title;
 use User;
 
 class CargoQueryHandler {
-	/** @var string */
-	private $llmProvider;
-	/** @var string */
-	private $llmModel;
-	/** @var string */
-	private $llmApiKey;
-	/** @var string */
-	private $llmApiEndpoint;
-	/** @var int */
-	private $timeout;
+	private const LLM_MAX_TOKENS = 768;
+	private const LLM_TEMPERATURE = 0.1;
+
+	/** @var LLMClient */
+	private $llm;
 	/** @var array */
 	private $excludedTables;
 	/** @var int Maximum number of sequential query steps */
@@ -32,31 +27,19 @@ class CargoQueryHandler {
 	private $user;
 
 	/**
-	 * @param string $llmProvider
-	 * @param string $llmModel
-	 * @param string $llmApiKey
-	 * @param string $llmApiEndpoint
-	 * @param int $timeout
+	 * @param LLMClient $llm
 	 * @param array $excludedTables
 	 * @param int $maxQuerySteps
 	 * @param User|null $user Requesting user; when set, results are filtered to
 	 *   the pages this user is allowed to read. Null disables permission gating.
 	 */
 	public function __construct(
-		string $llmProvider,
-		string $llmModel,
-		string $llmApiKey,
-		string $llmApiEndpoint,
-		int $timeout,
+		LLMClient $llm,
 		array $excludedTables = [],
 		int $maxQuerySteps = 3,
 		?User $user = null
 	) {
-		$this->llmProvider = $llmProvider;
-		$this->llmModel = $llmModel;
-		$this->llmApiKey = $llmApiKey;
-		$this->llmApiEndpoint = $llmApiEndpoint;
-		$this->timeout = $timeout;
+		$this->llm = $llm;
 		$this->excludedTables = $excludedTables;
 		$this->maxQuerySteps = max( 1, min( $maxQuerySteps, 10 ) );
 		$this->user = $user;
@@ -616,7 +599,7 @@ class CargoQueryHandler {
 	 * @return array|null {status: string, params: array, reasoning: string} or null
 	 */
 	private function callAndParseCargoLLM( string $prompt ): ?array {
-		$response = $this->callLLM( $prompt );
+		$response = $this->llm->complete( $prompt, self::LLM_MAX_TOKENS, self::LLM_TEMPERATURE );
 		if ( $response === null ) {
 			wfDebugLog( 'Wanda', 'Cargo query generation LLM call failed' );
 			return null;
@@ -993,293 +976,5 @@ class CargoQueryHandler {
 		}
 
 		return $sources;
-	}
-
-	/**
-	 * Simplified LLM call for generating Cargo queries.
-	 * Uses low temperature and small token budget for deterministic JSON output.
-	 *
-	 * @param string $prompt
-	 * @return string|null
-	 */
-	private function callLLM( string $prompt ): ?string {
-		$maxTokens = 768;
-		$temperature = 0.1;
-
-		switch ( $this->llmProvider ) {
-			case 'ollama':
-				return $this->callOllama( $prompt, $maxTokens, $temperature );
-			case 'openai':
-				return $this->callOpenAI( $prompt, $maxTokens, $temperature );
-			case 'anthropic':
-				return $this->callAnthropic( $prompt, $maxTokens, $temperature );
-			case 'azure':
-				return $this->callAzure( $prompt, $maxTokens, $temperature );
-			case 'gemini':
-				return $this->callGemini( $prompt, $maxTokens );
-			default:
-				wfDebugLog( 'Wanda', 'CargoQueryHandler: unknown LLM provider: ' . $this->llmProvider );
-				return null;
-		}
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callOllama( string $prompt, int $maxTokens, float $temperature ): ?string {
-		$payload = [
-			'model' => $this->llmModel,
-			'prompt' => $prompt,
-			'stream' => false,
-			'options' => [
-				'temperature' => $temperature,
-				'num_predict' => $maxTokens
-			]
-		];
-
-		$response = $this->curlPost(
-			$this->llmApiEndpoint . 'generate',
-			json_encode( $payload ),
-			[ 'Content-Type: application/json' ]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-
-		$json = json_decode( $response, true );
-		return $json['response'] ?? null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callOpenAI( string $prompt, int $maxTokens, float $temperature ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$model = trim( (string)( $this->llmModel ?: 'gpt-4-turbo' ) );
-		$basePayload = [
-			'model' => $model,
-			'messages' => [
-				[ 'role' => 'user', 'content' => $prompt ]
-			],
-			'temperature' => $temperature
-		];
-
-		$tokenKey = APIChat::getOpenAITokenKeyForModel( $model );
-		$headers = [
-			'Content-Type: application/json',
-			'Authorization: Bearer ' . $this->llmApiKey
-		];
-
-		$sendRequest = function ( $payload ) use ( $headers ): ?string {
-			$response = $this->curlPost(
-				'https://api.openai.com/v1/chat/completions',
-				json_encode( $payload ),
-				$headers
-			);
-			return $response;
-		};
-
-		$payload = $basePayload;
-		$payload[$tokenKey] = $maxTokens;
-		$response = $sendRequest( $payload );
-
-		// Retry once if OpenAI rejects the token parameter name.
-		if ( $response !== null ) {
-			$json = json_decode( $response, true );
-			$apiMessage = $json['error']['message'] ?? '';
-			if ( is_string( $apiMessage ) && $apiMessage !== '' ) {
-				$mentionsMaxTokens = stripos( $apiMessage, 'max_tokens' ) !== false;
-				$mentionsMaxCompletion = stripos( $apiMessage, 'max_completion_tokens' ) !== false;
-
-				$retryKey = null;
-				if ( $tokenKey === 'max_tokens' && $mentionsMaxCompletion ) {
-					$retryKey = 'max_completion_tokens';
-				} elseif ( $tokenKey === 'max_completion_tokens' && $mentionsMaxTokens ) {
-					$retryKey = 'max_tokens';
-				}
-
-				if ( $retryKey !== null ) {
-					wfDebugLog( 'Wanda', 'CargoQueryHandler: retrying OpenAI with ' . $retryKey );
-					$retryPayload = $basePayload;
-					$retryPayload[$retryKey] = $maxTokens;
-					$response = $sendRequest( $retryPayload );
-					$json = $response !== null ? json_decode( $response, true ) : null;
-				}
-			}
-
-			return $json['choices'][0]['message']['content'] ?? null;
-		}
-
-		return null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callAnthropic( string $prompt, int $maxTokens, float $temperature ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$payload = [
-			'model' => $this->llmModel ?: 'claude-3-haiku-20240307',
-			'messages' => [
-				[ 'role' => 'user', 'content' => $prompt ]
-			],
-			'max_tokens' => $maxTokens,
-			'temperature' => $temperature
-		];
-
-		$response = $this->curlPost(
-			'https://api.anthropic.com/v1/messages',
-			json_encode( $payload ),
-			[
-				'Content-Type: application/json',
-				'x-api-key: ' . $this->llmApiKey,
-				'anthropic-version: 2023-06-01'
-			]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-
-		$json = json_decode( $response, true );
-		return $json['content'][0]['text'] ?? null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callAzure( string $prompt, int $maxTokens, float $temperature ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$model = trim( (string)( $this->llmModel ?: '' ) );
-		$tokenKey = 'max_tokens';
-		if ( $model !== '' ) {
-			if ( preg_match( '/(^|\\/)(o1|o3)/i', $model ) || stripos( $model, 'gpt-5' ) !== false ) {
-				$tokenKey = 'max_completion_tokens';
-			}
-		}
-
-		$payload = [
-			'messages' => [
-				[ 'role' => 'user', 'content' => $prompt ]
-			],
-			$tokenKey => $maxTokens,
-			'temperature' => $temperature
-		];
-
-		$response = $this->curlPost(
-			$this->llmApiEndpoint,
-			json_encode( $payload ),
-			[
-				'Content-Type: application/json',
-				'api-key: ' . $this->llmApiKey
-			]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-
-		$json = json_decode( $response, true );
-		return $json['choices'][0]['message']['content'] ?? null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @return string|null
-	 */
-	private function callGemini( string $prompt, int $maxTokens ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$model = $this->llmModel ?: 'gemini-1.5-flash';
-		$base = $this->llmApiEndpoint ?: 'https://generativelanguage.googleapis.com/v1';
-		$base = rtrim( $base, '/' );
-		if ( strpos( $base, 'http://' ) === 0 ) {
-			$base = 'https://' . substr( $base, 7 );
-		} elseif ( strpos( $base, 'https://' ) !== 0 && strpos( $base, 'http://' ) !== 0 ) {
-			$base = 'https://' . $base;
-		}
-		$url = $base . '/models/' . rawurlencode( $model ) .
-			':generateContent?key=' . urlencode( $this->llmApiKey );
-
-		$payload = [
-			'contents' => [
-				[ 'role' => 'user', 'parts' => [ [ 'text' => $prompt ] ] ]
-			],
-			'generationConfig' => [
-				'maxOutputTokens' => $maxTokens
-			]
-		];
-
-		$response = $this->curlPost(
-			$url,
-			json_encode( $payload ),
-			[ 'Content-Type: application/json' ]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-
-		$json = json_decode( $response, true );
-		return $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
-	}
-
-	/**
-	 * Generic cURL POST helper.
-	 *
-	 * @param string $url
-	 * @param string $data
-	 * @param array $headers
-	 * @return string|null Response body or null on failure
-	 */
-	private function curlPost( string $url, string $data, array $headers ): ?string {
-		$ch = curl_init( $url );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, 'POST' );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, $this->timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
-
-		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		$curlError = curl_error( $ch );
-
-		if ( $curlError ) {
-			wfDebugLog( 'Wanda', 'CargoQueryHandler cURL error: ' . $curlError );
-			return null;
-		}
-
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', 'CargoQueryHandler HTTP ' . $httpCode . ': ' .
-				substr( $response, 0, 500 ) );
-			return null;
-		}
-
-		return $response;
 	}
 }

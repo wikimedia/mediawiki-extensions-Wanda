@@ -274,11 +274,7 @@ class APIChat extends ApiBase {
 		$cargoContext = '';
 		if ( self::$enableCargoQueries ) {
 			$cargoHandler = new CargoQueryHandler(
-				self::$llmProvider,
-				self::$llmModel,
-				self::$llmApiKey,
-				self::$llmApiEndpoint,
-				self::$timeout,
+				$this->createLLMClient(),
 				self::$cargoExcludedTables,
 				self::$cargoMaxQuerySteps,
 				// Gate Cargo results by the requesting user's read permissions.
@@ -300,11 +296,7 @@ class APIChat extends ApiBase {
 		$smwContext = '';
 		if ( self::$enableSMWQueries ) {
 			$smwHandler = new SMWQueryHandler(
-				self::$llmProvider,
-				self::$llmModel,
-				self::$llmApiKey,
-				self::$llmApiEndpoint,
-				self::$timeout,
+				$this->createLLMClient(),
 				self::$smwExcludedProperties,
 				self::$smwMaxQuerySteps,
 				self::$smwMaxResults
@@ -332,10 +324,7 @@ class APIChat extends ApiBase {
 				$wbLang = $wbConfig['lang'] ?? 'en';
 
 				$wikibaseHandler = new WikibaseQueryHandler(
-					self::$llmProvider,
-					self::$llmModel,
-					self::$llmApiKey,
-					self::$llmApiEndpoint,
+					$this->createLLMClient(),
 					self::$timeout,
 					$wbLang,
 					self::$wikibaseMaxQuerySteps,
@@ -1065,874 +1054,148 @@ class APIChat extends ApiBase {
 	}
 
 	/**
-	 * Generate response using Google Gemini (Generative Language API)
+	 * Generate a response with the configured provider.
+	 *
+	 * @param string $prompt
+	 * @param array $imageData
+	 * @param array|null $chatMessages
+	 * @return array|null Array of text, tokens and error, or null for an unknown provider
 	 */
-	private function generateGeminiResponse( $prompt, $imageData = [], $chatMessages = null ) {
-		if ( empty( self::$llmApiKey ) ) {
+	private function generateResponse( $prompt, $imageData = [], $chatMessages = null ) {
+		$result = $this->createLLMClient()->chat(
+			$prompt,
+			(int)self::$maxTokens,
+			(float)self::$temperature,
+			$this->loadImages( $imageData ),
+			$chatMessages
+		);
+
+		if ( $result['error'] === 'unknown-provider' ) {
+			return null;
+		}
+		if ( $result['error'] !== null ) {
 			return [
-				'text'   => $this->msg( 'wanda-api-error-gemini-key' )->text(),
-				'tokens' => 0,
+				'text'   => $this->describeLLMError( $result ),
+				'tokens' => $result['tokens'],
 				'error'  => true,
 			];
 		}
 
-		$model = self::$llmModel ?: 'gemini-1.5-flash';
-		// Force HTTPS for Gemini API (SSL is required)
-		$base = self::$llmApiEndpoint ?: 'https://generativelanguage.googleapis.com/v1';
-		$base = rtrim( $base, '/' );
-		// Ensure HTTPS is used
-		if ( strpos( $base, 'http://' ) === 0 ) {
-			$base = 'https://' . substr( $base, 7 );
-		} elseif ( strpos( $base, 'https://' ) !== 0 && strpos( $base, 'http://' ) !== 0 ) {
-			$base = 'https://' . $base;
+		$text = $result['text'];
+		if ( $result['truncated'] ) {
+			$text .= "\n\n[Response truncated due to token limit. Current limit: " . self::$maxTokens . " tokens]";
 		}
-		$url = $base . '/models/' . rawurlencode( $model ) . ':generateContent?key=' . urlencode( self::$llmApiKey );
-		$parts = [];
-		$parts[] = [ 'text' => $prompt ];
-
-		if ( !empty( $imageData ) ) {
-			foreach ( $imageData as $img ) {
-				$imageContent = false;
-				$source = '';
-
-				if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
-					$imageContent = file_get_contents( $img['localPath'] );
-					$source = 'local path: ' . $img['localPath'];
-				}
-
-				if ( $imageContent === false && !empty( $img['url'] ) ) {
-					$context = stream_context_create( [
-						'http' => [
-							'timeout' => 10,
-							'follow_location' => 1,
-							'max_redirects' => 3
-						],
-						'ssl' => [
-							'verify_peer' => false,
-							'verify_peer_name' => false
-						]
-					] );
-
-					$imageContent = file_get_contents( $img['url'], false, $context );
-					$source = 'URL: ' . $img['url'];
-				}
-
-				if ( $imageContent !== false && strlen( $imageContent ) > 0 ) {
-					$parts[] = [
-						'inline_data' => [
-							'mime_type' => $img['mime'] ?? 'image/jpeg',
-							'data' => base64_encode( $imageContent )
-						]
-					];
-				} else {
-					$lastError = error_get_last();
-					throw new \MediaWiki\Rest\HttpException(
-						$lastError['message'],
-						400
-					);
-				}
-			}
-		}
-
-		// Build contents: use multi-turn if chatMessages provided, otherwise single turn
-		$contents = [];
-		if ( $chatMessages !== null && empty( $imageData ) ) {
-			// Convert chat messages to Gemini format
-			foreach ( $chatMessages as $msg ) {
-				$role = $msg['role'];
-				// Gemini uses 'user' and 'model' roles; map 'system' and 'assistant'
-				if ( $role === 'system' ) {
-					$role = 'user';
-				} elseif ( $role === 'assistant' ) {
-					$role = 'model';
-				}
-				$contents[] = [
-					'role' => $role,
-					'parts' => [ [ 'text' => $msg['content'] ] ]
-				];
-			}
-		} else {
-			$contents = [ [ 'role' => 'user', 'parts' => $parts ] ];
-		}
-
-		$payload = [
-			'contents' => $contents,
-			'generationConfig' => [
-				'maxOutputTokens' => self::$maxTokens,
-				'thinkingConfig' => strpos( $model, 'gemini-2.5' ) === 0
-					? [ 'thinkingBudget' => 2048 ]
-					: [ 'thinkingLevel' => 'low' ]
-			]
-		];
-
-		$maxRetries = 3;
-		$retryDelay = 1;
-		$lastError = null;
-
-		for ( $attempt = 0; $attempt < $maxRetries; $attempt++ ) {
-			if ( $attempt > 0 ) {
-				wfDebugLog( 'Wanda', "Gemini retry attempt " . ( $attempt + 1 ) . " after " . $retryDelay . "s delay" );
-				sleep( $retryDelay );
-				$retryDelay *= 2;
-			}
-
-			$ch = curl_init( $url );
-			curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, 'POST' );
-			curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $payload ) );
-			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-			curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-			curl_setopt( $ch, CURLOPT_HTTPHEADER, [ 'Content-Type: application/json' ] );
-			if ( !empty( $wgproxy ) ) {
-				curl_setopt( $ch, CURLOPT_PROXY, self::$wgproxy );
-			}
-
-			$response = curl_exec( $ch );
-			$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-			$curlError = curl_error( $ch );
-
-			if ( $curlError ) {
-				wfDebugLog( 'Wanda', "Gemini cURL error: " . $curlError );
-				$lastError = "Connection error: Unable to reach Gemini API.";
-				continue;
-			}
-
-			if ( $httpCode === 200 ) {
-				break;
-			}
-
-			$shouldRetry = false;
-			if ( $httpCode === 503 || $httpCode === 429 ) {
-				$shouldRetry = true;
-			}
-
-			wfDebugLog( 'Wanda', "Gemini HTTP error code: " . $httpCode . ", Response: " . $response );
-			$errorMsg = "Gemini API error (HTTP " . $httpCode . ")";
-			if ( $response ) {
-				$errorData = json_decode( $response, true );
-				if ( isset( $errorData['error']['message'] ) ) {
-					$errorMsg .= ": " . $errorData['error']['message'];
-				}
-			}
-
-			$lastError = $errorMsg;
-
-			if ( !$shouldRetry ) {
-				return [
-					'text'   => $errorMsg,
-					'tokens' => 0,
-					'error'  => true,
-				];
-			}
-		}
-
-		if ( $httpCode !== 200 ) {
-			$finalError = $lastError ?: "Gemini API error after " .
-				$maxRetries . " attempts.";
-			if ( $httpCode === 503 ) {
-				$finalError .= " The service is currently overloaded. 
-					Please try again in a few moments or consider using Ollama for local processing.";
-			}
-			return [
-				'text'   => $finalError,
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		$json = json_decode( $response, true );
-		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			wfDebugLog( 'Wanda', "Gemini JSON decode error: " . json_last_error_msg() );
-			return [
-				'text'   => "Invalid JSON response from Gemini: " . json_last_error_msg(),
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		// Check for MAX_TOKENS finish reason (response was truncated)
-		if (
-			isset( $json['candidates'][0]['finishReason'] )
-			&& $json['candidates'][0]['finishReason'] === 'MAX_TOKENS'
-		) {
-			$tokensUsed = (int)( $json['usageMetadata']['totalTokenCount'] ?? self::$maxTokens );
-			if ( isset( $json['candidates'][0]['content']['parts'][0]['text'] ) ) {
-				return [
-					'text'   => $json['candidates'][0]['content']['parts'][0]['text'] .
-						"\n\n[Response truncated due to token limit. " .
-						"Current limit: " . self::$maxTokens . " tokens]",
-					'tokens' => $tokensUsed,
-					'error'  => false,
-				];
-			}
-			return [
-				'text'   => $this->msg( 'wanda-api-error-token-limit', self::$maxTokens )->text(),
-				'tokens' => $tokensUsed,
-				'error'  => true,
-			];
-		}
-
-		if ( !isset( $json['candidates'][0]['content']['parts'][0]['text'] ) ) {
-			wfDebugLog( 'Wanda', "Gemini response missing expected fields. Response: " . print_r( $json, true ) );
-			if ( isset( $json['promptFeedback']['blockReason'] ) ) {
-				return [
-					'text'   => "Gemini blocked the request: " . $json['promptFeedback']['blockReason'],
-					'tokens' => 0,
-					'error'  => true,
-				];
-			}
-			return [
-				'text'   => "Unexpected response format from Gemini.",
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		// DEBUG: log usageMetadata keys to confirm field name — remove after confirming
-		wfDebugLog( 'Wanda', "Gemini usageMetadata: " . json_encode( $json['usageMetadata'] ?? [] ) );
-
-		$tokensUsed = (int)( $json['usageMetadata']['totalTokenCount'] ?? 0 );
-		if ( $tokensUsed === 0 ) {
-			// Some Gemini model versions report token counts under different sub-keys;
-			// fall back to summing the known alternatives before using $maxTokens.
-			$meta = $json['usageMetadata'] ?? [];
-			$tokensUsed = (int)( 0
-				+ ( $meta['promptTokenCount'] ?? 0 )
-				+ ( $meta['candidatesTokenCount'] ?? 0 )
-				+ ( $meta['thoughtsTokenCount'] ?? 0 )
-			);
-		}
-		if ( $tokensUsed === 0 ) {
-			$tokensUsed = self::$maxTokens;
-		}
-
 		return [
-			'text'   => $json['candidates'][0]['content']['parts'][0]['text'],
-			'tokens' => $tokensUsed,
+			'text'   => $text,
+			'tokens' => $result['tokens'],
 			'error'  => false,
 		];
 	}
 
 	/**
-	 * Generate response using Ollama
+	 * @param array $imageData
+	 * @return array[] Images with mime and base64 data
+	 * @throws \MediaWiki\Rest\HttpException
 	 */
-	private function generateOllamaResponse( $prompt, $imageData = [] ) {
-		$payload = [
-			"model" => self::$llmModel,
-			"prompt" => $prompt,
-			"stream" => false,
-			"options" => [
-				"temperature" => self::$temperature,
-				"num_predict" => self::$maxTokens
-			]
-		];
-
-		if ( !empty( $imageData ) ) {
-			$images = [];
-			foreach ( $imageData as $img ) {
-				$imageContent = false;
-
-				if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
-					$imageContent = file_get_contents( $img['localPath'] );
-				}
-
-				if ( $imageContent === false && !empty( $img['url'] ) ) {
-					$imageContent = file_get_contents( $img['url'] );
-				}
-
-				if ( $imageContent !== false ) {
-					$images[] = base64_encode( $imageContent );
-				} else {
-					throw new \MediaWiki\Rest\HttpException(
-						$lastError['message'],
-						400
-					);
-				}
-			}
-			if ( !empty( $images ) ) {
-				$payload['images'] = $images;
-			}
-		}
-
-		$data = json_encode( $payload );
-
-		$ch = curl_init( self::$llmApiEndpoint . "generate" );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [ "Content-Type: application/json" ] );
-		if ( !empty( $wgproxy ) ) {
-			curl_setopt( $ch, CURLOPT_PROXY, self::$wgproxy );
-		}
-
-		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		$curlError = curl_error( $ch );
-
-		// Log error details for debugging
-		if ( $curlError ) {
-			wfDebugLog( 'Wanda', "Ollama cURL error: " . $curlError );
-			return [
-				'text'  => "Connection error: Unable to reach Ollama service at " . self::$llmApiEndpoint,
-				'tokens' => 0,
-				'error' => true,
-			];
-		}
-
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', "Ollama HTTP error code: " . $httpCode . ", Response: " . $response );
-			return [
-				'text'  => "API error: Ollama returned HTTP code "
-					. $httpCode . ". Please check your Ollama service.",
-				'tokens' => 0,
-				'error' => true,
-			];
-		}
-
-		if ( empty( $response ) ) {
-			wfDebugLog( 'Wanda', "Ollama returned empty response" );
-			return [
-				'text'  => "Empty response from Ollama service. 
-				Please check if the model '" . self::$llmModel . "' is available.",
-				'tokens' => 0,
-				'error' => true,
-			];
-		}
-
-		$jsonResponse = json_decode( $response, true );
-
-		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			wfDebugLog( 'Wanda', "Ollama JSON decode error: "
-				. json_last_error_msg() . ", Response: " . substr( $response, 0, 500 ) );
-			return [
-				'text'  => "Invalid JSON response from Ollama: " . json_last_error_msg(),
-				'tokens' => 0,
-				'error' => true,
-			];
-		}
-
-		if ( !isset( $jsonResponse['response'] ) ) {
-			wfDebugLog(
-				'Wanda',
-				"Ollama response missing 'response' field. Full response: "
-				. print_r( $jsonResponse, true )
-			);
-			return [
-				'text' => "Unexpected response format from Ollama. Response: "
-					. ( isset( $jsonResponse['error'] ) ? $jsonResponse['error'] : 'Unknown error' ),
-				'tokens' => 0,
-				'error' => true,
-			];
-		}
-
-		// Ollama /api/generate reports prompt_eval_count (input) + eval_count (output).
-		// Fall back to $maxTokens if the fields are absent (older Ollama builds).
-		$tokensUsed = (int)( ( $jsonResponse['prompt_eval_count'] ?? 0 )
-			+ ( $jsonResponse['eval_count'] ?? 0 ) );
-		if ( $tokensUsed === 0 ) {
-			$tokensUsed = self::$maxTokens;
-		}
-
-		return [
-			'text'   => $jsonResponse['response'],
-			'tokens' => $tokensUsed,
-			'error'  => false,
-		];
-	}
-
-	/**
-	 * Generate response using OpenAI
-	 */
-	public static function getOpenAITokenKeyForModel( $model ): string {
-		$model = trim( (string)$model );
-		if ( $model === '' ) {
-			return 'max_tokens';
-		}
-
-		// Newer OpenAI models (o-series + GPT-5 family) use max_completion_tokens.
-		// We match conservatively but allow prefixes like "openai/gpt-5.4-nano".
-		if ( preg_match( '/(^|\\/)(o1|o3)/i', $model ) || stripos( $model, 'gpt-5' ) !== false ) {
-			return 'max_completion_tokens';
-		}
-
-		return 'max_tokens';
-	}
-
-	private function generateOpenAIResponse( $prompt, $imageData = [], $chatMessages = null ) {
-		if ( empty( self::$llmApiKey ) ) {
-			return [
-				'text'   => $this->msg( 'wanda-api-error-openai-key' )->text(),
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		// Use multi-turn messages if available and no images
-		if ( $chatMessages !== null && empty( $imageData ) ) {
-			$messages = $chatMessages;
-		} else {
-			$messageContent = [];
-
-			if ( !empty( $imageData ) ) {
-				$messageContent[] = [
-					"type" => "text",
-					"text" => $prompt
-				];
-
-				foreach ( $imageData as $img ) {
-					$imageContent = false;
-
-					if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
-						$imageContent = file_get_contents( $img['localPath'] );
-					}
-
-					if ( $imageContent === false && !empty( $img['url'] ) ) {
-						$imageContent = file_get_contents( $img['url'] );
-					}
-
-					if ( $imageContent !== false ) {
-						$base64 = base64_encode( $imageContent );
-						$mimeType = $img['mime'] ?? 'image/jpeg';
-						$dataUrl = "data:" . $mimeType . ";base64," . $base64;
-
-						$messageContent[] = [
-							"type" => "image_url",
-							"image_url" => [
-								"url" => $dataUrl
-							]
-						];
-					} else {
-						throw new \MediaWiki\Rest\HttpException(
-							$lastError['message'],
-							400
-						);
-					}
-				}
-			} else {
-				$messageContent = $prompt;
-			}
-
-			$messages = [
-				[ "role" => "user", "content" => $messageContent ]
-			];
-		}
-
-		$model = trim( self::$llmModel ?: "gpt-4-turbo" );
-		$basePayload = [
-			"model" => $model,
-			"messages" => $messages,
-			"temperature" => self::$temperature
-		];
-
-		// Some newer OpenAI models expect max_completion_tokens instead of max_tokens.
-		// Choose a sensible default based on model name, but also retry automatically
-		// if OpenAI rejects the parameter.
-		$tokenKey = self::getOpenAITokenKeyForModel( $model );
-		$payload = $basePayload;
-		$payload[$tokenKey] = self::$maxTokens;
-
-		$sendRequest = static function ( $payloadData ) {
-			$data = json_encode( $payloadData );
-
-			$ch = curl_init( "https://api.openai.com/v1/chat/completions" );
-			curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-			curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
-			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-			curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-			curl_setopt( $ch, CURLOPT_HTTPHEADER, [
-				"Content-Type: application/json",
-				"Authorization: Bearer " . self::$llmApiKey
+	private function loadImages( array $imageData ): array {
+		$context = null;
+		if ( self::$llmProvider === 'gemini' ) {
+			$context = stream_context_create( [
+				'http' => [
+					'timeout' => 10,
+					'follow_location' => 1,
+					'max_redirects' => 3
+				],
+				'ssl' => [
+					'verify_peer' => false,
+					'verify_peer_name' => false
+				]
 			] );
-			if ( !empty( $wgproxy ) ) {
-				curl_setopt( $ch, CURLOPT_PROXY, self::$wgproxy );
+		}
+
+		$images = [];
+		foreach ( $imageData as $img ) {
+			$content = false;
+
+			if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
+				$content = file_get_contents( $img['localPath'] );
 			}
 
-			$response = curl_exec( $ch );
-			$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-			$curlError = curl_error( $ch );
-
-			return [ $response, $httpCode, $curlError ];
-		};
-
-		[ $response, $httpCode, $curlError ] = $sendRequest( $payload );
-
-		// Retry once if OpenAI complains about the token parameter.
-		if ( $httpCode !== 200 && is_string( $response ) && $response !== '' ) {
-			$errorData = json_decode( $response, true );
-			$apiMessage = $errorData['error']['message'] ?? '';
-			if ( is_string( $apiMessage ) && $apiMessage !== '' ) {
-				$mentionsMaxTokens = stripos( $apiMessage, 'max_tokens' ) !== false;
-				$mentionsMaxCompletion = stripos( $apiMessage, 'max_completion_tokens' ) !== false;
-
-				$retryKey = null;
-				if ( $tokenKey === 'max_tokens' && $mentionsMaxCompletion ) {
-					$retryKey = 'max_completion_tokens';
-				} elseif ( $tokenKey === 'max_completion_tokens' && $mentionsMaxTokens ) {
-					$retryKey = 'max_tokens';
-				}
-
-				if ( $retryKey !== null ) {
-					wfDebugLog( 'Wanda', 'OpenAI retrying with ' . $retryKey . ' for model ' . $model );
-					$retryPayload = $basePayload;
-					$retryPayload[$retryKey] = self::$maxTokens;
-					[ $response, $httpCode, $curlError ] = $sendRequest( $retryPayload );
-				}
+			if ( $content === false && !empty( $img['url'] ) ) {
+				$content = file_get_contents( $img['url'], false, $context );
 			}
-		}
 
-		if ( $curlError ) {
-			wfDebugLog( 'Wanda', "OpenAI cURL error: " . $curlError );
-			return [
-				'text'   => "Connection error: Unable to reach OpenAI API.",
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', "OpenAI HTTP error code: " . $httpCode . ", Response: " . $response );
-			$errorMsg = "OpenAI API error (HTTP " . $httpCode . ")";
-			if ( $response ) {
-				$errorData = json_decode( $response, true );
-				if ( isset( $errorData['error']['message'] ) ) {
-					$errorMsg .= ": " . $errorData['error']['message'];
-				}
+			if ( $content === false || $content === '' ) {
+				throw new \MediaWiki\Rest\HttpException(
+					error_get_last()['message'] ?? 'Unable to read image',
+					400
+				);
 			}
-			return [
-				'text'   => $errorMsg,
-				'tokens' => 0,
-				'error'  => true,
+
+			$images[] = [
+				'mime' => $img['mime'] ?? 'image/jpeg',
+				'data' => base64_encode( $content ),
 			];
 		}
-
-		$jsonResponse = json_decode( $response, true );
-
-		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			wfDebugLog( 'Wanda', "OpenAI JSON decode error: " . json_last_error_msg() );
-			return [
-				'text'   => "Invalid JSON response from OpenAI: " . json_last_error_msg(),
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		if ( !isset( $jsonResponse['choices'][0]['message']['content'] ) ) {
-			wfDebugLog( 'Wanda', "OpenAI response missing expected fields. 
-				Response: " . print_r( $jsonResponse, true ) );
-			return [
-				'text'   => "Unexpected response format from OpenAI.",
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		$tokensUsed = (int)( $jsonResponse['usage']['total_tokens'] ?? self::$maxTokens );
-
-		return [
-			'text'   => $jsonResponse['choices'][0]['message']['content'],
-			'tokens' => $tokensUsed,
-			'error'  => false,
-		];
+		return $images;
 	}
 
 	/**
-	 * Generate response using Anthropic Claude
+	 * @param array $result Failed result from LLMClient::chat()
+	 * @return string
 	 */
-	private function generateAnthropicResponse( $prompt, $imageData = [], $chatMessages = null ) {
-		if ( empty( self::$llmApiKey ) ) {
-			return [
-				'text'   => $this->msg( 'wanda-api-error-anthropic-key' )->text(),
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
+	private function describeLLMError( array $result ): string {
+		$provider = self::$llmProvider;
+		$name = [
+			'ollama' => 'Ollama',
+			'openai' => 'OpenAI',
+			'anthropic' => 'Anthropic',
+			'azure' => 'Azure OpenAI',
+			'gemini' => 'Gemini',
+		][$provider];
+		$apiMessage = $result['apiMessage'];
 
-		// Use multi-turn messages if available and no images
-		$systemPrompt = '';
-		if ( $chatMessages !== null && empty( $imageData ) ) {
-			// Anthropic uses a separate 'system' field; extract from chatMessages
-			$messages = [];
-			foreach ( $chatMessages as $msg ) {
-				if ( $msg['role'] === 'system' ) {
-					$systemPrompt = $msg['content'];
-				} else {
-					$messages[] = $msg;
+		switch ( $result['error'] ) {
+			case 'no-key':
+				return $this->msg( [
+					'openai' => 'wanda-api-error-openai-key',
+					'anthropic' => 'wanda-api-error-anthropic-key',
+					'azure' => 'wanda-api-error-azure-key',
+					'gemini' => 'wanda-api-error-gemini-key',
+				][$provider] )->text();
+			case 'token-limit':
+				return $this->msg( 'wanda-api-error-token-limit', self::$maxTokens )->text();
+			case 'connection':
+				if ( $provider === 'ollama' ) {
+					return "Connection error: Unable to reach Ollama service at " . self::$llmApiEndpoint;
 				}
-			}
-		} else {
-			$messageContent = [];
-
-			if ( !empty( $imageData ) ) {
-				foreach ( $imageData as $img ) {
-					$imageContent = false;
-
-					if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
-						$imageContent = file_get_contents( $img['localPath'] );
-					}
-
-					if ( $imageContent === false && !empty( $img['url'] ) ) {
-						$imageContent = file_get_contents( $img['url'] );
-					}
-
-					if ( $imageContent !== false ) {
-						$mediaType = $img['mime'] ?? 'image/jpeg';
-						$messageContent[] = [
-							"type" => "image",
-							"source" => [
-								"type" => "base64",
-								"media_type" => $mediaType,
-								"data" => base64_encode( $imageContent )
-							]
-						];
-					} else {
-						throw new \MediaWiki\Rest\HttpException(
-							$lastError['message'],
-							400
-						);
-					}
+				return $provider === 'azure'
+					? "Connection error: Unable to reach Azure OpenAI endpoint."
+					: "Connection error: Unable to reach $name API.";
+			case 'http':
+				if ( $provider === 'ollama' ) {
+					return "API error: Ollama returned HTTP code " . $result['status'] .
+						". Please check your Ollama service.";
 				}
-
-				$messageContent[] = [
-					"type" => "text",
-					"text" => $prompt
-				];
-			} else {
-				$messageContent = $prompt;
-			}
-
-			$messages = [
-				[ "role" => "user", "content" => $messageContent ]
-			];
-		}
-
-		$payloadData = [
-			"model" => self::$llmModel ?: "claude-3-haiku-20240307",
-			"messages" => $messages,
-			"max_tokens" => self::$maxTokens,
-			"temperature" => self::$temperature
-		];
-		if ( !empty( $systemPrompt ) ) {
-			$payloadData['system'] = $systemPrompt;
-		}
-		$data = json_encode( $payloadData );
-
-		$ch = curl_init( "https://api.anthropic.com/v1/messages" );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [
-			"Content-Type: application/json",
-			"x-api-key: " . self::$llmApiKey,
-			"anthropic-version: 2023-06-01"
-		] );
-		if ( !empty( $wgproxy ) ) {
-			curl_setopt( $ch, CURLOPT_PROXY, self::$wgproxy );
-		}
-
-		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		$curlError = curl_error( $ch );
-
-		if ( $curlError ) {
-			wfDebugLog( 'Wanda', "Anthropic cURL error: " . $curlError );
-			return [
-				'text'   => "Connection error: Unable to reach Anthropic API.",
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', "Anthropic HTTP error code: " . $httpCode . ", Response: " . $response );
-			$errorMsg = "Anthropic API error (HTTP " . $httpCode . ")";
-			if ( $response ) {
-				$errorData = json_decode( $response, true );
-				if ( isset( $errorData['error']['message'] ) ) {
-					$errorMsg .= ": " . $errorData['error']['message'];
+				$message = "$name API error (HTTP " . $result['status'] . ")" .
+					( $apiMessage !== '' ? ": $apiMessage" : '' );
+				if ( $provider === 'gemini' && $result['status'] === 503 ) {
+					$message .= " The service is currently overloaded. " .
+						"Please try again in a few moments or consider using Ollama for local processing.";
 				}
-			}
-			return [
-				'text'   => $errorMsg,
-				'tokens' => 0,
-				'error'  => true,
-			];
+				return $message;
+			case 'empty':
+				return "Empty response from $name. Please check if the model '" .
+					self::$llmModel . "' is available.";
+			case 'invalid-json':
+				return "Invalid JSON response from $name: $apiMessage";
+			case 'blocked':
+				return "Gemini blocked the request: $apiMessage";
+			default:
+				return "Unexpected response format from $name." . ( $provider === 'ollama'
+					? ' Response: ' . ( $apiMessage !== '' ? $apiMessage : 'Unknown error' )
+					: '' );
 		}
-
-		$jsonResponse = json_decode( $response, true );
-
-		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			wfDebugLog( 'Wanda', "Anthropic JSON decode error: " . json_last_error_msg() );
-			return [
-				'text'   => "Invalid JSON response from Anthropic: " . json_last_error_msg(),
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		if ( !isset( $jsonResponse['content'][0]['text'] ) ) {
-			wfDebugLog( 'Wanda', "Anthropic response missing expected fields. Response: "
-				. print_r( $jsonResponse, true ) );
-			return [
-				'text'   => "Unexpected response format from Anthropic.",
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		$tokensUsed = (int)( ( $jsonResponse['usage']['input_tokens'] ?? 0 )
-			+ ( $jsonResponse['usage']['output_tokens'] ?? 0 ) );
-		if ( $tokensUsed === 0 ) {
-			$tokensUsed = self::$maxTokens;
-		}
-
-		return [
-			'text'   => $jsonResponse['content'][0]['text'],
-			'tokens' => $tokensUsed,
-			'error'  => false,
-		];
-	}
-
-	/**
-	 * Generate response using Azure OpenAI
-	 */
-	private function generateAzureResponse( $prompt, $imageData = [], $chatMessages = null ) {
-		if ( empty( self::$llmApiKey ) ) {
-			return [
-				'text'   => $this->msg( 'wanda-api-error-azure-key' )->text(),
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		// Use multi-turn messages if available and no images
-		if ( $chatMessages !== null && empty( $imageData ) ) {
-			$messages = $chatMessages;
-		} else {
-			$messageContent = [];
-
-			if ( !empty( $imageData ) ) {
-				$messageContent[] = [
-					"type" => "text",
-					"text" => $prompt
-				];
-
-				foreach ( $imageData as $img ) {
-					$imageContent = false;
-
-					if ( !empty( $img['localPath'] ) && file_exists( $img['localPath'] ) ) {
-						$imageContent = file_get_contents( $img['localPath'] );
-					}
-
-					if ( $imageContent === false && !empty( $img['url'] ) ) {
-						$imageContent = file_get_contents( $img['url'] );
-					}
-
-					if ( $imageContent !== false ) {
-						$base64 = base64_encode( $imageContent );
-						$mimeType = $img['mime'] ?? 'image/jpeg';
-						$dataUrl = "data:" . $mimeType . ";base64," . $base64;
-
-						$messageContent[] = [
-							"type" => "image_url",
-							"image_url" => [
-								"url" => $dataUrl
-							]
-						];
-					} else {
-						throw new \MediaWiki\Rest\HttpException(
-							$lastError['message'],
-							400
-						);
-					}
-				}
-			} else {
-				$messageContent = $prompt;
-			}
-
-			$messages = [
-				[ "role" => "user", "content" => $messageContent ]
-			];
-		}
-
-		$tokenKey = $this->getOpenAITokenKeyForModel( self::$llmModel );
-		$data = json_encode( [
-			"messages" => $messages,
-			$tokenKey => self::$maxTokens,
-			"temperature" => self::$temperature
-		] );
-
-		// Azure endpoint should include the deployment name
-		$ch = curl_init( self::$llmApiEndpoint );
-		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "POST" );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		curl_setopt( $ch, CURLOPT_TIMEOUT, self::$timeout );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, [
-			"Content-Type: application/json",
-			"api-key: " . self::$llmApiKey
-		] );
-		if ( !empty( $wgproxy ) ) {
-			curl_setopt( $ch, CURLOPT_PROXY, self::$wgproxy );
-		}
-
-		$response = curl_exec( $ch );
-		$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		$curlError = curl_error( $ch );
-
-		if ( $curlError ) {
-			wfDebugLog( 'Wanda', "Azure cURL error: " . $curlError );
-			return [
-				'text'   => "Connection error: Unable to reach Azure OpenAI endpoint.",
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		if ( $httpCode !== 200 ) {
-			wfDebugLog( 'Wanda', "Azure HTTP error code: " . $httpCode . ", Response: " . $response );
-			$errorMsg = "Azure OpenAI API error (HTTP " . $httpCode . ")";
-			if ( $response ) {
-				$errorData = json_decode( $response, true );
-				if ( isset( $errorData['error']['message'] ) ) {
-					$errorMsg .= ": " . $errorData['error']['message'];
-				}
-			}
-			return [
-				'text'   => $errorMsg,
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		$jsonResponse = json_decode( $response, true );
-
-		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			wfDebugLog( 'Wanda', "Azure JSON decode error: " . json_last_error_msg() );
-			return [
-				'text'   => "Invalid JSON response from Azure: " . json_last_error_msg(),
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		if ( !isset( $jsonResponse['choices'][0]['message']['content'] ) ) {
-			wfDebugLog( 'Wanda', "Azure response missing expected fields. Response: "
-				. print_r( $jsonResponse, true ) );
-			return [
-				'text'   => "Unexpected response format from Azure OpenAI.",
-				'tokens' => 0,
-				'error'  => true,
-			];
-		}
-
-		$tokensUsed = (int)( $jsonResponse['usage']['total_tokens'] ?? self::$maxTokens );
-
-		return [
-			'text'   => $jsonResponse['choices'][0]['message']['content'],
-			'tokens' => $tokensUsed,
-			'error'  => false,
-		];
 	}
 
 	/**
@@ -2026,28 +1289,10 @@ class APIChat extends ApiBase {
 			$originalMaxTokens = self::$maxTokens;
 			self::$maxTokens = 256;
 
-			switch ( self::$llmProvider ) {
-				case 'ollama':
-					$result = $this->generateOllamaResponse( $summaryPrompt, [] );
-					break;
-				case 'openai':
-					$result = $this->generateOpenAIResponse( $summaryPrompt, [] );
-					break;
-				case 'anthropic':
-					$result = $this->generateAnthropicResponse( $summaryPrompt, [] );
-					break;
-				case 'azure':
-					$result = $this->generateAzureResponse( $summaryPrompt, [] );
-					break;
-				case 'gemini':
-				default:
-					$result = $this->generateGeminiResponse( $summaryPrompt, [] );
-					break;
-			}
+			$result = $this->generateResponse( $summaryPrompt );
 
 			self::$maxTokens = $originalMaxTokens;
 
-			// All generate methods now return ['text' => ..., 'tokens' => ..., 'error' => ...].
 			$text = is_array( $result ) ? ( $result['text'] ?? '' ) : '';
 			if ( $text && !( $result['error'] ?? true ) && strlen( $text ) > 10 ) {
 				return trim( $text );
@@ -2337,28 +1582,8 @@ class APIChat extends ApiBase {
 			? $this->buildChatMessages( $conversationHistory, $systemPrompt, $userQuery, $imageData )
 			: null;
 
-		$result = null;
-		switch ( self::$llmProvider ) {
-			case 'ollama':
-				$result = $this->generateOllamaResponse( $flatPrompt, $imageData );
-				break;
-			case 'openai':
-				$result = $this->generateOpenAIResponse( $flatPrompt, $imageData, $chatMessages );
-				break;
-			case 'anthropic':
-				$result = $this->generateAnthropicResponse( $flatPrompt, $imageData, $chatMessages );
-				break;
-			case 'azure':
-				$result = $this->generateAzureResponse( $flatPrompt, $imageData, $chatMessages );
-				break;
-			case 'gemini':
-				$result = $this->generateGeminiResponse( $flatPrompt, $imageData, $chatMessages );
-				break;
-			default:
-				return false;
-		}
+		$result = $this->generateResponse( $flatPrompt, $imageData, $chatMessages );
 
-		// All generate methods now return ['text' => string, 'tokens' => int, 'error' => bool].
 		if ( !is_array( $result ) || !isset( $result['text'] ) ) {
 			return false;
 		}
@@ -2375,6 +1600,17 @@ class APIChat extends ApiBase {
 			'error'  => (bool)( $result['error'] ?? false ),
 			'citablePages' => $citablePages,
 		];
+	}
+
+	private function createLLMClient(): LLMClient {
+		return new LLMClient(
+			(string)self::$llmProvider,
+			(string)self::$llmModel,
+			(string)self::$llmApiKey,
+			(string)self::$llmApiEndpoint,
+			(int)self::$timeout,
+			(string)self::$wgproxy
+		);
 	}
 
 	/** @inheritDoc */

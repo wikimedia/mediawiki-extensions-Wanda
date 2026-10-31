@@ -71,11 +71,12 @@ class APIEdit extends ApiBase {
 		$provider = strtolower( (string)$this->config( 'WandaLLMProvider', 'ollama' ) );
 		$endpoint = $provider === 'gemini'
 			? 'https://generativelanguage.googleapis.com/v1' : 'http://ollama:11434/api/';
-		return new WandaEditHandler(
+		$llm = new LLMClient(
 			$provider, $this->config( 'WandaLLMModel', 'gemma:2b' ), $this->config( 'WandaLLMApiKey', '' ),
 			$this->config( 'WandaLLMApiEndpoint', $endpoint ), (int)$this->config( 'WandaLLMTimeout', 30 ),
-			max( 4096, (int)$this->config( 'WandaLLMMaxTokens', 4096 ) ), $this->config( 'HTTPProxy', '' )
+			$this->config( 'HTTPProxy', '' )
 		);
+		return new WandaEditHandler( $llm, max( 4096, (int)$this->config( 'WandaLLMMaxTokens', 4096 ) ) );
 	}
 
 	private function config( string $key, $default ) {

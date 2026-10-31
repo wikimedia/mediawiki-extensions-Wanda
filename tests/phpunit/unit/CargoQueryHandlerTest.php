@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\Wanda\Tests\Unit;
 
 use MediaWiki\Extension\Wanda\CargoQueryHandler;
+use MediaWiki\Extension\Wanda\LLMClient;
 use MediaWikiUnitTestCase;
 use ReflectionClass;
 use stdClass;
@@ -18,7 +19,7 @@ class CargoQueryHandlerTest extends MediaWikiUnitTestCase {
 	 * validateAndSanitize() never reaches the real Cargo extension.
 	 */
 	private function newSeededHandler(): CargoQueryHandler {
-		$handler = new CargoQueryHandler( 'ollama', 'gemma:2b', '', 'http://x/', 30, [], 3 );
+		$handler = new CargoQueryHandler( $this->createNoOpMock( LLMClient::class ), [], 3 );
 		$rc = new ReflectionClass( $handler );
 
 		$avail = $rc->getProperty( 'availableTables' );
@@ -36,12 +37,12 @@ class CargoQueryHandlerTest extends MediaWikiUnitTestCase {
 	}
 
 	public function testFormatResultsAsContextEmpty() {
-		$handler = new CargoQueryHandler( 'ollama', 'm', '', 'http://x/', 30 );
+		$handler = new CargoQueryHandler( $this->createNoOpMock( LLMClient::class ) );
 		$this->assertSame( '', $handler->formatResultsAsContext( [], 'Employees' ) );
 	}
 
 	public function testFormatResultsAsContextRendersTable() {
-		$handler = new CargoQueryHandler( 'ollama', 'm', '', 'http://x/', 30 );
+		$handler = new CargoQueryHandler( $this->createNoOpMock( LLMClient::class ) );
 		$out = $handler->formatResultsAsContext( [
 			[ '_pageName' => 'P1', 'Name' => 'Alice' ],
 			[ '_pageName' => 'P2', 'Name' => 'Bob' ],

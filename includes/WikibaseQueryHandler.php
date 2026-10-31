@@ -5,6 +5,9 @@ namespace MediaWiki\Extension\Wanda;
 use MediaWiki\Extension\Wanda\Prompts\PromptTemplate;
 
 class WikibaseQueryHandler {
+	private const LLM_MAX_TOKENS = 1024;
+	private const LLM_TEMPERATURE = 0.1;
+
 	private const USER_AGENT = 'Wanda-MediaWiki-Extension/2.0 (https://www.mediawiki.org/wiki/Extension:Wanda)';
 	private const MAX_USER_QUERY_LEN = 8192;
 	private const SPARQL_SERVER_TIMEOUT_MS = 60000;
@@ -12,14 +15,8 @@ class WikibaseQueryHandler {
 	/** @var array<string,array|null> Process-local cache: "lang|type|label" => hit|null */
 	private static $entityCache = [];
 
-	/** @var string */
-	private $llmProvider;
-	/** @var string */
-	private $llmModel;
-	/** @var string */
-	private $llmApiKey;
-	/** @var string */
-	private $llmApiEndpoint;
+	/** @var LLMClient */
+	private $llm;
 	/** @var int */
 	private $timeout;
 	/** @var int Seconds — applies to SPARQL HTTP calls only */
@@ -56,10 +53,7 @@ class WikibaseQueryHandler {
 	];
 
 	/**
-	 * @param string $llmProvider
-	 * @param string $llmModel
-	 * @param string $llmApiKey
-	 * @param string $llmApiEndpoint
+	 * @param LLMClient $llm
 	 * @param int $timeout
 	 * @param string $lang
 	 * @param int $maxQuerySteps
@@ -69,10 +63,7 @@ class WikibaseQueryHandler {
 	 * @param string $sourceKey
 	 */
 	public function __construct(
-		string $llmProvider,
-		string $llmModel,
-		string $llmApiKey,
-		string $llmApiEndpoint,
+		LLMClient $llm,
 		int $timeout,
 		string $lang = 'en',
 		int $maxQuerySteps = 3,
@@ -81,10 +72,7 @@ class WikibaseQueryHandler {
 		int $sparqlTimeout = 60,
 		string $sourceKey = 'wikibase'
 	) {
-		$this->llmProvider = $llmProvider;
-		$this->llmModel = $llmModel;
-		$this->llmApiKey = $llmApiKey;
-		$this->llmApiEndpoint = $llmApiEndpoint;
+		$this->llm = $llm;
 		$this->timeout = $timeout;
 		$this->lang = $lang ?: 'en';
 		$this->maxQuerySteps = max( 1, min( $maxQuerySteps, 10 ) );
@@ -680,7 +668,7 @@ class WikibaseQueryHandler {
 	 * @return array|null {sparql, status, reasoning, entities} or null
 	 */
 	private function callAndParseWikibaseLLM( string $prompt ): ?array {
-		$response = $this->callLLM( $prompt );
+		$response = $this->llm->complete( $prompt, self::LLM_MAX_TOKENS, self::LLM_TEMPERATURE );
 		if ( $response === null ) {
 			wfDebugLog( 'Wanda', 'WikibaseQueryHandler: LLM call failed' );
 			return null;
@@ -822,243 +810,6 @@ class WikibaseQueryHandler {
 		}
 
 		return $sources;
-	}
-
-	/**
-	 * Call the LLM at low temperature for deterministic structured output.
-	 *
-	 * @param string $prompt
-	 * @return string|null
-	 */
-	private function callLLM( string $prompt ): ?string {
-		$maxTokens = 1024;
-		$temperature = 0.1;
-
-		switch ( $this->llmProvider ) {
-			case 'ollama':
-				return $this->callOllama( $prompt, $maxTokens, $temperature );
-			case 'openai':
-				return $this->callOpenAI( $prompt, $maxTokens, $temperature );
-			case 'anthropic':
-				return $this->callAnthropic( $prompt, $maxTokens, $temperature );
-			case 'azure':
-				return $this->callAzure( $prompt, $maxTokens, $temperature );
-			case 'gemini':
-				return $this->callGemini( $prompt, $maxTokens );
-			default:
-				wfDebugLog( 'Wanda', 'WikibaseQueryHandler: unknown LLM provider: ' . $this->llmProvider );
-				return null;
-		}
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callOllama( string $prompt, int $maxTokens, float $temperature ): ?string {
-		$payload = [
-			'model'   => $this->llmModel,
-			'prompt'  => $prompt,
-			'stream'  => false,
-			'options' => [
-				'temperature' => $temperature,
-				'num_predict' => $maxTokens,
-			]
-		];
-
-		// Accept any of: ".../api", ".../api/", ".../api/generate" — normalize to /api/generate
-		$base = rtrim( $this->llmApiEndpoint, '/' );
-		if ( substr( $base, -strlen( '/generate' ) ) !== '/generate' ) {
-			$base .= '/generate';
-		}
-		$response = $this->curlPost(
-			$base,
-			json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
-			[ 'Content-Type: application/json' ]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-		$json = json_decode( $response, true );
-		return $json['response'] ?? null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callOpenAI( string $prompt, int $maxTokens, float $temperature ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$model = trim( $this->llmModel ?: 'gpt-4-turbo' );
-		$tokenKey = APIChat::getOpenAITokenKeyForModel( $model );
-		$payload = [
-			'model'      => $model,
-			'messages'   => [ [ 'role' => 'user', 'content' => $prompt ] ],
-			'temperature' => $temperature,
-			$tokenKey    => $maxTokens,
-		];
-
-		$headers = [
-			'Content-Type: application/json',
-			'Authorization: Bearer ' . $this->llmApiKey,
-		];
-
-		$response = $this->curlPost(
-			'https://api.openai.com/v1/chat/completions',
-			json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
-			$headers
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-
-		$json = json_decode( $response, true );
-
-		// Retry once with the alternate token-count key if OpenAI rejects the first
-		$apiMsg = $json['error']['message'] ?? '';
-		if ( is_string( $apiMsg ) && $apiMsg !== '' ) {
-			$retryKey = null;
-			if ( $tokenKey === 'max_tokens' && stripos( $apiMsg, 'max_completion_tokens' ) !== false ) {
-				$retryKey = 'max_completion_tokens';
-			} elseif ( $tokenKey === 'max_completion_tokens' && stripos( $apiMsg, 'max_tokens' ) !== false ) {
-				$retryKey = 'max_tokens';
-			}
-			if ( $retryKey !== null ) {
-				$payload[$retryKey] = $maxTokens;
-				unset( $payload[$tokenKey] );
-				$response = $this->curlPost(
-					'https://api.openai.com/v1/chat/completions',
-					json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
-					$headers
-				);
-				$json = $response !== null ? json_decode( $response, true ) : null;
-			}
-		}
-
-		return $json['choices'][0]['message']['content'] ?? null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callAnthropic( string $prompt, int $maxTokens, float $temperature ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$payload = [
-			'model'       => $this->llmModel ?: 'claude-haiku-4-5-20251001',
-			'messages'    => [ [ 'role' => 'user', 'content' => $prompt ] ],
-			'max_tokens'  => $maxTokens,
-			'temperature' => $temperature,
-		];
-
-		$response = $this->curlPost(
-			'https://api.anthropic.com/v1/messages',
-			json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
-			[
-				'Content-Type: application/json',
-				'x-api-key: ' . $this->llmApiKey,
-				'anthropic-version: 2023-06-01',
-			]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-		$json = json_decode( $response, true );
-		return $json['content'][0]['text'] ?? null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callAzure( string $prompt, int $maxTokens, float $temperature ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$model = trim( $this->llmModel ?: '' );
-		$tokenKey = ( $model !== '' &&
-			( preg_match( '/(^|\\/)(o1|o3)/i', $model ) || stripos( $model, 'gpt-5' ) !== false ) )
-			? 'max_completion_tokens'
-			: 'max_tokens';
-
-		$payload = [
-			'messages'    => [ [ 'role' => 'user', 'content' => $prompt ] ],
-			$tokenKey     => $maxTokens,
-			'temperature' => $temperature,
-		];
-
-		$response = $this->curlPost(
-			$this->llmApiEndpoint,
-			json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
-			[
-				'Content-Type: application/json',
-				'api-key: ' . $this->llmApiKey,
-			]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-		$json = json_decode( $response, true );
-		return $json['choices'][0]['message']['content'] ?? null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @return string|null
-	 */
-	private function callGemini( string $prompt, int $maxTokens ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$model = $this->llmModel ?: 'gemini-1.5-flash';
-		$base = $this->llmApiEndpoint ?: 'https://generativelanguage.googleapis.com/v1';
-		$base = rtrim( $base, '/' );
-		if ( strpos( $base, 'http://' ) === 0 ) {
-			$base = 'https://' . substr( $base, 7 );
-		} elseif ( strpos( $base, 'https://' ) !== 0 ) {
-			$base = 'https://' . $base;
-		}
-		$url = $base . '/models/' . rawurlencode( $model ) .
-			':generateContent?key=' . urlencode( $this->llmApiKey );
-
-		$payload = [
-			'contents'        => [ [ 'role' => 'user', 'parts' => [ [ 'text' => $prompt ] ] ] ],
-			'generationConfig' => [
-				'maxOutputTokens' => $maxTokens,
-			],
-		];
-
-		$response = $this->curlPost(
-			$url,
-			json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
-			[ 'Content-Type: application/json' ]
-		);
-		if ( $response === null ) {
-			return null;
-		}
-		$json = json_decode( $response, true );
-		return $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
 	}
 
 	/**

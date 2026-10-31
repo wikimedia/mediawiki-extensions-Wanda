@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\Wanda\Tests\Integration;
 
+use MediaWiki\Extension\Wanda\LLMClient;
 use MediaWiki\Extension\Wanda\SMWQueryHandler;
 use MediaWikiIntegrationTestCase;
 
@@ -16,7 +17,7 @@ use MediaWikiIntegrationTestCase;
 class SMWQueryHandlerSourcesTest extends MediaWikiIntegrationTestCase {
 
 	private function newHandler(): SMWQueryHandler {
-		return new SMWQueryHandler( 'ollama', 'm', '', 'http://x/', 30 );
+		return new SMWQueryHandler( $this->createNoOpMock( LLMClient::class ) );
 	}
 
 	public function testBuildSourcesFromRowPages() {

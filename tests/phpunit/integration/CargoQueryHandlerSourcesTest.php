@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\Wanda\Tests\Integration;
 
 use MediaWiki\Extension\Wanda\CargoQueryHandler;
+use MediaWiki\Extension\Wanda\LLMClient;
 use MediaWikiIntegrationTestCase;
 
 /**
@@ -15,7 +16,7 @@ use MediaWikiIntegrationTestCase;
 class CargoQueryHandlerSourcesTest extends MediaWikiIntegrationTestCase {
 
 	private function newHandler(): CargoQueryHandler {
-		return new CargoQueryHandler( 'ollama', 'm', '', 'http://x/', 30 );
+		return new CargoQueryHandler( $this->createNoOpMock( LLMClient::class ) );
 	}
 
 	public function testBuildSourcesFromRowPageNames() {

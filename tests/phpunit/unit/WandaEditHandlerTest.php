@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\Wanda\Tests\Unit;
 
+use MediaWiki\Extension\Wanda\LLMClient;
 use MediaWiki\Extension\Wanda\WandaEditHandler;
 use MediaWikiUnitTestCase;
 
@@ -12,7 +13,7 @@ use MediaWikiUnitTestCase;
 class WandaEditHandlerTest extends MediaWikiUnitTestCase {
 
 	private function newHandler(): WandaEditHandler {
-		return new WandaEditHandler( 'ollama', 'gemma:2b', '', 'http://x/', 30 );
+		return new WandaEditHandler( $this->createNoOpMock( LLMClient::class ) );
 	}
 
 	public function testParsesPlainJson() {

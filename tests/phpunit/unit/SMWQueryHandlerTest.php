@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\Wanda\Tests\Unit;
 
+use MediaWiki\Extension\Wanda\LLMClient;
 use MediaWiki\Extension\Wanda\SMWQueryHandler;
 use MediaWikiUnitTestCase;
 use ReflectionClass;
@@ -19,7 +20,7 @@ use ReflectionClass;
 class SMWQueryHandlerTest extends MediaWikiUnitTestCase {
 
 	private function newHandler( array $excluded = [], int $maxResults = 50 ): SMWQueryHandler {
-		return new SMWQueryHandler( 'ollama', 'gemma:2b', '', 'http://x/', 30, $excluded, 3, $maxResults );
+		return new SMWQueryHandler( $this->createNoOpMock( LLMClient::class ), $excluded, 3, $maxResults );
 	}
 
 	/**

@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\Wanda\Tests\Unit;
 
+use MediaWiki\Extension\Wanda\LLMClient;
 use MediaWiki\Extension\Wanda\WikibaseQueryHandler;
 use MediaWikiUnitTestCase;
 use ReflectionClass;
@@ -14,10 +15,7 @@ class WikibaseQueryHandlerTest extends MediaWikiUnitTestCase {
 
 	private function newHandler(): WikibaseQueryHandler {
 		return new WikibaseQueryHandler(
-			'ollama',
-			'gemma:2b',
-			'',
-			'http://ollama:11434/api/',
+			$this->createNoOpMock( LLMClient::class ),
 			30
 		);
 	}

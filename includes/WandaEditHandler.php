@@ -17,47 +17,24 @@ use MediaWiki\Extension\Wanda\Prompts\PromptTemplate;
  * changes and infobox/template field changes on a single page.
  */
 class WandaEditHandler {
-	/** @var string */
-	private $llmProvider;
-	/** @var string */
-	private $llmModel;
-	/** @var string */
-	private $llmApiKey;
-	/** @var string */
-	private $llmApiEndpoint;
-	/** @var int */
-	private $timeout;
+	private const LLM_TEMPERATURE = 0.1;
+
+	/** @var LLMClient */
+	private $llm;
 	/** @var int */
 	private $maxTokens;
-	/** @var string Optional outbound HTTP proxy (global $wgHTTPProxy) */
-	private $proxy;
 
 	/**
-	 * @param string $llmProvider
-	 * @param string $llmModel
-	 * @param string $llmApiKey
-	 * @param string $llmApiEndpoint
-	 * @param int $timeout
+	 * @param LLMClient $llm
 	 * @param int $maxTokens Upper bound on the response size; edits echo the whole
 	 *   page back so this should be generous.
-	 * @param string $proxy Optional outbound HTTP proxy
 	 */
 	public function __construct(
-		string $llmProvider,
-		string $llmModel,
-		string $llmApiKey,
-		string $llmApiEndpoint,
-		int $timeout,
-		int $maxTokens = 4096,
-		string $proxy = ''
+		LLMClient $llm,
+		int $maxTokens = 4096
 	) {
-		$this->llmProvider = strtolower( $llmProvider );
-		$this->llmModel = $llmModel;
-		$this->llmApiKey = $llmApiKey;
-		$this->llmApiEndpoint = $llmApiEndpoint;
-		$this->timeout = $timeout;
+		$this->llm = $llm;
 		$this->maxTokens = max( 256, $maxTokens );
-		$this->proxy = $proxy;
 	}
 
 	/**
@@ -81,7 +58,7 @@ class WandaEditHandler {
 			'context' => trim( $context ),
 		] );
 
-		$response = $this->callLLM( $prompt );
+		$response = $this->llm->complete( $prompt, $this->maxTokens, self::LLM_TEMPERATURE );
 		if ( $response === null ) {
 			return [ 'changed' => false, 'newtext' => '', 'explanation' => '', 'failed' => true ];
 		}
@@ -202,318 +179,5 @@ class WandaEditHandler {
 		}
 
 		return $out;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @return string|null
-	 */
-	private function callLLM( string $prompt ): ?string {
-		// Deterministic edits: keep temperature low.
-		$temperature = 0.1;
-
-		switch ( $this->llmProvider ) {
-			case 'ollama':
-				return $this->callOllama( $prompt, $this->maxTokens, $temperature );
-			case 'openai':
-				return $this->callOpenAI( $prompt, $this->maxTokens, $temperature );
-			case 'anthropic':
-				return $this->callAnthropic( $prompt, $this->maxTokens, $temperature );
-			case 'azure':
-				return $this->callAzure( $prompt, $this->maxTokens, $temperature );
-			case 'gemini':
-				return $this->callGemini( $prompt, $this->maxTokens );
-			default:
-				wfDebugLog( 'Wanda', 'WandaEditHandler: unknown LLM provider: ' . $this->llmProvider );
-				return null;
-		}
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callOllama( string $prompt, int $maxTokens, float $temperature ): ?string {
-		$payload = [
-			'model' => $this->llmModel,
-			'prompt' => $prompt,
-			'stream' => false,
-			'options' => [
-				'temperature' => $temperature,
-				'num_predict' => $maxTokens
-			]
-		];
-
-		$response = $this->curlPost(
-			$this->llmApiEndpoint . 'generate',
-			json_encode( $payload ),
-			[ 'Content-Type: application/json' ]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-
-		$json = json_decode( $response, true );
-		return $json['response'] ?? null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callOpenAI( string $prompt, int $maxTokens, float $temperature ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$model = trim( (string)( $this->llmModel ?: 'gpt-4-turbo' ) );
-		$basePayload = [
-			'model' => $model,
-			'messages' => [
-				[ 'role' => 'user', 'content' => $prompt ]
-			],
-			'temperature' => $temperature
-		];
-
-		$tokenKey = APIChat::getOpenAITokenKeyForModel( $model );
-		$headers = [
-			'Content-Type: application/json',
-			'Authorization: Bearer ' . $this->llmApiKey
-		];
-
-		$sendRequest = function ( $payload ) use ( $headers ): ?string {
-			return $this->curlPost(
-				'https://api.openai.com/v1/chat/completions',
-				json_encode( $payload ),
-				$headers
-			);
-		};
-
-		$payload = $basePayload;
-		$payload[$tokenKey] = $maxTokens;
-		$response = $sendRequest( $payload );
-
-		// Retry once if OpenAI rejects the token parameter name.
-		if ( $response !== null ) {
-			$json = json_decode( $response, true );
-			$apiMessage = $json['error']['message'] ?? '';
-			if ( is_string( $apiMessage ) && $apiMessage !== '' ) {
-				$mentionsMaxTokens = stripos( $apiMessage, 'max_tokens' ) !== false;
-				$mentionsMaxCompletion = stripos( $apiMessage, 'max_completion_tokens' ) !== false;
-
-				$retryKey = null;
-				if ( $tokenKey === 'max_tokens' && $mentionsMaxCompletion ) {
-					$retryKey = 'max_completion_tokens';
-				} elseif ( $tokenKey === 'max_completion_tokens' && $mentionsMaxTokens ) {
-					$retryKey = 'max_tokens';
-				}
-
-				if ( $retryKey !== null ) {
-					wfDebugLog( 'Wanda', 'WandaEditHandler: retrying OpenAI with ' . $retryKey );
-					$retryPayload = $basePayload;
-					$retryPayload[$retryKey] = $maxTokens;
-					$response = $sendRequest( $retryPayload );
-					$json = $response !== null ? json_decode( $response, true ) : null;
-				}
-			}
-
-			return $json['choices'][0]['message']['content'] ?? null;
-		}
-
-		return null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callAnthropic( string $prompt, int $maxTokens, float $temperature ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$payload = [
-			'model' => $this->llmModel ?: 'claude-3-haiku-20240307',
-			'messages' => [
-				[ 'role' => 'user', 'content' => $prompt ]
-			],
-			'max_tokens' => $maxTokens,
-			'temperature' => $temperature
-		];
-
-		$response = $this->curlPost(
-			'https://api.anthropic.com/v1/messages',
-			json_encode( $payload ),
-			[
-				'Content-Type: application/json',
-				'x-api-key: ' . $this->llmApiKey,
-				'anthropic-version: 2023-06-01'
-			]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-
-		$json = json_decode( $response, true );
-		return $json['content'][0]['text'] ?? null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @param float $temperature
-	 * @return string|null
-	 */
-	private function callAzure( string $prompt, int $maxTokens, float $temperature ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$model = trim( (string)( $this->llmModel ?: '' ) );
-		$tokenKey = 'max_tokens';
-		if ( $model !== '' ) {
-			if ( preg_match( '/(^|\\/)(o1|o3)/i', $model ) || stripos( $model, 'gpt-5' ) !== false ) {
-				$tokenKey = 'max_completion_tokens';
-			}
-		}
-
-		$payload = [
-			'messages' => [
-				[ 'role' => 'user', 'content' => $prompt ]
-			],
-			$tokenKey => $maxTokens,
-			'temperature' => $temperature
-		];
-
-		$response = $this->curlPost(
-			$this->llmApiEndpoint,
-			json_encode( $payload ),
-			[
-				'Content-Type: application/json',
-				'api-key: ' . $this->llmApiKey
-			]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-
-		$json = json_decode( $response, true );
-		return $json['choices'][0]['message']['content'] ?? null;
-	}
-
-	/**
-	 * @param string $prompt
-	 * @param int $maxTokens
-	 * @return string|null
-	 */
-	private function callGemini( string $prompt, int $maxTokens ): ?string {
-		if ( empty( $this->llmApiKey ) ) {
-			return null;
-		}
-
-		$model = $this->llmModel ?: 'gemini-1.5-flash';
-		$base = $this->llmApiEndpoint ?: 'https://generativelanguage.googleapis.com/v1';
-		$base = rtrim( $base, '/' );
-		if ( strpos( $base, 'http://' ) === 0 ) {
-			$base = 'https://' . substr( $base, 7 );
-		} elseif ( strpos( $base, 'https://' ) !== 0 && strpos( $base, 'http://' ) !== 0 ) {
-			$base = 'https://' . $base;
-		}
-		$url = $base . '/models/' . rawurlencode( $model ) .
-			':generateContent?key=' . urlencode( $this->llmApiKey );
-
-		$payload = [
-			'contents' => [
-				[ 'role' => 'user', 'parts' => [ [ 'text' => $prompt ] ] ]
-			],
-			'generationConfig' => [
-				'maxOutputTokens' => $maxTokens
-			]
-		];
-
-		$response = $this->curlPost(
-			$url,
-			json_encode( $payload ),
-			[ 'Content-Type: application/json' ]
-		);
-
-		if ( $response === null ) {
-			return null;
-		}
-
-		$json = json_decode( $response, true );
-		$text = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
-		if ( $text === null ) {
-			wfDebugLog( 'Wanda', 'WandaEditHandler: Gemini returned no text; finishReason=' .
-				( $json['candidates'][0]['finishReason'] ?? 'unknown' ) .
-				' promptFeedback=' . json_encode( $json['promptFeedback'] ?? null ) );
-		}
-		return $text;
-	}
-
-	/**
-	 * Generic cURL POST helper.
-	 *
-	 * @param string $url
-	 * @param string $data
-	 * @param array $headers
-	 * @return string|null Response body or null on failure
-	 */
-	private function curlPost( string $url, string $data, array $headers ): ?string {
-		// Transient upstream failures (overloaded/temporarily unavailable model,
-		// gateway hiccups, provider throttling) are common on shared LLM
-		// endpoints and would otherwise fail whole pages in a batch at random.
-		// Retry a bounded number of times with exponential backoff; never retry
-		// a definite client/permission error (4xx other than 429).
-		$attempts = 0;
-		$maxAttempts = 3;
-		while ( true ) {
-			$attempts++;
-			$ch = curl_init( $url );
-			curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, 'POST' );
-			curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
-			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-			curl_setopt( $ch, CURLOPT_TIMEOUT, $this->timeout );
-			curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
-			if ( !empty( $this->proxy ) ) {
-				curl_setopt( $ch, CURLOPT_PROXY, $this->proxy );
-			}
-
-			$response = curl_exec( $ch );
-			$httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-			$curlError = curl_error( $ch );
-			// No curl_close(): the handle is freed when $ch goes out of scope
-			// (curl_close is a no-op on PHP 8+, which this extension requires).
-
-			if ( !$curlError && $httpCode === 200 ) {
-				return $response;
-			}
-
-			$transient = $curlError !== ''
-				|| in_array( $httpCode, [ 429, 500, 502, 503, 504 ], true );
-			if ( !$transient || $attempts >= $maxAttempts ) {
-				if ( $curlError ) {
-					wfDebugLog( 'Wanda', 'WandaEditHandler cURL error: ' . $curlError );
-				} else {
-					wfDebugLog( 'Wanda', 'WandaEditHandler HTTP ' . $httpCode . ': ' .
-						substr( (string)$response, 0, 500 ) );
-				}
-				return null;
-			}
-
-			wfDebugLog( 'Wanda', 'WandaEditHandler transient failure (attempt ' . $attempts .
-				'/' . $maxAttempts . '): ' . ( $curlError ?: 'HTTP ' . $httpCode ) . '; retrying' );
-			// 250ms, 500ms backoff; keeps a batch responsive while smoothing spikes.
-			usleep( 250000 * ( 1 << ( $attempts - 1 ) ) );
-		}
 	}
 }
