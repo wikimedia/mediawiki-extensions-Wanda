@@ -4,10 +4,9 @@ namespace MediaWiki\Extension\Wanda\Hooks;
 
 use ApprovedRevs;
 use Content;
-use DeferredUpdates;
 use ExtensionRegistry;
-use IDBAccessObject;
 use MediaWiki\Extension\Wanda\EmbeddingGenerator;
+use MediaWiki\Extension\Wanda\WandaIndexPageJob;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Revision\SlotRecord;
 use MediaWiki\Title\Title;
@@ -33,8 +32,6 @@ class PageIndexUpdater {
 	private static $llmApiEndpoint;
 	/** @var int */
 	private static $timeout;
-	/** @var bool[] */
-	private static $pendingTitles = [];
 
 	/**
 	 * Initializes LLM and search engine settings from MediaWiki config.
@@ -155,19 +152,22 @@ class PageIndexUpdater {
 
 	/**
 	 * Updates or adds a wiki page's content to the search engine.
+	 *
+	 * @param Title $title
+	 * @param WikiPage $wikiPage
+	 * @return bool False if the update should be retried
 	 */
-	public static function updateIndex( Title $title, WikiPage $wikiPage ) {
+	public static function updateIndex( Title $title, WikiPage $wikiPage ): bool {
 		self::initialize();
 		if ( !self::$indexName ) {
 			wfDebugLog( 'Wanda', "Skipping indexing due to missing index." );
-			return;
+			return false;
 		}
 
 		$content = self::resolveIndexableContent( $title, $wikiPage );
 		if ( !$content ) {
 			wfDebugLog( 'Wanda', "No indexable content, removing from index: " . $title->getPrefixedText() );
-			self::deleteDocument( $title );
-			return;
+			return self::deleteDocument( $title );
 		}
 
 		$text = $content->getTextForSearchIndex( $content );
@@ -182,7 +182,7 @@ class PageIndexUpdater {
 		$docId = $title->getPrefixedText();
 		if ( self::fetchIndexedHash( $docId ) === $contentHash ) {
 			wfDebugLog( 'Wanda', "Skipping unchanged page in index: " . $docId );
-			return;
+			return true;
 		}
 
 		// Chunk the text semantically
@@ -204,9 +204,14 @@ class PageIndexUpdater {
 		$document = [
 			"title" => $title->getPrefixedText(),
 			"content" => $fullText,
-			"content_chunks" => $chunks,
-			"content_hash" => $contentHash
+			"content_chunks" => $chunks
 		];
+
+		// The hash marks the vectors as current, so it is only stored with a full set.
+		$embeddingsComplete = count( $embeddings ) === count( $chunks );
+		if ( $embeddingsComplete ) {
+			$document['content_hash'] = $contentHash;
+		}
 
 		if ( !empty( $embeddings ) ) {
 			// Format embeddings for nested structure
@@ -239,6 +244,8 @@ class PageIndexUpdater {
 		$response = curl_exec( $ch );
 
 		wfDebugLog( 'Wanda', "Indexed page: " . $title->getPrefixedText() . " Response: " . $response );
+
+		return $embeddingsComplete && self::requestSucceeded( $ch );
 	}
 
 	/**
@@ -246,6 +253,10 @@ class PageIndexUpdater {
 	 * should not be in the index.
 	 */
 	public static function resolveIndexableContent( Title $title, WikiPage $wikiPage ): ?Content {
+		if ( $wikiPage->isRedirect() ) {
+			return null;
+		}
+
 		if ( !self::usesApprovedRevisions( $title ) ) {
 			return $wikiPage->getContent();
 		}
@@ -268,18 +279,7 @@ class PageIndexUpdater {
 			&& ExtensionRegistry::getInstance()->isLoaded( 'ApprovedRevs' );
 	}
 
-	/**
-	 * Removes a page from the Elasticsearch index.
-	 */
-	public static function deleteFromIndex( Title $title ) {
-		self::initialize();
-		if ( !self::$indexName ) {
-			return;
-		}
-		self::deleteDocument( $title );
-	}
-
-	private static function deleteDocument( Title $title ) {
+	private static function deleteDocument( Title $title ): bool {
 		$ch = curl_init( self::$searchHost . "/" . self::$indexName . "/_doc/" .
 			urlencode( $title->getPrefixedText() ) );
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "DELETE" );
@@ -288,6 +288,13 @@ class PageIndexUpdater {
 		$response = curl_exec( $ch );
 
 		wfDebugLog( 'Wanda', "Removed page from index: " . $title->getPrefixedText() . " Response: " . $response );
+
+		return self::requestSucceeded( $ch, [ 404 ] );
+	}
+
+	private static function requestSucceeded( $ch, array $acceptedErrors = [] ): bool {
+		$code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		return !curl_errno( $ch ) && ( ( $code >= 200 && $code < 300 ) || in_array( $code, $acceptedErrors, true ) );
 	}
 
 	/**
@@ -316,28 +323,8 @@ class PageIndexUpdater {
 		return is_string( $hash ) ? $hash : null;
 	}
 
-	/**
-	 * Reindexes a page once the current request has finished its updates.
-	 */
-	private static function scheduleReindex( Title $title ) {
-		$key = $title->getPrefixedDBkey();
-		if ( isset( self::$pendingTitles[$key] ) ) {
-			return;
-		}
-		self::$pendingTitles[$key] = true;
-
-		DeferredUpdates::addCallableUpdate( static function () use ( $title, $key ) {
-			unset( self::$pendingTitles[$key] );
-			$wikiPage = MediaWikiServices::getInstance()->getWikiPageFactory()->newFromTitle( $title );
-			$wikiPage->loadPageData( IDBAccessObject::READ_LATEST );
-			self::updateIndex( $title, $wikiPage );
-		} );
-	}
-
-	private static function scheduleRemoval( Title $title ) {
-		DeferredUpdates::addCallableUpdate( static function () use ( $title ) {
-			self::deleteFromIndex( $title );
-		} );
+	private static function queueIndexUpdate( Title $title ) {
+		MediaWikiServices::getInstance()->getJobQueueGroup()->lazyPush( new WandaIndexPageJob( $title ) );
 	}
 
 	/**
@@ -381,29 +368,29 @@ class PageIndexUpdater {
 	 * Hooks to trigger indexing.
 	 */
 	public static function onPageSaveComplete( $wikiPage, $user, $summary, $flags, $revision, $editResult ) {
-		self::scheduleReindex( $wikiPage->getTitle() );
+		self::queueIndexUpdate( $wikiPage->getTitle() );
 	}
 
 	public static function onPageDeleteComplete(
 		$page, $deleter, $reason, $pageID, $deletedRev, $logEntry, $archivedRevisionCount
 	) {
-		self::scheduleRemoval( Title::castFromPageIdentity( $page ) );
+		self::queueIndexUpdate( Title::castFromPageIdentity( $page ) );
 	}
 
 	public static function onPageMoveComplete( $old, $new, $user, $pageid, $redirid, $reason, $revision ) {
-		self::scheduleRemoval( Title::newFromLinkTarget( $old ) );
-		self::scheduleReindex( Title::newFromLinkTarget( $new ) );
+		self::queueIndexUpdate( Title::newFromLinkTarget( $old ) );
+		self::queueIndexUpdate( Title::newFromLinkTarget( $new ) );
 	}
 
 	public static function onApprovedRevsRevisionApproved( $output, $title, $revId, $content ) {
 		if ( self::isApprovedOnlyEnabled() ) {
-			self::scheduleReindex( Title::castFromPageIdentity( $title ) );
+			self::queueIndexUpdate( Title::castFromPageIdentity( $title ) );
 		}
 	}
 
 	public static function onApprovedRevsRevisionUnapproved( $output, $title, $content ) {
 		if ( self::isApprovedOnlyEnabled() ) {
-			self::scheduleReindex( Title::castFromPageIdentity( $title ) );
+			self::queueIndexUpdate( Title::castFromPageIdentity( $title ) );
 		}
 	}
 
@@ -413,12 +400,9 @@ class PageIndexUpdater {
 	 * @param UploadBase $uploadBase The uploaded file object.
 	 */
 	public static function onUploadComplete( UploadBase $uploadBase ) {
-		// The UploadComplete hook passes the File object when an upload finishes.
-		// Maintain previous behavior: build a Title for the file and reindex it.
-		$title = Title::makeTitleSafe( NS_FILE, $uploadBase->getTitle() );
-		if ( !$title ) {
-			return;
+		$title = $uploadBase->getTitle();
+		if ( $title ) {
+			self::queueIndexUpdate( $title );
 		}
-		self::updateIndex( $title, new WikiPage( $title ) );
 	}
 }

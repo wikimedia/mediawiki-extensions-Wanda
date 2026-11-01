@@ -35,6 +35,9 @@
 		"wandachat": "MediaWiki\\Extension\\Wanda\\APIChat",
 		"wandaedit": "MediaWiki\\Extension\\Wanda\\APIEdit"
 	},
+	"JobClasses": {
+		"wandaIndexPage": "MediaWiki\\Extension\\Wanda\\WandaIndexPageJob"
+	},
 	"AvailableRights": [
 		"wanda-chat",
 		"wanda-edit"

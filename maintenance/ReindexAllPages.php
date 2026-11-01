@@ -4,7 +4,7 @@ namespace MediaWiki\Extension\Wanda\Maintenance;
 
 use Maintenance;
 use MediaWiki\Extension\Wanda\Hooks\PageIndexUpdater;
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Extension\Wanda\WandaIndexPageJob;
 use MediaWiki\Title\Title;
 
 $IP = getenv( 'MW_INSTALL_PATH' );
@@ -16,26 +16,55 @@ require_once "$IP/maintenance/Maintenance.php";
 $maintClass = ReindexAllPages::class;
 
 class ReindexAllPages extends Maintenance {
+	public function __construct() {
+		parent::__construct();
+		$this->requireExtension( 'Wanda' );
+		$this->addDescription( 'Queue a reindex of every page' );
+		$this->addOption( 'inline', 'Index pages in this process instead of queueing jobs' );
+		$this->setBatchSize( 500 );
+	}
+
 	public function execute() {
-		$dbr = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_REPLICA );
-		$res = $dbr->select( 'page', [ 'page_title', 'page_namespace' ], [], __METHOD__ );
+		$services = $this->getServiceContainer();
+		$dbr = $this->getReplicaDB();
+		$inline = $this->hasOption( 'inline' );
+		$lastPageId = 0;
+		$processed = 0;
+		$failed = 0;
 
-		foreach ( $res as $row ) {
-			$title = Title::newFromText( $row->page_title, $row->page_namespace );
-			if ( !$title ) {
-				wfDebugLog( 'Wanda', "Invalid title found in database: " . $row->page_title );
-				continue;
+		do {
+			$rows = $dbr->newSelectQueryBuilder()
+				->select( [ 'page_id', 'page_namespace', 'page_title' ] )
+				->from( 'page' )
+				->where( $dbr->expr( 'page_id', '>', $lastPageId ) )
+				->orderBy( 'page_id' )
+				->limit( $this->getBatchSize() )
+				->caller( __METHOD__ )
+				->fetchResultSet();
+
+			$jobs = [];
+			foreach ( $rows as $row ) {
+				$lastPageId = (int)$row->page_id;
+				$title = Title::makeTitle( (int)$row->page_namespace, $row->page_title );
+				if ( !$inline ) {
+					$jobs[] = new WandaIndexPageJob( $title );
+				} elseif ( !PageIndexUpdater::updateIndex(
+					$title, $services->getWikiPageFactory()->newFromTitle( $title )
+				) ) {
+					$failed++;
+				}
+				$processed++;
 			}
 
-			wfDebugLog( 'Wanda', "Reindexing page => " . $title->getPrefixedText() );
-
-			$wikiPage = MediaWikiServices::getInstance()->getWikiPageFactory()->newFromTitle( $title );
-			if ( !$wikiPage ) {
-				wfDebugLog( 'Wanda', "Failed to load WikiPage for " . $title->getPrefixedText() );
-				continue;
+			if ( $jobs ) {
+				$services->getJobQueueGroup()->push( $jobs );
 			}
+		} while ( $rows->numRows() === $this->getBatchSize() );
 
-			PageIndexUpdater::updateIndex( $title, $wikiPage );
+		if ( $inline ) {
+			$this->output( "Indexed $processed pages, $failed failed.\n" );
+		} else {
+			$this->output( "Queued $processed pages for indexing.\n" );
 		}
 	}
 }

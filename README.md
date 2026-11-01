@@ -170,6 +170,16 @@ To enable the chatbot to answer questions about your wiki content, you need to i
 php extensions/Wanda/maintenance/ReindexAllPages.php
 ```
 
+Indexing runs through the MediaWiki [job queue](https://www.mediawiki.org/wiki/Manual:Job_queue) as `wandaIndexPage` jobs. The script queues one job per page, so pages are indexed as your job runner works through the queue, and failed jobs are retried. Each job calls the embedding provider, so on busy wikis set `$wgJobRunRate = 0` and use a dedicated job runner to keep these calls out of web requests.
+
+To index pages in the script's own process instead, for example on a wiki with no job runner, add `--inline`:
+
+```bash
+php extensions/Wanda/maintenance/ReindexAllPages.php --inline
+```
+
+Redirects are not indexed.
+
 ### Custom Prompt Configuration
 
 You can configure a custom prompt in two ways:
@@ -188,9 +198,9 @@ $wgWandaCustomPromptTitle = "Title_of_the_page";
 
 #### Automatic Reindex After Updates
 
-This extension now schedules a full reindex automatically after you run `php maintenance/update.php` by registering the maintenance script as a post-update task. On large wikis this may be time-consuming. If you prefer to disable auto reindexing, remove the `LoadExtensionSchemaUpdates` hook entry from `extension.json` or replace the full reindex with a lighter custom script.
+This extension now queues a full reindex automatically after you run `php maintenance/update.php` by registering the maintenance script as a post-update task. On large wikis the resulting jobs may take a while to finish; unchanged pages are skipped without calling the embedding provider. If you prefer to disable auto reindexing, remove the `LoadExtensionSchemaUpdates` hook entry from `extension.json` or replace the full reindex with a lighter custom script.
 
-To keep indexing continuously fresh without large batch jobs, the extension also updates the index on page saves and file uploads via hooks.
+To keep indexing continuously fresh without large batch jobs, the extension also queues an index update on page saves, moves, deletions and file uploads via hooks.
 
 You can also control this behavior via a configuration flag. Add to `LocalSettings.php`:
 
@@ -376,7 +386,7 @@ A write API module `wandaedit` powers the feature (requires a CSRF token and POS
 4. **Fallback Strategy**: If vector search fails or returns no results, falls back to text-based BM25 search
 5. **Cargo Queries**: If enabled, the LLM generates structured queries against Cargo tables in parallel; results are merged with Elasticsearch context
 6. **Response Generation**: The LLM generates answers based on the combined context from Elasticsearch and Cargo
-7. **Incremental Updates**: Page save and file upload hooks automatically regenerate embeddings and update the index
+7. **Incremental Updates**: Page and file upload hooks queue jobs that regenerate embeddings and update the index
 
 ## Security Considerations
 
