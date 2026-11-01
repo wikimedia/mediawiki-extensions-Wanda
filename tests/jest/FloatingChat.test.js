@@ -40,6 +40,22 @@ describe( 'FloatingChat - window open/close', () => {
 		wrapper.unmount();
 	} );
 
+	test( 'Ctrl/Cmd+Shift+Space toggles the window', () => {
+		mw.config.set( 'WandaShowPopup', true );
+		const wrapper = factory();
+		const vm = wrapper.vm;
+		const press = ( init ) => document.dispatchEvent( new KeyboardEvent( 'keydown', Object.assign( { code: 'Space' }, init ) ) );
+		press( { ctrlKey: true, shiftKey: true } );
+		expect( vm.open ).toBe( true );
+		press( { metaKey: true, shiftKey: true } );
+		expect( vm.open ).toBe( false );
+		press( { ctrlKey: true } );
+		press( { shiftKey: true } );
+		press( { ctrlKey: true, shiftKey: true, altKey: true } );
+		expect( vm.open ).toBe( false );
+		wrapper.unmount();
+	} );
+
 	test( 'a document click does not close while the image picker is open', () => {
 		const wrapper = factory();
 		const vm = wrapper.vm;
@@ -116,5 +132,25 @@ describe( 'FloatingChat - sendMessage', () => {
 		expect( postData.images ).toBe( 'File:Pic.png' );
 		expect( postData.skipesquery ).toBe( true );
 		expect( postData.customprompt ).toBeUndefined();
+	} );
+} );
+
+describe( 'FloatingChat - maximize', () => {
+	test( 'toggles between maximized and popup size', async () => {
+		const wrapper = factory();
+		await wrapper.setData( { open: true } );
+		const button = wrapper.find( '.wanda-maximize-btn' );
+		const win = wrapper.find( '.wanda-floating-window' );
+
+		expect( win.classes() ).not.toContain( 'maximized' );
+		expect( button.attributes( 'aria-label' ) ).toBe( 'wanda-maximize-window' );
+
+		await button.trigger( 'click' );
+		expect( win.classes() ).toContain( 'maximized' );
+		expect( wrapper.vm.open ).toBe( true );
+		expect( button.attributes( 'aria-label' ) ).toBe( 'wanda-restore-window' );
+
+		await button.trigger( 'click' );
+		expect( win.classes() ).not.toContain( 'maximized' );
 	} );
 } );

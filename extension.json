@@ -57,18 +57,24 @@
 				"resources/initMain.js",
 				"resources/components/ChatApp.vue",
 				"resources/components/EditReview.vue",
+				"resources/components/WelcomeTypewriter.vue",
 				"resources/editWorkflow.js",
 				{
 					"name": "icons.json",
 					"callback": "MediaWiki\\ResourceLoader\\CodexModule::getIcons",
 					"callbackParam": [
+						"cdxIconClose",
+						"cdxIconExitFullscreen",
+						"cdxIconFullScreen",
 						"cdxIconImage",
+						"cdxIconSpeechBubbles",
 						"cdxIconTrash"
 					]
 				}
 			],
 			"styles": [
-				"resources/styles/index.css"
+				"resources/styles/chat.less",
+				"resources/styles/special.less"
 			],
 			"dependencies": [
 				"mediawiki.util",
@@ -85,13 +91,15 @@
 				"CdxTextInput",
 				"CdxIcon",
 				"CdxAccordion",
-				"CdxLookup"
+				"CdxLookup",
+				"CdxInfoChip"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
 				"wanda-chat-welcomedesc",
-				"wanda-chat-instruction1",
-				"wanda-chat-instruction2",
+				"wanda-sources-label",
+				"wanda-input-placeholder",
+				"wanda-send",
 				"wanda-chat-pdftotext-error",
 				"wanda-edit-card-heading",
 				"wanda-toggle-edit-label",
@@ -168,18 +176,24 @@
 				"resources/initFloating.js",
 				"resources/components/FloatingChat.vue",
 				"resources/components/EditReview.vue",
+				"resources/components/WelcomeTypewriter.vue",
 				"resources/editWorkflow.js",
 				{
 					"name": "icons.json",
 					"callback": "MediaWiki\\ResourceLoader\\CodexModule::getIcons",
 					"callbackParam": [
+						"cdxIconClose",
+						"cdxIconExitFullscreen",
+						"cdxIconFullScreen",
 						"cdxIconImage",
+						"cdxIconSpeechBubbles",
 						"cdxIconTrash"
 					]
 				}
 			],
 			"styles": [
-				"resources/styles/floating-chat.css"
+				"resources/styles/chat.less",
+				"resources/styles/floating.less"
 			],
 			"dependencies": [
 				"mediawiki.util",
@@ -196,14 +210,18 @@
 				"CdxTextInput",
 				"CdxIcon",
 				"CdxAccordion",
-				"CdxLookup"
+				"CdxLookup",
+				"CdxInfoChip"
 			],
 			"messages": [
 				"wanda-chat-welcometext",
 				"wanda-chat-welcomedesc",
-				"wanda-chat-instruction1",
-				"wanda-chat-instruction2",
+				"wanda-sources-label",
+				"wanda-input-placeholder",
+				"wanda-send",
 				"wanda-floating-chat-title",
+				"wanda-maximize-window",
+				"wanda-restore-window",
 				"wanda-edit-card-heading",
 				"wanda-toggle-edit-label",
 				"wanda-toggle-edit-aria",

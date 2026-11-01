@@ -1,0 +1,110 @@
+@import 'mediawiki.skin.variables.less';
+
+.wanda-floating-button.cdx-button {
+	position: fixed;
+	right: @spacing-125;
+	bottom: @spacing-125;
+	z-index: 2000;
+	width: @size-300;
+	min-width: @size-300;
+	height: @size-300;
+	border-radius: @border-radius-circle;
+	box-shadow: @box-shadow-drop-medium;
+}
+
+.wanda-floating-window {
+	position: fixed;
+	right: @spacing-125;
+	bottom: @spacing-125;
+	z-index: 2000;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	width: 28rem;
+	height: 38rem;
+	max-width: calc( 100vw - 40px );
+	max-height: calc( 100vh - 40px );
+	max-height: calc( 100dvh - 40px );
+	border: @border-base;
+	border-radius: @border-radius-base;
+	background-color: @background-color-base;
+	box-shadow: @box-shadow-drop-medium;
+	--font-size-small: 0.875rem;
+	--font-size-medium: 0.875rem;
+	--font-size-large: 0.875rem;
+	font-size: @font-size-small;
+	opacity: 0;
+	transition-property: @transition-property-fade;
+	transition-duration: @transition-duration-medium;
+
+	&.show {
+		opacity: 1;
+	}
+
+	&.maximized {
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		width: auto;
+		height: auto;
+		max-width: none;
+		max-height: none;
+		border: 0;
+		border-radius: 0;
+
+		.wanda-floating-chat {
+			box-sizing: border-box;
+			width: 100%;
+			max-width: 60em;
+			margin: 0 auto;
+		}
+	}
+}
+
+.wanda-chat-header {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: space-between;
+	padding: @spacing-25 @spacing-25 @spacing-25 @spacing-75;
+	border-bottom: @border-subtle;
+	color: @color-emphasized;
+	font-weight: @font-weight-bold;
+}
+
+.wanda-chat-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.wanda-header-actions {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+}
+
+.wanda-floating-chat {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+@media ( max-width: 639px ) {
+	.wanda-maximize-btn.cdx-button {
+		display: none;
+	}
+
+	.wanda-floating-window {
+		right: 0;
+		bottom: 0;
+		width: 100%;
+		height: 100vh;
+		height: 100dvh;
+		max-width: none;
+		max-height: none;
+		border: 0;
+		border-radius: 0;
+	}
+}

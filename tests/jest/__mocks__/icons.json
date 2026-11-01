@@ -1,4 +1,8 @@
 {
+	"cdxIconClose": "close-icon",
+	"cdxIconExitFullscreen": "exit-fullscreen-icon",
+	"cdxIconFullScreen": "full-screen-icon",
 	"cdxIconImage": "image-icon",
+	"cdxIconSpeechBubbles": "speech-bubbles-icon",
 	"cdxIconTrash": "trash-icon"
 }

@@ -407,3 +407,37 @@ describe( 'ChatApp - applyEdit', () => {
 		wrapper.unmount();
 	} );
 } );
+
+describe( 'ChatApp - send button', () => {
+	test( 'canSend needs text and an idle chat', async () => {
+		const vm = factory().vm;
+		expect( vm.canSend ).toBe( false );
+		vm.inputText = '   ';
+		expect( vm.canSend ).toBe( false );
+		vm.inputText = 'Hello';
+		expect( vm.canSend ).toBe( true );
+		vm.loading = true;
+		expect( vm.canSend ).toBe( false );
+	} );
+} );
+
+describe( 'message image previews', () => {
+	const images = [ { url: 'a.png', title: 'File:A.png' }, { url: 'b.png', title: 'File:B.png' } ];
+
+	test.each( [ [ 'ChatApp', ChatApp ], [ 'FloatingChat', require( '../../resources/components/FloatingChat.vue' ) ] ] )(
+		'%s shows them under the question and not under answers',
+		async ( name, component ) => {
+			const wrapper = mount( component );
+			wrapper.vm.messages = [
+				{ role: 'user', content: 'Q', images },
+				{ role: 'bot', content: 'A', images }
+			];
+			await wrapper.vm.$nextTick();
+
+			const previews = wrapper.findAll( '.user-wrapper .wanda-message-images .wanda-message-image' );
+			expect( previews.map( ( img ) => img.attributes( 'src' ) ) ).toEqual( [ 'a.png', 'b.png' ] );
+			expect( previews[ 0 ].attributes( 'alt' ) ).toBe( 'File:A.png' );
+			expect( wrapper.find( '.bot-wrapper .wanda-message-image' ).exists() ).toBe( false );
+		}
+	);
+} );

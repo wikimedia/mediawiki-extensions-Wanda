@@ -1,0 +1,470 @@
+@import 'mediawiki.skin.variables.less';
+
+.chat-container {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	background-color: @background-color-base;
+	color: @color-base;
+
+	textarea {
+		max-width: 100%;
+	}
+}
+
+.chat-box {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: @spacing-75;
+	min-height: 0;
+	padding: @spacing-75;
+	overflow-y: auto;
+	scrollbar-color: @border-color-interactive @background-color-neutral-subtle;
+	scrollbar-gutter: stable;
+	scrollbar-width: thin;
+}
+
+.chat-instructions {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-height: 0;
+	padding: @spacing-150 @spacing-100;
+	overflow-y: auto;
+	color: @color-subtle;
+	text-align: center;
+
+	h2 {
+		margin: auto 0 @spacing-50;
+		padding: 0;
+		border: 0;
+		color: @color-emphasized;
+		font-family: inherit;
+		font-size: @font-size-large;
+		font-weight: @font-weight-bold;
+	}
+
+	p {
+		margin: 0 0 auto;
+	}
+}
+
+.chat-message-wrapper {
+	display: flex;
+	flex-shrink: 0;
+	max-width: 100%;
+}
+
+.user-wrapper {
+	align-self: flex-end;
+	justify-content: flex-end;
+	max-width: 85%;
+}
+
+.bot-wrapper {
+	align-self: flex-start;
+	max-width: 90%;
+}
+
+.chat-message-container {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	max-width: 100%;
+}
+
+.bot-wrapper .chat-message-container {
+	align-items: flex-start;
+}
+
+.chat-message {
+	box-sizing: border-box;
+	max-width: 100%;
+	padding: @spacing-50 @spacing-75;
+	border: @border-subtle;
+	border-radius: 12px;
+	overflow-wrap: break-word;
+}
+
+.user-message {
+	border-color: @border-color-progressive;
+	background-color: @background-color-progressive-subtle;
+	color: @color-base;
+}
+
+.bot-message {
+	background-color: @background-color-neutral-subtle;
+}
+
+.wanda-table-wrap {
+	max-width: 100%;
+	overflow-x: auto;
+}
+
+.wanda-table {
+	width: 100%;
+	border-collapse: collapse;
+
+	th,
+	td {
+		padding: @spacing-25 @spacing-50;
+		border: @border-subtle;
+		text-align: left;
+		vertical-align: top;
+	}
+
+	th {
+		background-color: @background-color-neutral;
+		font-weight: @font-weight-bold;
+	}
+}
+
+.wanda-sources-list {
+	margin: @spacing-25 0 0;
+	padding-left: @spacing-125;
+	list-style: disc;
+
+	li {
+		margin: @spacing-12 0;
+	}
+}
+
+.wanda-message-sources {
+	display: flex;
+	flex-wrap: wrap;
+	gap: @spacing-25;
+	margin-top: @spacing-25;
+}
+
+.wanda-source-chip.cdx-info-chip {
+	border-color: @border-color-transparent;
+	background-color: @background-color-base;
+}
+
+.wanda-thinking {
+	margin-top: @spacing-50;
+
+	.cdx-accordion__content {
+		font-size: @font-size-small;
+	}
+}
+
+.wanda-thinking-steps {
+	margin: 0;
+	padding-left: @spacing-125;
+	color: @color-subtle;
+
+	li {
+		margin: @spacing-25 0;
+	}
+}
+
+.wanda-step--error {
+	color: @color-error;
+}
+
+.wanda-sparql-query {
+	margin: @spacing-25 0 0;
+	padding: @spacing-25 @spacing-50;
+	border: @border-subtle;
+	border-radius: @border-radius-base;
+	background-color: @background-color-neutral-subtle;
+	color: @color-base;
+	font-size: @font-size-small;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.chat-progress-bar {
+	width: 100%;
+	margin: @spacing-25 0;
+}
+
+.wanda-clear-row {
+	display: flex;
+	justify-content: flex-end;
+	padding: @spacing-25 @spacing-75 0;
+}
+
+.chat-input-container {
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	align-items: stretch;
+	gap: @spacing-50;
+	padding: @spacing-75;
+	border-top: @border-subtle;
+	background-color: @background-color-base;
+}
+
+.wanda-composer {
+	display: flex;
+	flex-direction: column;
+	border: @border-base;
+	border-radius: @border-radius-base;
+	background-color: @background-color-base;
+
+	&:focus-within {
+		border-color: @border-color-progressive--focus;
+		box-shadow: inset 0 0 0 1px @box-shadow-color-progressive--focus;
+	}
+
+	.wanda-attached-images {
+		padding: @spacing-50 @spacing-50 0;
+	}
+
+	.cdx-text-area__textarea,
+	.cdx-text-area__textarea:enabled,
+	.cdx-text-area__textarea:enabled:hover,
+	.cdx-text-area__textarea:enabled:focus {
+		max-height: 10em;
+		border: 0;
+		box-shadow: none;
+		background-color: transparent;
+		overflow-y: auto;
+	}
+}
+
+.wanda-composer-toolbar {
+	display: flex;
+	align-items: center;
+	gap: @spacing-50;
+	padding: @spacing-25;
+
+	.wanda-memory-toggle.cdx-checkbox {
+		flex: 1 1 auto;
+		min-width: 0;
+		margin: 0;
+	}
+}
+
+.wanda-sources-row {
+	display: flex;
+	align-items: baseline;
+	gap: @spacing-50;
+}
+
+.wanda-sources-label {
+	flex: 0 0 auto;
+	font-weight: @font-weight-bold;
+}
+
+.wanda-source-selector {
+	display: flex;
+	flex: 1 1 auto;
+	flex-wrap: wrap;
+	min-width: 0;
+}
+
+.wanda-edit-card {
+	display: flex;
+	flex-direction: column;
+	gap: @spacing-50;
+	padding: @spacing-50 @spacing-75;
+	border: @border-subtle;
+	border-radius: @border-radius-base;
+	background-color: @background-color-neutral-subtle;
+}
+
+.wanda-edit-card-heading {
+	color: @color-emphasized;
+	font-weight: @font-weight-bold;
+}
+
+.wanda-edit-target-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: @spacing-50;
+
+	p {
+		margin: 0;
+		color: @color-subtle;
+		font-size: @font-size-small;
+	}
+}
+
+.wanda-edit-target-label {
+	font-weight: @font-weight-bold;
+}
+
+.wanda-edit-target-input {
+	flex: 1 1 auto;
+	min-width: 10em;
+}
+
+.wanda-edit-preview-dialog .wanda-edit-summary {
+	margin: 0 0 @spacing-50;
+	font-weight: @font-weight-bold;
+}
+
+.wanda-edit-diff {
+	overflow-x: auto;
+}
+
+.wanda-attached-images {
+	display: flex;
+	flex-wrap: wrap;
+	gap: @spacing-50;
+}
+
+.wanda-image-thumbnail {
+	display: flex;
+	align-items: center;
+	gap: @spacing-50;
+	max-width: 100%;
+	padding: @spacing-25;
+	border: @border-subtle;
+	border-radius: @border-radius-base;
+	background-color: @background-color-neutral-subtle;
+
+	img {
+		width: @size-200;
+		height: @size-200;
+		border-radius: @border-radius-base;
+		object-fit: cover;
+	}
+}
+
+.wanda-image-info {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.wanda-image-title {
+	overflow: hidden;
+	font-size: @font-size-small;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.wanda-image-size {
+	color: @color-subtle;
+	font-size: @font-size-x-small;
+}
+
+.wanda-message-images {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: @spacing-25;
+	margin-top: @spacing-25;
+}
+
+.bot-wrapper .wanda-message-images {
+	justify-content: flex-start;
+}
+
+.wanda-message-image {
+	width: @size-300;
+	height: @size-300;
+	border: @border-subtle;
+	border-radius: @border-radius-base;
+	object-fit: cover;
+	transform-origin: right bottom;
+	transition-property: transform;
+	transition-duration: @transition-duration-medium;
+
+	&:hover {
+		position: relative;
+		z-index: @z-index-stacking-1;
+		transform: scale( 2 );
+	}
+}
+
+.wanda-image-picker-dialog .cdx-dialog__body {
+	display: flex;
+	flex-direction: column;
+	height: 50vh;
+	overflow: hidden;
+}
+
+.wanda-image-picker-content {
+	display: flex;
+	flex-direction: column;
+	gap: @spacing-75;
+	height: 100%;
+}
+
+.wanda-image-picker-results {
+	display: grid;
+	flex: 1;
+	grid-template-columns: repeat( auto-fill, minmax( 8em, 1fr ) );
+	align-content: start;
+	gap: @spacing-75;
+	overflow-y: auto;
+}
+
+.wanda-image-result {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	padding: @spacing-50;
+	border: @border-base;
+	border-radius: @border-radius-base;
+	background-color: @background-color-base;
+	cursor: pointer;
+
+	&:hover:not( .disabled ) {
+		border-color: @border-color-progressive;
+	}
+
+	&.disabled {
+		background-color: @background-color-disabled-subtle;
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	img {
+		width: 100%;
+		height: 6em;
+		margin-bottom: @spacing-50;
+		border-radius: @border-radius-base;
+		background-color: @background-color-neutral-subtle;
+		object-fit: cover;
+	}
+}
+
+.wanda-image-result-title {
+	display: block;
+	overflow: hidden;
+	font-size: @font-size-small;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.wanda-search-placeholder,
+.wanda-no-results {
+	padding: @spacing-100;
+	color: @color-subtle;
+	text-align: center;
+}
+
+.wanda-searching {
+	padding: @spacing-100;
+}
+
+.wanda-typewriter-caret {
+	display: inline-block;
+	width: 2px;
+	height: 1em;
+	margin-left: 2px;
+	background-color: currentcolor;
+	vertical-align: text-bottom;
+	animation: wanda-caret-blink 1s steps( 1 ) infinite;
+}
+
+@keyframes wanda-caret-blink {
+	50% {
+		opacity: 0;
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.wanda-typewriter-caret {
+		animation: none;
+	}
+}

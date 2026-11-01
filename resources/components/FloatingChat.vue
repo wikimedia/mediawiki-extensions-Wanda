@@ -1,26 +1,49 @@
 <template>
   <div class="wanda-floating-chat-wrapper">
-    <div
-      class="wanda-floating-button"
-      :title="msg( 'wanda-floating-chat-title' )"
+    <cdx-button
       v-show="!open && showPopup"
+      class="wanda-floating-button"
+      action="progressive"
+      weight="primary"
+      :title="msg( 'wanda-floating-chat-title' )"
+      :aria-label="msg( 'wanda-floating-chat-title' )"
       @click="openWindow"
     >
-      💬
-    </div>
+      <cdx-icon :icon="cdxIconSpeechBubbles"></cdx-icon>
+    </cdx-button>
 
-    <div class="wanda-floating-window" :class="{ show: open }" v-show="open && showPopup">
+    <div class="wanda-floating-window" :class="{ show: open, maximized: maximized }" v-show="open && showPopup">
       <div class="wanda-chat-header">
-        <span v-text="msg( 'wanda-floating-chat-header' )"></span>
+        <span class="wanda-chat-title" v-text="msg( 'wanda-floating-chat-header' )"></span>
         <div class="wanda-header-actions">
-          <button
+          <cdx-button
             v-if="conversationMemoryEnabled && messages.length > 0"
             class="wanda-clear-btn"
-            @click="clearConversation"
+            action="destructive"
+            weight="quiet"
             :aria-label="msg('wanda-clear-conversation-aria')"
             :title="msg('wanda-clear-conversation')"
-          ><cdx-icon :icon="cdxIconTrash" size="small"></cdx-icon></button>
-          <button class="wanda-close-btn" @click="closeWindow">×</button>
+            @click="clearConversation"
+          >
+            <cdx-icon :icon="cdxIconTrash"></cdx-icon>
+          </cdx-button>
+          <cdx-button
+            class="wanda-maximize-btn"
+            weight="quiet"
+            :aria-label="maximizeLabel"
+            :title="maximizeLabel"
+            @click="maximized = !maximized"
+          >
+            <cdx-icon :icon="maximized ? cdxIconExitFullscreen : cdxIconFullScreen"></cdx-icon>
+          </cdx-button>
+          <cdx-button
+            class="wanda-close-btn"
+            weight="quiet"
+            :aria-label="msg('wanda-close')"
+            @click="closeWindow"
+          >
+            <cdx-icon :icon="cdxIconClose"></cdx-icon>
+          </cdx-button>
         </div>
       </div>
       <div class="chat-container wanda-floating-chat">
@@ -28,13 +51,13 @@
           <div v-for="(m, idx) in messages" :key="idx" :class="['chat-message-wrapper', m.role + '-wrapper']">
             <div class="chat-message-container">
               <div class="chat-message" :class="[ m.role + '-message' ]">
-                <div v-html="m.content"></div><br>
+                <div v-html="m.content"></div>
                 <div v-if="m.role === 'user' && m.sources && m.sources.length > 0" class="wanda-message-sources">
-                  <span
+                  <cdx-info-chip
                     v-for="src in m.sources"
                     :key="src"
                     class="wanda-source-chip"
-                  >{{ sourceLabel( src ) }}</span>
+                  >{{ sourceLabel( src ) }}</cdx-info-chip>
                 </div>
                 <cdx-accordion
                   v-if="m.role === 'bot' && m.steps && m.steps.length > 0"
@@ -71,12 +94,10 @@
         </div>
 
         <div class="chat-instructions" v-show="messages.length === 0">
-          <h2>{{ msg( 'wanda-chat-welcometext' ) }}</h2>
-          <p>{{ msg( 'wanda-chat-welcomedesc' ) }}</p>
-          <ul>
-            <li>💬 {{ msg( 'wanda-chat-instruction1' ) }}</li>
-            <li>🤖 {{ msg( 'wanda-chat-instruction2' ) }}</li>
-          </ul>
+          <welcome-typewriter
+        :title="msg( 'wanda-chat-welcometext' )"
+        :description="msg( 'wanda-chat-welcomedesc' )"
+      ></welcome-typewriter>
         </div>
 
         <div class="chat-progress-bar" v-if="loading">
@@ -84,15 +105,6 @@
         </div>
 
         <div class="chat-input-container">
-          <cdx-checkbox
-            v-model="conversationMemoryEnabled"
-            id="wanda-floating-toggle-conversation-memory"
-            :aria-label="msg('wanda-toggle-memory-aria')"
-            @change="onMemoryToggleChange"
-          >
-            {{ msg('wanda-toggle-memory-label') }}
-          </cdx-checkbox>
-
           <div v-if="canEdit" class="wanda-edit-card">
             <div class="wanda-edit-card-heading">{{ msg('wanda-edit-card-heading') }}</div>
             <div class="wanda-edit-mode-row">
@@ -122,26 +134,23 @@
             </div>
           </div>
 
-          <div class="wanda-question-card">
-            <div class="wanda-sources-row">
-              <span class="wanda-sources-label">Sources:</span>
-              <div class="wanda-source-selector">
-                <label
-                  v-for="opt in sourceOptions"
-                  :key="opt.value"
-                  class="wanda-source-checkbox"
-                >
-                  <input
-                    type="checkbox"
-                    :value="opt.value"
-                    :checked="selectedValues.includes( opt.value )"
-                    @change="toggleSource( opt.value, $event.target.checked )"
-                  />
-                  {{ opt.label }}
-                </label>
-              </div>
+          <div class="wanda-sources-row">
+            <span class="wanda-sources-label">{{ msg( 'wanda-sources-label' ) }}</span>
+            <div class="wanda-source-selector">
+              <cdx-checkbox
+                v-for="opt in sourceOptions"
+                :key="opt.value"
+                class="wanda-source-checkbox"
+                inline
+                :model-value="selectedValues.includes( opt.value )"
+                @update:model-value="toggleSource( opt.value, $event )"
+              >
+                {{ opt.label }}
+              </cdx-checkbox>
             </div>
+          </div>
 
+          <div class="wanda-composer">
             <div class="wanda-attached-images" v-if="attachedImages.length > 0">
               <div
                 v-for="(image, idx) in attachedImages"
@@ -153,33 +162,54 @@
                   <span class="wanda-image-title">{{ image.title }}</span>
                   <span class="wanda-image-size">{{ formatFileSize(image.size) }}</span>
                 </div>
-                <button
+                <cdx-button
                   class="wanda-remove-image"
-                  @click.stop="removeImage(idx)"
+                  weight="quiet"
                   :aria-label="msg('wanda-remove-image-aria')"
-                >×</button>
+                  @click.stop="removeImage(idx)"
+                >
+                  <cdx-icon :icon="cdxIconClose"></cdx-icon>
+                </cdx-button>
               </div>
             </div>
 
-            <div class="wanda-floating-input-row">
+            <cdx-text-area
+              id="wanda-floating-chat-input"
+              v-model="inputText"
+              class="chat-input-box"
+              :rows="2"
+              autosize
+              :placeholder="msg( 'wanda-input-placeholder' )"
+              @keydown.enter.exact.prevent="sendMessage"
+            ></cdx-text-area>
+
+            <div class="wanda-composer-toolbar">
               <cdx-button v-if="enableAttachments"
                 class="wanda-attach-button"
-                action="default"
                 weight="quiet"
-                @click="openImagePicker"
                 :title="msg('wanda-attach-image-title')"
+                :aria-label="msg('wanda-attach-image-title')"
+                @click="openImagePicker"
               >
                 <cdx-icon :icon="cdxIconImage"></cdx-icon>
               </cdx-button>
-              <cdx-text-area
-                id="wanda-floating-chat-input"
-                v-model="inputText"
-                class="chat-input-box"
-                :rows="2"
-                placeholder="Type your message..."
-                @keydown.enter.exact.prevent="sendMessage"
-              ></cdx-text-area>
-              <cdx-button action="progressive" weight="primary" :disabled="loading || editBusy" @click="sendMessage">Send</cdx-button>
+              <cdx-checkbox
+                v-model="conversationMemoryEnabled"
+                id="wanda-floating-toggle-conversation-memory"
+                class="wanda-memory-toggle"
+                inline
+                :aria-label="msg('wanda-toggle-memory-aria')"
+                @change="onMemoryToggleChange"
+              >
+                {{ msg('wanda-toggle-memory-label') }}
+              </cdx-checkbox>
+              <cdx-button
+                class="wanda-send-button"
+                action="progressive"
+                weight="primary"
+                :disabled="!canSend"
+                @click="sendMessage"
+              >{{ msg( 'wanda-send' ) }}</cdx-button>
             </div>
           </div>
         </div>
@@ -255,10 +285,11 @@
 </template>
 
 <script>
-const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxLookup } = require( '../../codex.js' );
-const { cdxIconImage, cdxIconTrash } = require( '../../icons.json' );
+const { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxLookup, CdxInfoChip } = require( '../../codex.js' );
+const { cdxIconClose, cdxIconExitFullscreen, cdxIconFullScreen, cdxIconImage, cdxIconSpeechBubbles, cdxIconTrash } = require( '../../icons.json' );
 const { ref } = require( 'vue' );
 const EditReview = require( './EditReview.vue' );
+const WelcomeTypewriter = require( './WelcomeTypewriter.vue' );
 const editWorkflow = require( '../editWorkflow.js' );
 
 const BASE_SOURCE_OPTIONS = [
@@ -287,7 +318,7 @@ const AVAILABLE_SOURCE_OPTIONS = ALL_SOURCE_OPTIONS.filter(
 module.exports = exports = {
   name: 'FloatingChat',
   mixins: [ editWorkflow ],
-  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxLookup, EditReview },
+  components: { CdxButton, CdxTextArea, CdxProgressBar, CdxCheckbox, CdxDialog, CdxTextInput, CdxIcon, CdxAccordion, CdxLookup, CdxInfoChip, EditReview, WelcomeTypewriter },
   setup() {
     const defaultSource = AVAILABLE_SOURCE_OPTIONS[0] || null;
     const selectedValues = ref( defaultSource ? [ defaultSource.value ] : [] );
@@ -312,6 +343,7 @@ module.exports = exports = {
   data() {
     return {
       open: false,
+      maximized: false,
       inputText: '',
       messages: [],
       loading: false,
@@ -327,7 +359,11 @@ module.exports = exports = {
       maxImageSize: mw.config.get( 'WandaMaxImageSize' ) || 5242880,
       maxImageCount: mw.config.get( 'WandaMaxImageCount' ) || 10,
       showConfidenceScore: !!mw.config.get( 'WandaShowConfidenceScore' ),
+      cdxIconClose: cdxIconClose,
+      cdxIconExitFullscreen: cdxIconExitFullscreen,
+      cdxIconFullScreen: cdxIconFullScreen,
       cdxIconImage: cdxIconImage,
+      cdxIconSpeechBubbles: cdxIconSpeechBubbles,
       cdxIconTrash: cdxIconTrash,
       conversationMemoryEnabled: true,
       conversationHistory: [],
@@ -336,12 +372,19 @@ module.exports = exports = {
     };
   },
   computed: {
+    maximizeLabel() {
+      return this.msg( this.maximized ? 'wanda-restore-window' : 'wanda-maximize-window' );
+    },
+    canSend() {
+      return !this.loading && !this.editBusy && this.inputText.trim() !== '';
+    },
     sendLabel() {
       return 'Send';
     }
   },
   mounted() {
     document.addEventListener( 'click', this.onDocumentClick );
+    document.addEventListener( 'keydown', this.onShortcut );
     // Restore conversation state from sessionStorage
     try {
       const savedToggle = sessionStorage.getItem( 'wanda-floating-memory-enabled' );
@@ -366,6 +409,7 @@ module.exports = exports = {
   },
   beforeUnmount() {
     document.removeEventListener( 'click', this.onDocumentClick );
+    document.removeEventListener( 'keydown', this.onShortcut );
   },
   methods: {
     msg( key ) {
@@ -385,6 +429,17 @@ module.exports = exports = {
     },
     closeWindow() {
       this.open = false;
+    },
+    onShortcut( e ) {
+      if ( !this.showPopup || e.code !== 'Space' || e.altKey || !e.shiftKey || !( e.ctrlKey || e.metaKey ) ) {
+        return;
+      }
+      e.preventDefault();
+      if ( this.open ) {
+        this.closeWindow();
+      } else {
+        this.openWindow();
+      }
     },
     onDocumentClick( e ) {
       if ( !this.open ) {
