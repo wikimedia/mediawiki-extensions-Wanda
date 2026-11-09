@@ -7,8 +7,6 @@
 	"wanda-desc": "Chatbot für MediaWiki",
 	"wanda-chat-welcometext": "Hallo! Ich bin Wanda, deine KI-Assistentin.",
 	"wanda-chat-welcomedesc": "Frage mich nach allem, was in deinem Wiki steht, und ich werde versuchen, dir zu helfen!",
-	"wanda-chat-instruction1": "Erhalte Antworten auf deine Fragen",
-	"wanda-chat-instruction2": "KI-gestützte Antworten",
 	"wanda-chat-pdftotext-error": "Bitte stelle sicher, dass das Dienstprogramm „pdftotext“ installiert und einsatzbereit ist.",
 	"wanda-floating-chat-title": "Chatte mit Wanda",
 	"apihelp-wandachat-summary": "Sende eine Frage oder Anfrage an den Chatbot der Wanda-Erweiterung",

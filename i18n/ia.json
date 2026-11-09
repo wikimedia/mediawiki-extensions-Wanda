@@ -7,8 +7,6 @@
 	"wanda-desc": "Chatbot pro MediaWiki",
 	"wanda-chat-welcometext": "Salute! Io es Wanda, tu assistente IA.",
 	"wanda-chat-welcomedesc": "Pone me questiones sur qualcunque cosa in tu wiki, e io tentara adjutar te!",
-	"wanda-chat-instruction1": "Obtener responsas a tu questiones",
-	"wanda-chat-instruction2": "Responsas generate per IA",
 	"wanda-chat-pdftotext-error": "Assecura te que le utilitate “pdftotext” es installate e preste a usar.",
 	"wanda-floating-chat-title": "Conversar con Wanda",
 	"apihelp-wandachat-summary": "Invia un question o un requesta al chatbot del extension Wanda",

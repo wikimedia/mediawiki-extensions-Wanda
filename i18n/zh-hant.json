@@ -9,8 +9,6 @@
 	"wanda-desc": "MediaWiki 的聊天機器人",
 	"wanda-chat-welcometext": "嗨！我是您的 AI 助手 Wanda。",
 	"wanda-chat-welcomedesc": "請向我詢問有關您的 wiki 任何問題，我會盡力幫助您！",
-	"wanda-chat-instruction1": "取得您問題的答案",
-	"wanda-chat-instruction2": "人工智慧響應",
 	"wanda-chat-pdftotext-error": "請確認已安裝 pdftotext 公用程式並可使用。",
 	"wanda-floating-chat-title": "與 Wanda 聊天",
 	"apihelp-wandachat-summary": "向 Wanda 擴充聊天機器人發送問題或請求",

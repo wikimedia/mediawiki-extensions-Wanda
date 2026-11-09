@@ -10,8 +10,6 @@
 	"wanda-desc": "미디어위키를 위한 챗봇",
 	"wanda-chat-welcometext": "안녕하세요! 저는 완다, 당신의 AI 비서입니다.",
 	"wanda-chat-welcomedesc": "저에게 위키에 있는 어떤 것이든 물어보세요. 제가 도와드리겠습니다!",
-	"wanda-chat-instruction1": "질문에 대한 답변 얻기",
-	"wanda-chat-instruction2": "AI에 기반한 응답",
 	"wanda-chat-pdftotext-error": "pdftotext 유틸리티가 설치되어 있고 사용할 준비가 되었는지 확인하세요.",
 	"wanda-floating-chat-title": "완다와 채팅하기",
 	"apihelp-wandachat-summary": "완다 확장 기능 챗봇에 질문이나 요청을 보내세요",

@@ -10,8 +10,6 @@
 	"wanda-desc": "Chatbot voor MediaWiki",
 	"wanda-chat-welcometext": "Hallo! Ik ben Wanda, uw AI-assistent.",
 	"wanda-chat-welcomedesc": "Stel mij gerust vragen over alles op uw wiki, dan probeer ik u te helpen!",
-	"wanda-chat-instruction1": "Krijg antwoorden op uw vragen",
-	"wanda-chat-instruction2": "AI-gestuurde reacties",
 	"wanda-chat-pdftotext-error": "Zorg ervoor dat het hulpprogramma ‘pdftotext’ geïnstalleerd en klaar voor gebruik is.",
 	"wanda-floating-chat-title": "Chat met Wanda",
 	"apihelp-wandachat-summary": "Een vraag of verzoek naar de chatbot van de uitbreiding Wanda sturen",
