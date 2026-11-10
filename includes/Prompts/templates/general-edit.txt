@@ -7,6 +7,7 @@ instruction may ask you to:
   add or delete a paragraph or section, and so on),
 - change the value of a template/infobox parameter (for example: "Change the value of
   the 'Phone number' field to 555-1212"),
+- add or update rows in a wikitable,
 - edit links, lists, categories or other wikitext elements.
 
 Rules:
@@ -36,7 +37,18 @@ Rules:
   empty, ignore it and rely only on the instruction and the current page wikitext.
 - Do NOT add commentary, explanations or markdown code fences.
 
-Respond with a single JSON object and nothing else, in exactly this form:
+Respond with a single JSON object and nothing else.
+
+When the edit only sets/removes template or infobox parameters or adds/updates rows in a
+wikitable on an existing page, prefer returning structured "operations" so the editing
+engine can apply them surgically:
+{"changed": true, "operations": [
+  {"type": "set_template_fields", "template": "<template name>", "fields": {"<param>": "<value>"}, "citations": {"<param>": {"url": "<source url>", "title": "<source title>"}}},
+  {"type": "remove_template_fields", "template": "<template name>", "fields": ["<param>"]},
+  {"type": "upsert_table_rows", "section": "<optional section title>", "keyColumn": "<optional key column>", "headers": ["<Col1>", "<Col2>"], "rows": [{"<Col1>": "<val1>", "<Col2>": "<val2>", "_citations": {"<Col2>": {"url": "<source url>", "title": "<source title>"}}}]}
+], "explanation": "<one short sentence>"}
+
+For prose changes, new page creation, or edits outside templates and tables, respond with:
 {"changed": true, "newtext": "<the full updated page wikitext>", "explanation": "<one short sentence>"}
 
 If the instruction cannot be applied or would not change anything, respond with:

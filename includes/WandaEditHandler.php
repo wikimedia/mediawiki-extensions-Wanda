@@ -63,17 +63,21 @@ class WandaEditHandler {
 			return [ 'changed' => false, 'newtext' => '', 'explanation' => '', 'failed' => true ];
 		}
 
-		return $this->parseEditResponse( $response );
+		return $this->parseEditResponse( $response, $currentWikitext );
 	}
 
 	/**
 	 * Parse the model's JSON edit response, tolerating code fences and surrounding prose.
 	 *
+	 * Supports both structured `"operations"` payloads (applied surgically via
+	 * {@see WandaStructuredEditor}) and full-page `"newtext"` payloads.
+	 *
 	 * @param string $response Raw LLM output
+	 * @param string $currentWikitext Current page wikitext for applying structured operations
 	 * @return array{changed:bool,newtext:string,explanation:string,failed?:bool}
 	 *   `failed` is set when the response could not be parsed at all.
 	 */
-	public function parseEditResponse( string $response ): array {
+	public function parseEditResponse( string $response, string $currentWikitext = '' ): array {
 		$default = [ 'changed' => false, 'newtext' => '', 'explanation' => '', 'failed' => true ];
 
 		$text = trim( $response );
@@ -101,8 +105,21 @@ class WandaEditHandler {
 		}
 
 		$changed = !empty( $data['changed'] );
-		$newtext = isset( $data['newtext'] ) ? (string)$data['newtext'] : '';
 		$explanation = isset( $data['explanation'] ) ? (string)$data['explanation'] : '';
+
+		if ( $changed && !empty( $data['operations'] ) && is_array( $data['operations'] ) ) {
+			$newtext = WandaStructuredEditor::apply( $currentWikitext, $data['operations'] );
+			if ( trim( $newtext ) === '' || $newtext === $currentWikitext ) {
+				return [ 'changed' => false, 'newtext' => '', 'explanation' => $explanation ];
+			}
+			return [
+				'changed' => true,
+				'newtext' => $newtext,
+				'explanation' => $explanation,
+			];
+		}
+
+		$newtext = isset( $data['newtext'] ) ? (string)$data['newtext'] : '';
 
 		// A "changed" answer with no text is meaningless; treat it as no change.
 		if ( $changed && trim( $newtext ) === '' ) {

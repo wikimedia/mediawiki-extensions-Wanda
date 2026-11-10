@@ -147,4 +147,48 @@ class WandaEditHandlerTest extends MediaWikiUnitTestCase {
 
 		$this->assertTrue( $result['failed'] );
 	}
+
+	public function testAppliesStructuredOperationsPayloadToCurrentWikitext() {
+		$current = "{{Infobox city\n| name = Boston\n| mayor = [[Kim Janey]]\n}}\nLead paragraph.";
+		$response = json_encode( [
+			'changed' => true,
+			'operations' => [
+				[
+					'type' => 'set_template_fields',
+					'template' => 'Infobox city',
+					'fields' => [ 'mayor' => '[[Michelle Wu]]', 'area_code' => '617' ],
+				],
+			],
+			'explanation' => 'Updated mayor and added area code.',
+		] );
+
+		$result = $this->newHandler()->parseEditResponse( $response, $current );
+
+		$this->assertTrue( $result['changed'] );
+		$this->assertSame(
+			"{{Infobox city\n| name = Boston\n| mayor = [[Michelle Wu]]\n| area_code = 617\n}}\nLead paragraph.",
+			$result['newtext']
+		);
+		$this->assertSame( 'Updated mayor and added area code.', $result['explanation'] );
+	}
+
+	public function testStructuredOperationsProducingNoDiffReturnsChangedFalse() {
+		$current = "{{Infobox city\n| name = Boston\n}}";
+		$response = json_encode( [
+			'changed' => true,
+			'operations' => [
+				[
+					'type' => 'set_template_fields',
+					'template' => 'Infobox city',
+					'fields' => [ 'name' => 'Boston' ],
+				],
+			],
+			'explanation' => 'No actual difference.',
+		] );
+
+		$result = $this->newHandler()->parseEditResponse( $response, $current );
+
+		$this->assertFalse( $result['changed'] );
+		$this->assertSame( '', $result['newtext'] );
+	}
 }
