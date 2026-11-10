@@ -14,12 +14,17 @@ namespace MediaWiki\Extension\Wanda\Specials;
 use MediaWiki\Extension\Wanda\CargoQueryHandler;
 use MediaWiki\Extension\Wanda\SMWQueryHandler;
 use MediaWiki\Html\Html;
-use SpecialPage;
+use MediaWiki\SpecialPage\SpecialPage;
 
 class SpecialAIChat extends SpecialPage {
 
 	public function __construct() {
-		parent::__construct( 'Wanda', 'wanda-chat' );
+		// getRestriction() only takes effect with MW 1.46+.
+		if ( version_compare( MW_VERSION, '1.46', '>=' ) ) {
+			parent::__construct( 'Wanda' );
+		} else {
+			parent::__construct( 'Wanda', 'wanda-chat' );
+		}
 	}
 
 	/**
